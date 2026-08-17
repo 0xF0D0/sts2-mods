@@ -5,6 +5,7 @@ Mods for Slay the Spire 2 (Godot 4.5.1 / .NET 9 / HarmonyX).
 | Mod | Description |
 |---|---|
 | [UndoSync](UndoSync/) | Multiplayer-capable combat undo (Left Arrow). Instant restore in singleplayer; vote-based simultaneous restore across all peers in multiplayer. |
+| [PeerView](PeerView/) | Read-only spectate mode for multiplayer combat: click an ally to see their hand, piles, and deck through the vanilla UI. Only the viewer needs it installed. |
 
 ## Building
 
