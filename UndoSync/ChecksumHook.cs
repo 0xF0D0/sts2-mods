@@ -72,7 +72,13 @@ internal static class ChecksumHook
             var cs = UndoSyncMod.GetCombatState();
             if (cs == null || cs.CurrentSide != CombatSide.Player) return;
             var syncr = RunManager.Instance?.ActionQueueSynchronizer;
-            if (syncr == null || syncr.CombatState != ActionSynchronizerCombatState.PlayPhase) return;
+            if (syncr == null) return;
+            // The turn-start boundary checksum can fire a beat before the synchronizer
+            // flips to PlayPhase (slower with more peers) — it is still the same
+            // logical moment on every peer, and it is the anchor that lets the first
+            // action of a turn be undone.
+            bool turnStartAnchor = context.StartsWith("After player turn start");
+            if (!turnStartAnchor && syncr.CombatState != ActionSynchronizerCombatState.PlayPhase) return;
 
             var snapshot = StateSnapshot.Capture();
             if (snapshot == null || snapshot.IsFailed)
