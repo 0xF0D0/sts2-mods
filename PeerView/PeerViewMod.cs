@@ -9,6 +9,7 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
@@ -132,7 +133,9 @@ internal static class PeerSpectate
             CustomMinimumSize = new Vector2(900f, 44f),
             Size = new Vector2(900f, 44f),
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            Text = $"관전 중 — {PeerScreens.PlayerName(peer)}",
+            Text = PeerScreens.IsKorean
+                ? $"관전 중 — {PeerScreens.PlayerName(peer)}"
+                : $"Spectating — {PeerScreens.PlayerName(peer)}",
         };
         _header.AddThemeFontSizeOverride("font_size", 30);
         _header.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.4f));
@@ -791,9 +794,9 @@ internal static class PeerScreens
                 return;
             string pileName = type switch
             {
-                PileType.Draw => "뽑을 카드 더미 (실제 순서와 무관하게 정렬됨)",
-                PileType.Discard => "버린 카드 더미",
-                PileType.Exhaust => "소멸된 카드 더미",
+                PileType.Draw => IsKorean ? "뽑을 카드 더미 (실제 순서와 무관하게 정렬됨)" : "Draw Pile (sorted — actual order hidden)",
+                PileType.Discard => IsKorean ? "버린 카드 더미" : "Discard Pile",
+                PileType.Exhaust => IsKorean ? "소멸된 카드 더미" : "Exhaust Pile",
                 _ => type.ToString(),
             };
             label.Text = $"[center]{PlayerName(peer)} — {pileName}";
@@ -802,6 +805,25 @@ internal static class PeerScreens
         catch (System.Exception e)
         {
             Log.Write($"owner label error: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Same language gate UndoSync uses: Korean strings for the "kor" game
+    /// language, English otherwise.
+    /// </summary>
+    internal static bool IsKorean
+    {
+        get
+        {
+            try
+            {
+                return LocManager.Instance.Language == "kor";
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 

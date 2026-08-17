@@ -11,7 +11,8 @@ counters show their values — the same screen grammar as playing yourself.
     live-updating as they draw and play)
   - The energy orb and draw/discard/exhaust counters switch to their values
     (the exhaust button pops in/out based on *their* exhaust pile)
-  - A "관전 중 — name" banner shows at the top center of the screen
+  - A "Spectating — name" banner shows at the top center of the screen
+    (Korean strings when the game language is Korean)
 - While spectating:
   - Click a pile button or use the game's view hotkeys → that player's pile
     (the draw pile is displayed sorted, order hidden — same as vanilla)
