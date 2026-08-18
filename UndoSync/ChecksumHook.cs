@@ -65,6 +65,12 @@ internal static class ChecksumHook
     private static readonly System.Reflection.FieldInfo? TrackerQueuedRemoteField =
         AccessTools.Field(typeof(ChecksumTracker), "_queuedRemoteChecksums");
 
+    // Change C: ActionQueueSet._wasReset (ActionQueueSet.cs:63) gates PopAction (:562) into a
+    // no-op. Normalized alongside the other synchronizer counters in RestoreTo — see the
+    // comment there for why it can only ever be false at a restore point.
+    private static readonly System.Reflection.FieldInfo? ActionQueueSetWasResetField =
+        AccessTools.Field(typeof(ActionQueueSet), "_wasReset");
+
     internal static void EnsureSubscribed()
     {
         var tracker = RunManager.Instance?.ChecksumTracker;
@@ -220,6 +226,12 @@ internal static class ChecksumHook
     /// SerializeCurrentState computes StateBytes — NetFullCombatState.FromRun(rs, null).ToString(),
     /// justFinishedAction always null (see SerializeCurrentState's doc comment for why) — rather
     /// than trusting a caller-supplied NetFullCombatState, so both capture paths are consistent.
+    ///
+    /// Anchor eligibility gate: even a checksum that passed every filter above (player side,
+    /// PlayPhase, IsPlayerDecision) is not automatically safe to anchor on. Both conditions below
+    /// read game logic state at a checksum moment — never local input/UI/frame timing — so they
+    /// evaluate identically on every peer, and living here (rather than in the two callers) means
+    /// neither capture path can bypass them.
     /// </summary>
     private static void TryStoreSyncPoint(uint checksumId, string context)
     {
@@ -229,6 +241,39 @@ internal static class ChecksumHook
         {
             Log.Write($"[ChecksumHook] id={checksumId} TryStoreSyncPoint: RunManager/synchronizer unavailable, skipping");
             return;
+        }
+
+        var cs = UndoSyncMod.GetCombatState();
+        if (cs == null)
+        {
+            Log.Write($"[ChecksumHook] id={checksumId} TryStoreSyncPoint: no combat state, skipping");
+            return;
+        }
+
+        foreach (var player in cs.Players)
+        {
+            // A1: every player must actually be in the play phase. The turn-start checksum
+            // ("After player turn start") fires BEFORE RunAutoPrePlayPhase (CombatManager.cs:
+            // 859-869) has run the play-phase entry hooks and moved the player Start -> AutoPrePlay
+            // -> Play for every player (CombatManager.cs:862/865) — a snapshot taken while ANOTHER
+            // player is still mid turn-start would restore into that half-entered state, and the
+            // game will not re-run those hooks for it.
+            if (player.PlayerCombatState?.Phase != PlayerTurnPhase.Play)
+            {
+                Log.Write($"[ChecksumHook] id={checksumId} ({context}) SKIPPED — player {player.NetId} not in Play phase (phase={player.PlayerCombatState?.Phase.ToString() ?? "none"})");
+                return;
+            }
+
+            // A2: no player may be mid card/potion effect resolution — including nested
+            // auto-plays (e.g. a Sly card auto-played when discarded), per
+            // IsExecutingCardOrPotionEffect's own doc comment. Public method, no reflection
+            // (CombatManager.cs:368-371, backed by _cardOrPotionEffectDepth at :56/:387/:398).
+            // Anchoring mid-resolution would restore into a partially-resolved effect.
+            if (CombatManager.Instance.IsExecutingCardOrPotionEffect(player))
+            {
+                Log.Write($"[ChecksumHook] id={checksumId} ({context}) SKIPPED — player {player.NetId} mid card/potion effect resolution");
+                return;
+            }
         }
 
         var snapshot = StateSnapshot.Capture();
@@ -474,6 +519,17 @@ internal static class ChecksumHook
             rm.ActionQueueSet.FastForwardNextActionId(sp.NextActionId);
             rm.ActionQueueSynchronizer.FastForwardHookId(sp.NextHookId);
             rm.PlayerChoiceSynchronizer.FastForwardChoiceIds(new List<uint>(sp.ChoiceIds));
+
+            // ActionQueueSet._wasReset (ActionQueueSet.cs:63) is set true ONLY by Reset()
+            // (:437), and Reset() is called from exactly one place in the whole game assembly —
+            // RunManager.CleanUp (RunManager.cs:1557), which also empties _actionQueues
+            // wholesale. A restore always lands on a still-live, mid-combat play phase with
+            // real per-player queues, so _wasReset can only be false there — but nothing else
+            // forces it back after a restore, so force it explicitly rather than trust it
+            // survived the discarded timeline correctly. Left true, it would make PopAction
+            // (:562) silently no-op for every action executed after the restore.
+            if (ActionQueueSetWasResetField != null)
+                ActionQueueSetWasResetField.SetValue(rm.ActionQueueSet, false);
 
             // 3. Checksum tracker: next checksum reuses id ChecksumId+1, and stale
             //    tracked entries must go or the host would compare a reused id against

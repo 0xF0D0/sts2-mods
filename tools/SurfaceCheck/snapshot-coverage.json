@@ -18,6 +18,27 @@
       "CreaturesChanged": "C# event, not state"
     }
   },
+  "MegaCrit.Sts2.Core.Combat.CombatTurnState": {
+    "captured": {
+      "<PlayersTakingExtraTurn>k__BackingField": "StateSnapshot.Capture/RestoreTurnCoordination via CombatManager.PlayersTakingExtraTurn (read) and PTsPlayersTakingExtraTurn (write) — rebuilt from _playersTakingExtraTurn NetIds",
+      "<IsEnemyTurnStarted>k__BackingField": "StateSnapshot.RestoreTurnCoordination forces this to false via PTsIsEnemyTurnStarted, logging first if it was found true (CombatManager.cs:833/839 are its only writers, both transition-scoped)",
+      "<EndingPlayerTurnPhaseOne>k__BackingField": "StateSnapshot.RestoreTurnCoordination forces this to false via PTsEndingPlayerTurnPhaseOne, logging first if it was found true (CombatManager.cs:1458/1471 are its only writers, both transition-scoped)",
+      "<EndingPlayerTurnPhaseTwo>k__BackingField": "StateSnapshot.RestoreTurnCoordination forces this to false via PTsEndingPlayerTurnPhaseTwo, logging first if it was found true (CombatManager.cs:1706/1720 are its only writers, both transition-scoped)",
+      "<PlayersReadyToBeginEnemyTurn>k__BackingField": "StateSnapshot.RestoreTurnCoordination clears this via PTsPlayersReadyToBeginEnemyTurn, logging first if it was found non-empty (cleared at the start of every player turn, CombatManager.cs:730)",
+      "<PlayersReadyToEndTurn>k__BackingField": "already normalized before this task, via UiRefresh.ResetInteraction -> CombatManager.UndoReadyToEndTurn (public API) for every player IsPlayerReadyToEndTurn — Change B deliberately does not duplicate this"
+    },
+    "ignored": {
+      "_cts": "write-once at construction (field initializer, CombatTurnState.cs:25); identity-preserved — the same CombatTurnState instance persists for the whole combat, an undo never crosses SetUpCombat/Reset, and the token's cancellation state reflects combat teardown, not data an undo rewinds",
+      "<Id>k__BackingField": "write-once identity: get-only, set only in the constructor (CombatTurnState.cs:32,104-108); identity preserved across undo (same instance for the whole combat)",
+      "<State>k__BackingField": "write-once back-reference: get-only, set only in the constructor (CombatTurnState.cs:38,104,106) to the same CombatState instance StateSnapshot already operates on; identity preserved",
+      "<ReadyLock>k__BackingField": "write-once: get-only, `= new Lock()` field initializer (CombatTurnState.cs:62); deliberately never reflected into (see StateSnapshot.RestoreTurnCoordination doc comment) — RestoreTo runs with the action queue idle on the main thread, so nothing else can be contending for it",
+      "<IsInProgress>k__BackingField": "true for the entire duration of a live combat (set true once at CombatManager.cs:592; the only false-writers, CombatManager.cs:1280/1304, are combat-end/pending-loss processing). ChecksumHook only stores/restores play-phase sync points, which only exist while the combat's turn loop is actively running — same reasoning already accepted in this ledger for MonsterModel._isPerformingMove",
+      "<IsStarting>k__BackingField": "write-once false: `= true` field initializer (CombatTurnState.cs:96), flipped false at CombatManager.cs:593 in the same statement that sets IsInProgress=true, before the turn loop can generate its first checksum; no other writer exists in CombatManager.cs, so it is already false at every capture/restore moment",
+      "<EndTurnSignalSource>k__BackingField": "live async TaskCompletionSource, recreated once per player turn start (CombatManager.cs:731) and awaited by the SAME identity-preserved turn loop Task for that combat; not model data an undo rewinds — analogous to ReadyLock above",
+      "<BeginEnemyTurnSignalSource>k__BackingField": "live async TaskCompletionSource, recreated once per player turn start (CombatManager.cs:732) alongside EndTurnSignalSource — same reasoning",
+      "<PendingLoss>k__BackingField": "UNREVIEWED"
+    }
+  },
   "MegaCrit.Sts2.Core.Entities.Cards.CardPile": {
     "captured": {
       "_cards": "RestorePiles via FPileCards (list cleared and rebuilt from cap.Piles[pile.Type])"
@@ -128,6 +149,22 @@
       "EnergyChanged": "C# event, not state",
       "PlayerTurnPhaseChanged": "C# event, not state",
       "StarsChanged": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSet": {
+    "captured": {
+      "_nextId": "backs the public NextActionId property (ActionQueueSet.cs:77); captured as SyncPoint.NextActionId (ChecksumHook.TryStoreSyncPoint) and restored via the public FastForwardNextActionId (ChecksumHook.RestoreTo) — predates this task",
+      "_wasReset": "Change C: forced to false in ChecksumHook.RestoreTo via ActionQueueSetWasResetField, alongside the other synchronizer counters — not snapshot-captured (its only correct restore value is the constant false), see the RestoreTo comment for why"
+    },
+    "ignored": {
+      "_actionQueues": "not captured/restored: RestoreTo only ever runs when ActionQueueSet.IsEmpty is true (UndoProtocol.CommitAsync's gate, background invariant) and restoring game data never enqueues new actions, so every per-player queue (ActionQueueSet.cs:48) is already correctly empty at both capture and restore time",
+      "_actionsWaitingForResumption": "Change C investigation (see report): entries are transient, decoupled resume-message/pause-call races inherent to normal multiplayer message ordering (ResumeActionWithoutSynchronizing :499-520 queues an entry when TryGetAction fails or the action isn't yet GatheringPlayerChoice; PauseActionForPlayerChoice :270-279 is what consumes it, whenever that action's OWN pause eventually runs) — not model data our undo semantically rewinds, and not reachable through _actionQueues emptiness the way _wasReset is. Deliberately left untouched: clearing it on restore risks discarding a legitimate pending resume for an action that hasn't reached its pause call yet. NOTE: because RestoreTo rewinds _nextId (action ids get reused), a leftover entry whose oldId falls inside the rewound range is a latent collision risk with a future action reusing that id — flagged, not fixed, since we could not prove it is ever actually populated at an idle-queue restore point",
+      "_isInCombat": "true for the entire duration of a live combat (CombatStarted -> CombatEnded, driven by ActionQueueSynchronizer.SetCombatState: ActionQueueSynchronizer.cs:99 sets it true, ActionQueueSet.cs:379 sets it false only on NotInCombat). ChecksumHook only stores/restores play-phase sync points, which only exist mid-combat — same reasoning already accepted in this ledger for MonsterModel._isPerformingMove",
+      "_logger": "write-once: constructed once in the ActionQueueSet constructor (ActionQueueSet.cs:87); logging infrastructure, not game state",
+      "_queuesEmptyCompletionSource": "live async signal (TaskCompletionSource, driven by CheckIfQueuesEmpty, ActionQueueSet.cs:620-635) mirroring _actionQueues' occupancy — not data our restore touches, same reasoning as _actionQueues: RestoreTo only ever runs already-idle, so this is already correctly in its 'empty' completed state",
+      "ActionEnqueued": "C# event, not state",
+      "ActionQueueChanged": "C# event, not state",
+      "ActionResumed": "C# event, not state"
     }
   },
   "MegaCrit.Sts2.Core.Models.MonsterModel": {

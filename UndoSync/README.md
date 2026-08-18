@@ -74,6 +74,25 @@ together (reusing the public replay-bootstrap APIs):
 - `PlayerChoiceSynchronizer.FastForwardChoiceIds`
 - `ChecksumTracker.NextId` (reflection) + its internal
   `_checksums`/`_queuedRemoteChecksums` lists
+- `ActionQueueSet._wasReset` (reflection), forced `false` so a restored play
+  phase never inherits a "queue was reset" flag from the discarded timeline
+
+`CombatManager`'s per-combat turn coordination (`_turnState`, internal type
+`CombatTurnState`) is normalized the same way, in
+`StateSnapshot.RestoreTurnCoordination`: `PlayersTakingExtraTurn` is captured
+by NetId and rebuilt (it's the one field there that's actually non-empty
+mid-play-phase, for the duration of an extra turn), and
+`IsEnemyTurnStarted`/`EndingPlayerTurnPhaseOne`/`EndingPlayerTurnPhaseTwo`/
+`PlayersReadyToBeginEnemyTurn` are forced back to their always-neutral idle
+values — logging loudly if any of them was *not* already neutral, since that
+would mean a play-phase checksum fired mid-transition.
+
+Anchor eligibility is also gated on two more play-phase conditions before a
+checksum is stored at all (`ChecksumHook.TryStoreSyncPoint`): every player
+must actually be in `PlayerTurnPhase.Play` (not still mid turn-start), and no
+player may be mid card/potion effect resolution
+(`CombatManager.IsExecutingCardOrPotionEffect`) — both catch states the game
+would not correctly resume into.
 
 ### Protocol (UndoProtocol.cs)
 
@@ -183,3 +202,16 @@ instances share the user-data directory).
 - Orb visuals are not rebuilt after restore (model state is; display catches
   up on the next orb event) — none of the base test characters use orbs
 - Untested: real Steam matchmaking sessions
+- `CombatTurnState.PendingLoss` is not yet handled: `CombatManager.LoseCombat()`
+  can set it synchronously mid-action (e.g. lethal self-damage), and the game
+  only drains it (`CheckWinCondition`/`ProcessPendingLoss`) *after* that same
+  action's own checksum already fired — so a lethal player-decision action's
+  checksum could in principle land with it non-null. Not confirmed to happen
+  in practice; tracked as `UNREVIEWED` in `snapshot-coverage.json` pending a
+  deliberate decision (extra anchor-eligibility gate, or capture it)
+- `ActionQueueSet._actionsWaitingForResumption` is deliberately left
+  untouched by restore (see `snapshot-coverage.json`): its entries are normal
+  network-reordering artifacts, not something a restore should discard, but
+  because `RestoreTo` reuses action ids after rewinding `NextActionId`, a
+  leftover entry referencing a rewound id is a latent (unconfirmed) collision
+  risk with a future action that reuses that id

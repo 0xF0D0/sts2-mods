@@ -109,6 +109,10 @@ string[] snapshotCoverageTypeNames =
     "MegaCrit.Sts2.Core.Entities.Cards.CardPile",
     "MegaCrit.Sts2.Core.Entities.Orbs.OrbQueue",
     "MegaCrit.Sts2.Core.Combat.CombatState",
+    // Added for Change B (turn coordination restore) / Change C (ActionQueueSet._wasReset
+    // normalization) — StateSnapshot/ChecksumHook now read or write fields on both.
+    "MegaCrit.Sts2.Core.Combat.CombatTurnState",
+    "MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSet",
 };
 
 List<string> FieldNamesOf(Type t) => t.GetFields(InstanceDeclared).Select(fi => fi.Name).ToList();

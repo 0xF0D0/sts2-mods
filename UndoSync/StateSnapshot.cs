@@ -47,6 +47,13 @@ internal sealed class StateSnapshot
     private List<object>? _historyEntries;
     private readonly Dictionary<RunRngType, SerializableRng> _runRngs = new();
 
+    // Change B1: CombatTurnState.PlayersTakingExtraTurn (CombatTurnState.cs:68, exposed
+    // read-only via CombatManager.PlayersTakingExtraTurn, CombatManager.cs:123-136) — captured
+    // by NetId (PlayerCapture.PetIds pattern) since it's combat-scoped, not per-player. See
+    // RestoreTurnCoordination for why this is the one CombatTurnState field that actually
+    // varies within a play phase.
+    private readonly List<ulong> _playersTakingExtraTurn = new();
+
     private readonly List<CreatureCapture> _creatures = new();
     private readonly HashSet<uint> _liveCreatureIds = new();
     private readonly Dictionary<ulong, PlayerCapture> _players = new();
@@ -221,6 +228,27 @@ internal sealed class StateSnapshot
 
     private static readonly FieldInfo? FRunRngs = AccessTools.Field(typeof(RunRngSet), "_rngs");
 
+    // Change B: CombatManager._turnState (type MegaCrit.Sts2.Core.Combat.CombatTurnState,
+    // internal sealed — CombatTurnState.cs:21) is only reachable by reflection since the type
+    // itself is internal to the game assembly. CombatManager already exposes read-only public
+    // wrappers for PlayersTakingExtraTurn/IsEnemyTurnStarted/EndingPlayerTurnPhaseOne/
+    // EndingPlayerTurnPhaseTwo (CombatManager.cs:123-153) — Capture() reads through those, no
+    // reflection needed there. But CombatManager.PlayersTakingExtraTurn returns a defensive
+    // .ToList() COPY (CombatManager.cs:134), and the three bools have no public setter, so
+    // restoring requires reaching CombatTurnState's own properties (live List<Player>, and
+    // { get; set; } bools) through this field.
+    private static readonly FieldInfo? FCmTurnState = AccessTools.Field(typeof(CombatManager), "_turnState");
+    private static readonly PropertyInfo? PTsPlayersTakingExtraTurn =
+        FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "PlayersTakingExtraTurn") : null; // CombatTurnState.cs:68, live List<Player>
+    private static readonly PropertyInfo? PTsIsEnemyTurnStarted =
+        FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "IsEnemyTurnStarted") : null; // CombatTurnState.cs:98
+    private static readonly PropertyInfo? PTsEndingPlayerTurnPhaseOne =
+        FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "EndingPlayerTurnPhaseOne") : null; // CombatTurnState.cs:100
+    private static readonly PropertyInfo? PTsEndingPlayerTurnPhaseTwo =
+        FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "EndingPlayerTurnPhaseTwo") : null; // CombatTurnState.cs:102
+    private static readonly PropertyInfo? PTsPlayersReadyToBeginEnemyTurn =
+        FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "PlayersReadyToBeginEnemyTurn") : null; // CombatTurnState.cs:66, live HashSet<Player>, no CombatManager wrapper
+
     private static readonly MethodInfo MShadowClone =
         typeof(object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
@@ -288,6 +316,12 @@ internal sealed class StateSnapshot
                 foreach (var (type, rng) in rngs)
                     snap._runRngs[type] = rng.ToSerializable();
 
+            // Change B1: see the field's doc comment. Read through CombatManager's own public
+            // wrapper — no reflection needed for the read side.
+            if (CombatManager.Instance?.PlayersTakingExtraTurn is { } extraTurnPlayers)
+                foreach (var p in extraTurnPlayers)
+                    snap._playersTakingExtraTurn.Add(p.NetId);
+
             foreach (var creature in cs.Creatures)
                 snap.CaptureCreature(creature);
 
@@ -297,7 +331,8 @@ internal sealed class StateSnapshot
 
             Log.Write($"Capture: round={snap._round} side={cs.CurrentSide} creatures={snap._creatures.Count} " +
                       $"players=[{string.Join(", ", snap._players.Select(kv => $"{kv.Key}:{DescribePlayer(kv.Value)}"))}] " +
-                      $"history={snap._historyEntries?.Count ?? 0} combatCards={snap._combatCardList.Count}");
+                      $"history={snap._historyEntries?.Count ?? 0} combatCards={snap._combatCardList.Count} " +
+                      $"extraTurn=[{string.Join(",", snap._playersTakingExtraTurn)}]");
             return snap;
         }
         catch (Exception ex)
@@ -493,6 +528,7 @@ internal sealed class StateSnapshot
 
         Try("creatures", () => RestoreCreatures(cs));
         Try("players", () => RestorePlayers(cs));
+        Try("turn coordination", () => RestoreTurnCoordination(cs));
         Try("run rng", RestoreRunRng);
         Try("history", RestoreHistory);
         Try("combat lists", () => RestoreCombatLists(cs));
@@ -941,6 +977,88 @@ internal sealed class StateSnapshot
             if (_relicShadow.TryGetValue(r.Ref, out var shadow))
                 CopyMutableFields(shadow, r.Ref);
         }
+    }
+
+    /// <summary>
+    /// CombatManager keeps per-combat turn coordination on an internal object
+    /// (CombatManager._turnState, type CombatTurnState — CombatTurnState.cs:21). We only ever
+    /// snapshot in, and RestoreTo (ChecksumHook.RestoreTo) only ever restores into, an idle
+    /// player play phase (see UndoProtocol.CommitAsync's gating), so:
+    ///  - PlayersTakingExtraTurn (CombatTurnState.cs:68) is the one field here that actually
+    ///    varies WITHIN a play phase: it's rebuilt wholesale at the player-&gt;enemy transition
+    ///    (SwitchFromPlayerToEnemySide, CombatManager.cs:1824-1832, via Hook.ShouldTakeExtraTurn)
+    ///    and cleared at combat end (:1307) and at that same transition (:1826) — but it stays
+    ///    non-empty for the duration of an extra turn and selects who ends their turn
+    ///    (EndPlayerTurnPhaseOneInternal :1529, EndPlayerTurnPhaseTwoInternal :1748). So it's
+    ///    captured (StateSnapshot._playersTakingExtraTurn, by NetId) and rebuilt here from the
+    ///    live players.
+    ///  - IsEnemyTurnStarted / EndingPlayerTurnPhaseOne / EndingPlayerTurnPhaseTwo
+    ///    (CombatTurnState.cs:98/100/102) are all false at every idle player-play-phase moment:
+    ///    each is set true only for the duration of its own transition and back to false before
+    ///    the next player-phase checksum can fire (CombatManager.cs:833/839, :1458/1471,
+    ///    :1706/1720). PlayersReadyToBeginEnemyTurn (:66) is cleared at the very start of the
+    ///    player turn (CombatManager.cs:730) and only gains entries once a player calls
+    ///    SetReadyToBeginEnemyTurn — again, entirely within-transition. Rather than capture
+    ///    these four, force them to their known-neutral values on restore, and log loudly if any
+    ///    of them was NOT already neutral: that would mean a player-play-phase checksum fired
+    ///    while one of these was non-neutral, which should be impossible under the invariant
+    ///    above — evidence of an unresolved multiplayer divergence we are hunting.
+    ///
+    /// Game code mutates all of the above under turnState.ReadyLock (CombatTurnState.cs:62, e.g.
+    /// CombatManager.cs:1824). We do NOT take that lock via reflection: RestoreTo runs on the
+    /// main thread with the action queue idle (the same invariant CommitAsync relies on to
+    /// restore at all), so nothing else can be contending for it in this window, and reflecting
+    /// into a System.Threading.Lock's ref-struct EnterScope() token for a lock that isn't
+    /// actually contended here would be fragile for no real benefit.
+    /// </summary>
+    private void RestoreTurnCoordination(CombatState cs)
+    {
+        var cm = CombatManager.Instance;
+        var turnState = FCmTurnState?.GetValue(cm);
+        if (turnState == null)
+        {
+            Log.Write("RestoreTurnCoordination: no live CombatTurnState, skipping");
+            return;
+        }
+
+        // B1: rebuild from the live players captured by NetId — see the doc comment above.
+        // Must go through CombatTurnState's own property, not CombatManager.PlayersTakingExtraTurn
+        // (that one returns a .ToList() copy, CombatManager.cs:134 — mutating it would touch
+        // nothing real).
+        if (PTsPlayersTakingExtraTurn?.GetValue(turnState) is List<Player> liveExtraTurn)
+        {
+            var byNetId = cs.Players.ToDictionary(p => p.NetId);
+            liveExtraTurn.Clear();
+            foreach (var netId in _playersTakingExtraTurn)
+                if (byNetId.TryGetValue(netId, out var player))
+                    liveExtraTurn.Add(player);
+        }
+
+        // B2: force the transition-only flags back to neutral, logging first if they weren't.
+        NormalizeNeutralBool(turnState, PTsIsEnemyTurnStarted, cm.IsEnemyTurnStarted, "IsEnemyTurnStarted");
+        NormalizeNeutralBool(turnState, PTsEndingPlayerTurnPhaseOne, cm.EndingPlayerTurnPhaseOne, "EndingPlayerTurnPhaseOne");
+        NormalizeNeutralBool(turnState, PTsEndingPlayerTurnPhaseTwo, cm.EndingPlayerTurnPhaseTwo, "EndingPlayerTurnPhaseTwo");
+
+        if (PTsPlayersReadyToBeginEnemyTurn?.GetValue(turnState) is HashSet<Player> readySet)
+        {
+            if (readySet.Count > 0)
+                Log.Write($"RestoreTurnCoordination: expected neutral, found PlayersReadyToBeginEnemyTurn with {readySet.Count} player(s) still ready — clearing.");
+            readySet.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Forces one of CombatTurnState's transition-only bool flags back to its idle-play-phase
+    /// value (always false — see RestoreTurnCoordination's doc comment), logging loudly first
+    /// if it was found non-neutral. Message is deliberately searchable
+    /// ("RestoreTurnCoordination: expected neutral, found ...") — that log is evidence for an
+    /// unresolved multiplayer divergence we are hunting.
+    /// </summary>
+    private static void NormalizeNeutralBool(object turnState, PropertyInfo? setProp, bool wasSet, string name)
+    {
+        if (wasSet)
+            Log.Write($"RestoreTurnCoordination: expected neutral, found {name}=true — forcing false.");
+        setProp?.SetValue(turnState, false);
     }
 
     private void RestoreRunRng()
