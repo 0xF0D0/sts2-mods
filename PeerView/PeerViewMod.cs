@@ -84,6 +84,7 @@ internal static class PeerSpectate
     private static Control? _cardLayer;
     private static Label? _header;
     private static NPlayerHand? _hiddenHand;
+    private static NEndTurnButton? _hiddenEndTurn;
     private static readonly List<StripCard> _cards = new();
     private static int _hovered = -1;
     private static bool _rebuildQueued;
@@ -113,6 +114,12 @@ internal static class PeerSpectate
         _peer = peer;
         _hiddenHand = hand;
         hand.Visible = false;
+        // Ending your own turn is not something you do while watching someone
+        // else's hand — hide the button (its position/state machine keeps running
+        // underneath; Visible is orthogonal to its tweens).
+        _hiddenEndTurn = room.Ui.EndTurnButton;
+        if (_hiddenEndTurn != null && GodotObject.IsInstanceValid(_hiddenEndTurn))
+            _hiddenEndTurn.Visible = false;
 
         _root = new Control { Name = "PeerViewStrip", MouseFilter = Control.MouseFilterEnum.Ignore };
         hand.GetParent().AddChildSafely(_root);
@@ -221,6 +228,10 @@ internal static class PeerSpectate
         _root = null;
         _cardLayer = null;
         _header = null;
+
+        if (_hiddenEndTurn != null && GodotObject.IsInstanceValid(_hiddenEndTurn))
+            _hiddenEndTurn.Visible = true;
+        _hiddenEndTurn = null;
 
         if (_hiddenHand != null && GodotObject.IsInstanceValid(_hiddenHand))
         {
