@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.ControllerInput;
@@ -15,6 +16,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
@@ -153,6 +155,8 @@ internal static class PeerSpectate
             visible.Position.X + visible.Size.X / 2f - _header.Size.X / 2f,
             visible.Position.Y + 150f);
 
+        AttachExitButton(visible);
+
         if (NCapstoneContainer.Instance != null)
         {
             NCapstoneContainer.Instance.CapstoneClosed += OnCapstoneClosed;
@@ -260,6 +264,41 @@ internal static class PeerSpectate
             PeerIndicators.RestoreAll();
             PeerIndicators.RefreshEnergyCounters();
             Log.Write($"spectate exit: netId={exitedNetId}");
+        }
+    }
+
+    /// <summary>
+    /// The same back button the vanilla pile/deck screens use, borrowed by
+    /// instantiating the card-pile-screen scene and detaching its BackButton node
+    /// (there is no standalone back-button scene). Clicking it exits spectate.
+    /// It lives under _root, so it hides with the strip while a capstone is open
+    /// and is freed with the strip on exit.
+    /// </summary>
+    private static void AttachExitButton(Rect2 visible)
+    {
+        try
+        {
+            string scenePath = SceneHelper.GetScenePath("/screens/card_pile_screen");
+            var donor = PreloadManager.Cache.GetScene(scenePath).Instantiate<Node>();
+            var back = donor.GetNodeOrNull<NButton>("BackButton");
+            if (back == null)
+            {
+                donor.QueueFreeSafelyNoPool();
+                Log.Write("exit button: BackButton not found in donor scene");
+                return;
+            }
+            donor.RemoveChild(back);
+            donor.QueueFreeSafelyNoPool();
+            _root!.AddChildSafely(back);
+            back.GlobalPosition = new Vector2(
+                visible.Position.X,
+                visible.Position.Y + visible.Size.Y * 0.58f);
+            back.Connect(NClickableControl.SignalName.Released, Callable.From<NButton>(_ => Exit()));
+            back.Enable();
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"exit button error: {e}");
         }
     }
 

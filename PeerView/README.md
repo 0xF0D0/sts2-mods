@@ -20,8 +20,9 @@ counters show their values — the same screen grammar as playing yourself.
   - The top-bar deck button or deck hotkey → that player's master deck
   - Pressing the same key/button again toggles the screen closed (the hand
     strip hides while a pile/deck screen is open)
-- Exit: Esc/back, clicking the character again, or automatically on combat
-  end — your own hand and indicators are restored.
+- Exit: the back button on the left edge, Esc/back, clicking the character
+  again, or automatically on combat end — your own hand and indicators are
+  restored.
 - Clicking your own character does nothing (spectate targets are peers only).
 
 ## Why this is safe
