@@ -4,6 +4,7 @@ using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
+using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -25,6 +26,13 @@ internal sealed class SyncPoint
 
     /// <summary>Game state dump at capture time (NetFullCombatState.ToString) — for restore fidelity verification.</summary>
     public string StateDump = "";
+
+    /// <summary>
+    /// The exact bytes ChecksumTracker hashes for this moment (see ChecksumHook.SerializeCurrentState).
+    /// StateDump stays the human-readable report used on mismatch; this is what actually proves
+    /// byte-exact fidelity, since StateDump's ToString() omits several checksummed fields entirely.
+    /// </summary>
+    public byte[]? StateBytes;
 }
 
 internal static class ChecksumHook
@@ -80,6 +88,12 @@ internal static class ChecksumHook
             bool turnStartAnchor = context.StartsWith("After player turn start");
             if (!turnStartAnchor && syncr.CombatState != ActionSynchronizerCombatState.PlayPhase) return;
 
+            // Only the player's own deliberate moves are worth rewinding to. Relic and
+            // power triggers run as their own GameActions (GenericHookGameAction) and
+            // would otherwise flood the picker with steps nobody wants to undo to —
+            // "just before my relic fired" is not a decision the player made.
+            if (!turnStartAnchor && !IsPlayerDecision(context)) return;
+
             var snapshot = StateSnapshot.Capture();
             if (snapshot == null || snapshot.IsFailed)
             {
@@ -96,6 +110,9 @@ internal static class ChecksumHook
                 NextHookId = syncr.NextHookId,
                 ChoiceIds = new List<uint>(RunManager.Instance.PlayerChoiceSynchronizer.ChoiceIds),
                 StateDump = fullState.ToString(),
+                // Independent recompute (not a serialize of fullState) — see SerializeCurrentState
+                // for why it must always pass justFinishedAction=null.
+                StateBytes = SerializeCurrentState(),
             };
             SyncPoints[data.id] = sp;
             while (SyncPoints.Count > MaxSyncPoints)
@@ -108,6 +125,45 @@ internal static class ChecksumHook
         }
     }
 
+    /// <summary>
+    /// The game's own checksum payload for the current state: NetFullCombatState.FromRun(rs, null)
+    /// serialized with the game's PacketWriter. This is exactly what ChecksumTracker hashes, so
+    /// comparing these bytes proves a restore is byte-identical across EVERY checksummed field —
+    /// including the ones ToString() never prints (per-player rngSet, relicGrabBag, pile/potion/
+    /// relic contents rather than their counts).
+    /// justFinishedAction is always passed as null on both sides so the embedded
+    /// lastExecutedActionId/lastExecutedHookId can't make two equal states compare unequal.
+    /// </summary>
+    private static byte[]? SerializeCurrentState()
+    {
+        try
+        {
+            var rs = RunManager.Instance?.DebugOnlyGetState();
+            if (rs == null) return null;
+            var state = NetFullCombatState.FromRun(rs, null);
+            var writer = new PacketWriter { WarnOnGrow = false };
+            state.Serialize(writer);
+            var bytes = new byte[writer.BytePosition];
+            Array.Copy(writer.Buffer, bytes, bytes.Length);
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[ChecksumHook] SerializeCurrentState ERROR: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Why this needs two comparisons: NetFullCombatState.ToString() (NetFullCombatState.cs:537-640)
+    /// prints only COUNTS for piles/potions/relics/orbs and nothing at all for rngSet/relicGrabBag,
+    /// while the multiplayer checksum hashes the full Serialize() output. So a self-check built only
+    /// on ToString compares a strict subset of the checksummed state — it can (and did: this is the
+    /// root cause behind the missing maxPotionCount/rngSet/relicGrabBag capture in StateSnapshot)
+    /// report PASS while whole checksummed fields are silently unrestored. The byte comparison below
+    /// is authoritative; the ToString diff is kept only as a human-readable "what looks different"
+    /// report for the fields it can see.
+    /// </summary>
     private static void VerifyRestoreFidelity(SyncPoint sp)
     {
         try
@@ -115,6 +171,24 @@ internal static class ChecksumHook
             if (string.IsNullOrEmpty(sp.StateDump)) return;
             var rs = RunManager.Instance?.DebugOnlyGetState();
             if (rs == null) return;
+
+            var nowBytes = SerializeCurrentState();
+            bool byteFail = false;
+            if (sp.StateBytes != null && nowBytes != null)
+            {
+                if (sp.StateBytes.AsSpan().SequenceEqual(nowBytes))
+                {
+                    Log.Write($"[ChecksumHook] RESTORE FIDELITY: PASS — checksum payload byte-identical ({nowBytes.Length} bytes, id={sp.ChecksumId})");
+                    return;
+                }
+                byteFail = true;
+                Log.Write($"[ChecksumHook] RESTORE FIDELITY: FAIL — checksum payload differs (captured {sp.StateBytes.Length} bytes vs restored {nowBytes.Length} bytes, id={sp.ChecksumId}); falling back to the ToString field diff below to name what looks different.");
+            }
+            else
+            {
+                Log.Write($"[ChecksumHook] RESTORE FIDELITY: byte payload unavailable (captured={sp.StateBytes != null}, restored={nowBytes != null}, id={sp.ChecksumId}) — falling back to ToString comparison only.");
+            }
+
             var now = NetFullCombatState.FromRun(rs, null).ToString();
 
             // The captured dump embeds the just-finished action id while the recompute
@@ -126,7 +200,10 @@ internal static class ChecksumHook
             var restored = Filter(now);
             if (captured.SequenceEqual(restored))
             {
-                Log.Write($"[ChecksumHook] RESTORE FIDELITY: PASS — all checksummed state matches capture (id={sp.ChecksumId})");
+                if (byteFail)
+                    Log.Write($"[ChecksumHook] RESTORE FIDELITY: ToString diff found NO differences (id={sp.ChecksumId}) even though the byte payload disagrees above — the real mismatch is in a field ToString() never prints (rngSet / relicGrabBag / pile-potion-relic contents rather than counts).");
+                else
+                    Log.Write($"[ChecksumHook] RESTORE FIDELITY: PASS — all checksummed state matches capture (id={sp.ChecksumId})");
                 return;
             }
             Log.Write($"[ChecksumHook] RESTORE FIDELITY: FAIL — state differs from capture! (id={sp.ChecksumId}, {captured.Length} vs {restored.Length} lines)");
@@ -151,6 +228,17 @@ internal static class ChecksumHook
             Log.Write($"[ChecksumHook] fidelity check ERROR: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// True when the checksum context names an action the player actively chose.
+    /// Context format is "finished action execution {action}", and each action's
+    /// ToString starts with its type name (PlayCardAction / UsePotionAction /
+    /// NetDiscardPotionGameAction), so a substring test is enough.
+    /// </summary>
+    private static bool IsPlayerDecision(string context) =>
+        context.Contains("PlayCardAction")
+        || context.Contains("UsePotionAction")
+        || context.Contains("DiscardPotionGameAction");
 
     internal static void ClearSyncPoints() => SyncPoints.Clear();
 

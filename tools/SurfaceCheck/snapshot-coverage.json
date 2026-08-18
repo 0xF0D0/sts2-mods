@@ -1,0 +1,199 @@
+{
+  "MegaCrit.Sts2.Core.Combat.CombatState": {
+    "captured": {
+      "_allCards": "RestoreCombatLists via FCombatAllCards (list cleared and rebuilt from _combatCardList)",
+      "_allies": "RestoreCreatureOrder/RestoreSideOrder via FCombatAllies",
+      "_enemies": "RestoreCreatureOrder/RestoreSideOrder via FCombatEnemies",
+      "_escapedCreatures": "RestoreCombatLists via FCombatEscaped (list cleared and rebuilt from _escaped)",
+      "_nextCreatureId": "RestoreCombatLists via FCombatNextId",
+      "\u003CRoundNumber\u003Ek__BackingField": "RestoreCombatLists via the RoundNumber property (cs.RoundNumber = _round)"
+    },
+    "ignored": {
+      "_encounter": "write-once (readonly, set via private init in the constructor, CombatState.cs:113-124, 155-156); the same CombatState instance persists across an undo and is never reassigned",
+      "\u003CBadgeModels\u003Ek__BackingField": "write-once (constructor, CombatState.cs:161)",
+      "\u003CCurrentSide\u003Ek__BackingField": "not captured: ChecksumHook only stores play-phase sync points, and RestoreTo always runs from an idle player play phase, so CurrentSide is CombatSide.Player at both capture and restore time",
+      "\u003CModifiers\u003Ek__BackingField": "write-once (constructor, CombatState.cs:160)",
+      "\u003CMultiplayerScalingModel\u003Ek__BackingField": "write-once (constructor parameter, CombatState.cs:96,153,162); the CombatState instance persists across an undo, never reassigned afterward",
+      "\u003CRunState\u003Ek__BackingField": "write-once (get-only, set in the constructor, CombatState.cs:56,159)",
+      "CreaturesChanged": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.Entities.Cards.CardPile": {
+    "captured": {
+      "_cards": "RestorePiles via FPileCards (list cleared and rebuilt from cap.Piles[pile.Type])"
+    },
+    "ignored": {
+      "\u003CType\u003Ek__BackingField": "write-once (primary-constructor parameter, CardPile.cs:14,23); a pile\u0027s Type never changes after construction",
+      "CardAdded": "C# event, not state",
+      "CardAddFinished": "C# event, not state",
+      "CardRemoved": "C# event, not state",
+      "CardRemoveFinished": "C# event, not state",
+      "ContentsChanged": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.Entities.Creatures.Creature": {
+    "captured": {
+      "_block": "CaptureCreature/RestoreCreatures via FCreatureBlock",
+      "_currentHp": "CaptureCreature/RestoreCreatures via FCreatureHp",
+      "_maxHp": "CaptureCreature/RestoreCreatures via FCreatureMaxHp",
+      "_powers": "CaptureCreature/RestoreCreatures via FCreaturePowers (list cleared and rebuilt from cap.Powers)",
+      "\u003CHpDisplay\u003Ek__BackingField": "CaptureCreature/RestoreCreatures via the HpDisplay property (cap.Ref.HpDisplay = cap.HpDisplay)"
+    },
+    "ignored": {
+      "_petOwner": "write-once: PetOwner setter throws if already set (Creature.cs PetOwner property), only assigned once at pet creation (PlayerCombatState.cs:241); identity preserved so the live value is already correct",
+      "\u003CCombatId\u003Ek__BackingField": "write-once when the creature is added to combat (CombatState.AttachCreature, CombatState.cs:260); identity preserved across undo so it never needs restoring",
+      "\u003CCombatState\u003Ek__BackingField": "back-reference maintained by CombatState.AddCreature/RemoveCreature (CombatState.cs:259,302), which UiRefresh.ReviveCreature/RemoveCreature already call during restore",
+      "\u003CMonster\u003Ek__BackingField": "write-once: get-only, set only in the monster constructor (Creature.cs:356)",
+      "\u003CMonsterMaxHpBeforeModification\u003Ek__BackingField": "its only writer is creature creation, Creature.cs:383, never during combat",
+      "\u003CPlayer\u003Ek__BackingField": "write-once: get-only, set only in the player constructor (Creature.cs:366)",
+      "\u003CSide\u003Ek__BackingField": "write-once: get-only, set only in the constructors (Creature.cs:361,369); a creature\u0027s side never changes after creation",
+      "\u003CSlotName\u003Ek__BackingField": "write-once: only assignment is the monster constructor (Creature.cs:358); every other reference in decompiled sources only reads it for move-branching comparisons",
+      "BlockChanged": "C# event, not state",
+      "CurrentHpChanged": "C# event, not state",
+      "Died": "C# event, not state",
+      "MaxHpChanged": "C# event, not state",
+      "PowerApplied": "C# event, not state",
+      "PowerDecreased": "C# event, not state",
+      "PowerIncreased": "C# event, not state",
+      "PowerRemoved": "C# event, not state",
+      "Revived": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.Entities.Orbs.OrbQueue": {
+    "captured": {
+      "_orbs": "RestoreOrbQueue via FOrbQueueOrbs (list cleared and rebuilt from cap.Orbs)",
+      "\u003CCapacity\u003Ek__BackingField": "RestoreOrbQueue via POrbQueueCapacity"
+    },
+    "ignored": {
+      "_owner": "write-once back-reference (readonly, OrbQueue.cs:17, set in the constructor)"
+    }
+  },
+  "MegaCrit.Sts2.Core.Entities.Players.Player": {
+    "captured": {
+      "_gold": "CapturePlayer/RestorePlayers via FPlayerGold",
+      "_potionSlots": "CapturePlayer/RestorePotionSlots via FPlayerPotionSlots",
+      "\u003CPlayerRng\u003Ek__BackingField": "CapturePlayer/RestorePlayers via player.PlayerRng.ToSerializable()/LoadFromSerializable()",
+      "\u003CRelicGrabBag\u003Ek__BackingField": "CapturePlayer/RestorePlayers via player.RelicGrabBag.ToSerializable()/LoadFromSerializable()",
+      "_relics": "CapturePlayer/RestorePlayers via cap.RelicOrder (membership/order only, reconciled via RestoreRelicList; per-relic state is captured/restored separately, see RelicModel entries)",
+      "\u003CIsActiveForHooks\u003Ek__BackingField": "CapturePlayer/RestorePlayers via FPlayerIsActiveForHooks"
+    },
+    "ignored": {
+      "_canUseOrRemovePotions": "only toggled by run Events (TheFutureOfPotions/StoneOfAllTime/RanwidTheElder), never during combat; StateSnapshot\u0027s undo is combat-scoped only",
+      "_runPiles": "lazy run-level cache array wrapping Deck (Player.cs:222-227), not combat state",
+      "_runState": "write-once: RunState setter throws once already set to a non-null value (Player.cs:93-99)",
+      "\u003CBaseOrbSlotCount\u003Ek__BackingField": "write-once at player construction (Player.cs:266); the only other setter is save-file deserialization (MegaCritSerializerContext.cs:8614), not combat",
+      "\u003CCharacter\u003Ek__BackingField": "write-once: get-only, set only in the constructor (Player.cs:260)",
+      "\u003CCreature\u003Ek__BackingField": "write-once: get-only, set only in the constructor (Player.cs:262); the Creature\u0027s own mutable state is captured separately via CaptureCreature",
+      "\u003CDeck\u003Ek__BackingField": "write-once reference (field initializer, Player.cs:202), never reassigned; run-level deck, not part of StateSnapshot\u0027s mid-combat capture scope (combat piles are PlayerCombatState.AllPiles, captured separately)",
+      "\u003CDiscoveredCards\u003Ek__BackingField": "not part of the checksum contract (NetFullCombatState.PlayerState, NetFullCombatState.cs:137-166, has no discovery fields); run-level bestiary/codex tracking",
+      "\u003CDiscoveredEnemies\u003Ek__BackingField": "not part of the checksum contract (NetFullCombatState.PlayerState, NetFullCombatState.cs:137-166, has no discovery fields); run-level bestiary/codex tracking",
+      "\u003CDiscoveredEpochs\u003Ek__BackingField": "not part of the checksum contract (NetFullCombatState.PlayerState, NetFullCombatState.cs:137-166, has no discovery fields); run-level bestiary/codex tracking",
+      "\u003CDiscoveredPotions\u003Ek__BackingField": "not part of the checksum contract (NetFullCombatState.PlayerState, NetFullCombatState.cs:137-166, has no discovery fields); run-level bestiary/codex tracking",
+      "\u003CDiscoveredRelics\u003Ek__BackingField": "not part of the checksum contract (NetFullCombatState.PlayerState, NetFullCombatState.cs:137-166, has no discovery fields); run-level bestiary/codex tracking",
+      "\u003CExtraFields\u003Ek__BackingField": "write-once reference (Player.cs:116), only reassigned by SyncWithSerializedPlayer\u0027s network resync (Player.cs:441), not combat play; its properties (ExtraPlayerFields.cs) are run-level aggregate stats outside the checksum contract",
+      "\u003CMaxAscensionWhenRunStarted\u003Ek__BackingField": "write-once: get-only, set only in the constructor (Player.cs:277)",
+      "\u003CMaxEnergy\u003Ek__BackingField": "no combat-time mutation site found (only debug tooling NMultiplayerTest.cs:648 and save deserialization MegaCritSerializerContext.cs:8551 assign it); max energy changes happen at the run level between combats",
+      "\u003CNetId\u003Ek__BackingField": "write-once identity: get-only, set only in the constructor (Player.cs:261); used as the StateSnapshot._players dictionary key itself",
+      "\u003CPlayerCombatState\u003Ek__BackingField": "combat-scoped write-once reference (Player.cs:797-800 ResetCombatState, called once per combat); an undo never crosses a combat start/end boundary",
+      "\u003CPlayerOdds\u003Ek__BackingField": "explicitly excluded from the checksum contract \u2014 NetFullCombatState.PlayerState doc comment (NetFullCombatState.cs:131-136): \u0022Includes most state except: Rewards and Shop RNG counters, Rarity odds\u0022",
+      "\u003CUnlockState\u003Ek__BackingField": "write-once: get-only, set only in the constructor (Player.cs:268); not part of the checksum contract, run-level unlock metadata",
+      "AddPotionFailed": "C# event, not state",
+      "CanUseOrRemovePotionsChanged": "C# event, not state",
+      "GoldChanged": "C# event, not state",
+      "MaxPotionCountChanged": "C# event, not state",
+      "PotionDiscarded": "C# event, not state",
+      "PotionProcured": "C# event, not state",
+      "RelicObtained": "C# event, not state",
+      "RelicRemoved": "C# event, not state",
+      "UsedPotionRemoved": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.Entities.Players.PlayerCombatState": {
+    "captured": {
+      "_energy": "CapturePlayer/RestorePlayers via FPcsEnergy",
+      "_pets": "CapturePlayer/RestorePets via FPcsPets, rebuilt from PetIds correlated by CombatId",
+      "_phase": "CapturePlayer/RestorePlayers via the Phase property (pcs.Phase = cap.Phase)",
+      "_stars": "CapturePlayer/RestorePlayers via FPcsStars",
+      "\u003CTurnNumber\u003Ek__BackingField": "CapturePlayer/RestorePlayers via FPcsTurnNumber (auto-property backing field, no public setter besides IncrementTurnNumber)"
+    },
+    "ignored": {
+      "_piles": "lazy cache array wrapping Hand/DrawPile/DiscardPile/ExhaustPile/PlayPile (PlayerCombatState.cs:74-79), the same references as the individually-referenced pile properties; never reassigned once built",
+      "_player": "write-once back-reference (readonly, PlayerCombatState.cs:15, set in the constructor)",
+      "\u003CDiscardPile\u003Ek__BackingField": "write-once reference (field initializer, PlayerCombatState.cs:64); contents restored via CardPile._cards (RestorePiles/FPileCards), not this field",
+      "\u003CDrawPile\u003Ek__BackingField": "write-once reference (field initializer, PlayerCombatState.cs:62); contents restored via CardPile._cards (RestorePiles/FPileCards), not this field",
+      "\u003CExhaustPile\u003Ek__BackingField": "write-once reference (field initializer, PlayerCombatState.cs:66); contents restored via CardPile._cards (RestorePiles/FPileCards), not this field",
+      "\u003CHand\u003Ek__BackingField": "write-once reference (field initializer, PlayerCombatState.cs:60); contents restored via CardPile._cards (RestorePiles/FPileCards), not this field",
+      "\u003COrbQueue\u003Ek__BackingField": "write-once reference (PlayerCombatState.cs:121,137 constructor); contents restored via OrbQueue\u0027s own _orbs/Capacity fields (RestoreOrbQueue), not this field",
+      "\u003CPlayPile\u003Ek__BackingField": "write-once reference (field initializer, PlayerCombatState.cs:68); contents restored via CardPile._cards (RestorePiles/FPileCards), not this field",
+      "EnergyChanged": "C# event, not state",
+      "PlayerTurnPhaseChanged": "C# event, not state",
+      "StarsChanged": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.Models.MonsterModel": {
+    "captured": {
+      "_rng": "CaptureCreature/RestoreCreatures via FMonsterRng, ToSerializable/LoadFromSerializable",
+      "_spawnedThisTurn": "CaptureCreature/RestoreCreatures via FMonsterSpawnedThisTurn",
+      "\u003CNextMove\u003Ek__BackingField": "CaptureMoves/RestoreMoves via PMonsterNextMove property",
+      "_moveStateMachine": "RestoreMoves rebuilds it via monster.SetUpForCombat() when null (CombatManager.RemoveCreature nulls it on creature death) and re-resolves captured MonsterState/MoveState objects against the rebuilt machine by id"
+    },
+    "ignored": {
+      "_canonicalInstance": "shared model template, never touched on a mutable instance",
+      "_creature": "write-once back-reference: Creature setter throws if already set (MonsterModel.cs:203-211); Creature\u0027s own constructor sets Monster.Creature = this at creation (Creature.cs:357)",
+      "_isPerformingMove": "true only while a move executes; ChecksumHook stores play-phase sync points only, so it is false at both capture and restore",
+      "_runRng": "write-once: RunRng setter throws if already set (MonsterModel.cs:127-135), only assigned once in CombatState.CreateCreature (CombatState.cs:236)"
+    }
+  },
+  "MegaCrit.Sts2.Core.Models.PotionModel": {
+    "captured": {
+      "_dynamicVars": "CapturePlayer/RestorePotionSlots via FPotionDynVars (independent DynamicVarSet.Clone(this) clone, same pattern as PowerModel/RelicModel)",
+      "_owner": "CapturePlayer/RestorePotionSlots via FPotionOwner, explicitly set to the owning player on restore (skipped by the generic _potionClones/CopyMutableFields sweep via CopySkip)",
+      "\u003CHasBeenRemovedFromState\u003Ek__BackingField": "CapturePlayer/RestorePotionSlots via _potionClones/CopyMutableFields generic field sweep",
+      "\u003CIsQueued\u003Ek__BackingField": "CapturePlayer/RestorePotionSlots via _potionClones/CopyMutableFields generic field sweep"
+    },
+    "ignored": {
+      "_canonicalInstance": "shared model template; in StateSnapshot.CopySkip, never copied to a live object",
+      "BeforeUse": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.Models.PowerModel": {
+    "captured": {
+      "_amount": "CaptureCreature/RestoreCreatures via FPowerAmount",
+      "_amountOnTurnStart": "CaptureCreature/RestoreCreatures via FPowerAmountTurnStart",
+      "_dynamicVars": "CaptureCreature/RestoreCreatures via FPowerDynVars (DynamicVarSet.Clone(this) independent clone)",
+      "_internalData": "CaptureCreature/RestoreCreatures via FPowerInternal (MemberwiseClone shadow, re-shadowed on every restore)",
+      "_skipNextDurationTick": "CaptureCreature/RestoreCreatures via FPowerSkipTick"
+    },
+    "ignored": {
+      "_applier": "write-once at first application: PowerCmd.cs:123 sets it only in the new-power branch of PowerCmd.Apply; ModifyAmount (the only path for an already-existing power instance) never touches it",
+      "_canonicalInstance": "shared model template, never touched on a mutable instance",
+      "_owner": "back-reference; in StateSnapshot.CopySkip, and PowerModel.Owner setter (PowerModel.cs:271-280) throws if reassigned to a different owner \u2014 identity preserved so it\u0027s already correct",
+      "_resolvedBigIconPath": "display/asset cache, lazily computed by ResolvedBigIconPath getter (PowerModel.cs:118-140)",
+      "_target": "write-once at first application inside the power\u0027s own BeforeApplied/creation logic (e.g. SwipePower.cs:71, GremlinMerc.cs:53), before the power\u0027s first PowerCmd.Apply call; ModifyAmount never reassigns it for existing instances",
+      "DisplayAmountChanged": "C# event, not state",
+      "Flashed": "C# event, not state",
+      "PulsingStarted": "C# event, not state",
+      "PulsingStopped": "C# event, not state",
+      "Removed": "C# event, not state"
+    }
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel": {
+    "captured": {
+      "_dynamicVars": "RestoreRelicStates via FRelicDynVars/DynamicVarsClone (relic.DynamicVars.Clone(this) independent clone; also swept by _relicShadow/CopyMutableFields)",
+      "_floorAddedToDeck": "RestoreRelicStates via _relicShadow/CopyMutableFields generic sweep (not individually named by a dedicated FieldInfo)",
+      "_isMelted": "RestoreRelicStates via IsMelted property setter (also covered by the _relicShadow/CopyMutableFields generic sweep)",
+      "_isWax": "RestoreRelicStates via IsWax property setter (also covered by the _relicShadow/CopyMutableFields generic sweep)",
+      "_resolvedBigIconPath": "RestoreRelicStates via _relicShadow/CopyMutableFields generic sweep (display cache, harmless to overwrite)",
+      "_status": "RestoreRelicStates via PRelicStatus/r.Status (also swept by _relicShadow/CopyMutableFields)",
+      "\u003CHasBeenRemovedFromState\u003Ek__BackingField": "RestoreRelicStates via _relicShadow/CopyMutableFields generic sweep (relics captured are always currently-owned, so this is normally false at both capture and restore)",
+      "\u003CStackCount\u003Ek__BackingField": "RestoreRelicStates via FRelicStack (auto-property backing field, no public setter)"
+    },
+    "ignored": {
+      "_canonicalInstance": "shared model template; in StateSnapshot.CopySkip, never copied to a live object",
+      "_owner": "back-reference; in StateSnapshot.CopySkip. RelicModel.Owner setter (RelicModel.cs:219-227) throws if reassigned to a different player \u2014 identity preserved so it\u0027s already correct",
+      "DisplayAmountChanged": "C# event, not state",
+      "Flashed": "C# event, not state",
+      "StatusChanged": "C# event, not state"
+    }
+  }
+}

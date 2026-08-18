@@ -46,11 +46,20 @@ boundaries). Snapshotting inside that event and keying by checksum id means:
 
 Peer checksum comparison cannot catch *symmetric* omissions (a field missed
 identically on every peer still matches). So after every restore the mod
-recomputes the game's own state digest (`NetFullCombatState`) and compares it
-line-by-line against the dump captured at snapshot time — a **local proof**
-that every checksummed field was restored byte-identically, working even in
-singleplayer. On mismatch it logs exactly which lines differ. (Its first run
-caught a real omission: `PlayerCombatState.Phase`, gameplay-relevant state read
+recomputes the game's own checksum payload — `NetFullCombatState.FromRun(rs, null)`
+serialized with the game's `PacketWriter`, the exact bytes `ChecksumTracker`
+hashes — and compares it against the payload captured at snapshot time. A
+match is a **local proof** that every checksummed field was restored
+byte-identically, working even in singleplayer.
+
+The comparison is byte-level for a reason: `NetFullCombatState.ToString()`
+prints only *counts* for piles/potions/relics/orbs and nothing at all for
+per-player `rngSet` / `relicGrabBag`, so an earlier line-diff version of this
+check reported PASS while `MaxPotionCount`, `PlayerRng` and `RelicGrabBag` were
+never captured at all. On mismatch the mod still runs the line diff to name the
+visible differences, and says so explicitly when the lines match but the bytes
+don't — i.e. the difference is in a field `ToString()` never prints. (An early
+run of this check caught `PlayerCombatState.Phase`, gameplay-relevant state read
 by relics like Unceasing Top. Fixed since.)
 
 ### Synchronizer bookkeeping rolled back on restore
@@ -89,17 +98,34 @@ The snapshot enumerates fields by hand, so new game state must be added to it.
 Two layers of defense:
 
 1. **`tools/SurfaceCheck`** (static, run after each game update — no game launch
-   needed):
-   - verifies every `AccessTools`/`[HarmonyPatch]` string reference in the mod
-     still exists in `sts2.dll` (catches renames/removals the compiler cannot),
-   - diffs the instance-field surface of 25 state-bearing types against a
-     committed baseline (catches added state before it becomes a silent
-     under-restore).
+   needed). Checks 1-2 answer *"did the game change?"*; Check 3 answers *"do we
+   still capture everything?"* — the second question is the one that let
+   `Player.MaxPotionCount`/`PlayerRng`/`RelicGrabBag` go silently missing for a
+   long time: a field nobody ever added to the snapshot was already sitting in
+   the Check 2 baseline (that check only diffs the game's own field surface,
+   not what UndoSync does with it), and a *symmetric* omission — every peer
+   missing the same field identically — is invisible to peer checksum
+   comparison.
+   - **Check 1**: verifies every `AccessTools`/`[HarmonyPatch]` string
+     reference in the mod still exists in `sts2.dll` (catches renames/removals
+     the compiler cannot).
+   - **Check 2**: diffs the instance-field surface of 25 state-bearing types
+     against a committed baseline (catches added state before it becomes a
+     silent under-restore).
+   - **Check 3**: for the 10 types `StateSnapshot` deep-captures, verifies
+     every instance field is named in `snapshot-coverage.json` as either
+     `captured` (with the code location that reads/writes it) or deliberately
+     `ignored` (with a real reason) — failing on any field in neither, and on
+     any stale entry naming a field that no longer exists. It also reports the
+     backlog of fields whose reason is exactly `"UNREVIEWED"`, so an honest "we
+     haven't looked at this yet" always stays visible instead of getting lost.
 
    ```bash
    cd tools/SurfaceCheck
-   dotnet run -- check      # after a game update; exit 1 + report on findings
-   dotnet run -- baseline   # after updating the snapshot; refresh the baseline
+   dotnet run -- check              # after a game update; exit 1 + report on findings
+   dotnet run -- baseline           # after updating the snapshot; refresh the Check 2 field-surface baseline
+   dotnet run -- coverage-baseline  # after auditing new/changed fields; top up snapshot-coverage.json
+                                     # (preserves every existing entry verbatim, only adds new fields as "UNREVIEWED")
    ```
 
 2. **Restore fidelity self-check** (runtime, every restore): proves the
@@ -116,6 +142,12 @@ model layer (`Core/Combat`, `Core/Entities`) between versions yields the
 capture checklist.
 
 ## Build / deploy
+
+Most users should just grab the packaged release zip instead of building —
+see the root [README's Install section](../README.md#install) for the
+download and drop-in steps.
+
+For development:
 
 ```bash
 dotnet build -c Release   # csproj references the macOS Steam path by default

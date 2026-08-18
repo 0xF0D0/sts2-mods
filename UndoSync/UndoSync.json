@@ -2,7 +2,7 @@
   "id": "UndoSync",
   "name": "Undo Sync",
   "author": "beomsu",
-  "description": "Multiplayer-safe combat undo (WIP). Snapshots at every game checksum point; F8 restores the previous point on this peer (test build — press on all peers while idle). Logs to <godot-user-data>/logs/UndoSync.log.",
+  "description": "Multiplayer-capable combat undo. Left Arrow opens a picker to choose how far back to rewind: in singleplayer the chosen point restores immediately, in multiplayer it opens a unanimous vote among all players and, once accepted, restores every peer simultaneously. Logs to <godot-user-data>/logs/UndoSync-<pid>.log.",
   "version": "0.1.0",
   "has_pck": false,
   "has_dll": true,

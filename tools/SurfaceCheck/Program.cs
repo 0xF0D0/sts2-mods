@@ -5,8 +5,9 @@ using System.Text.RegularExpressions;
 
 // SurfaceCheck — verifies, without launching the game, whether a game update breaks UndoSync's assumptions.
 //
-//   dotnet run -- check      : run both checks; exit 1 on any finding
-//   dotnet run -- baseline   : regenerate surface-baseline.json from the current game DLL
+//   dotnet run -- check              : run all three checks; exit 1 on any finding
+//   dotnet run -- baseline           : regenerate surface-baseline.json from the current game DLL
+//   dotnet run -- coverage-baseline  : top up snapshot-coverage.json with newly-seen fields
 //
 // Check 1 (reflection targets): extract every AccessTools.*/[HarmonyPatch] string
 //   reference from the mod source and verify it still exists in the game assembly.
@@ -14,6 +15,13 @@ using System.Text.RegularExpressions;
 // Check 2 (state surface): dump the instance-field surface of state-bearing types
 //   and diff against a committed baseline. New game state shows up here — the early
 //   warning for the symmetric-omission class where the snapshot silently under-restores.
+// Check 3 (snapshot coverage): for the types StateSnapshot deep-captures, verify every
+//   instance field is explicitly accounted for in snapshot-coverage.json — either
+//   captured, or deliberately ignored with a reason. Checks 1-2 answer "did the game
+//   change?"; Check 3 answers "do we still capture everything?" — the question that let
+//   Player.MaxPotionCount/PlayerRng/RelicGrabBag go silently missing, since a field we
+//   never captured was already in the Check 2 baseline and a symmetric omission is
+//   invisible to peer checksums.
 
 var mode = args.Length > 0 ? args[0] : "check";
 string gameDataDir = ArgValue("--game") ?? Path.Combine(
@@ -21,6 +29,7 @@ string gameDataDir = ArgValue("--game") ?? Path.Combine(
     "Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_arm64");
 string modSrcDir = ArgValue("--mod") ?? FindUp("UndoSync");
 string baselinePath = ArgValue("--baseline") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "surface-baseline.json");
+string coveragePath = ArgValue("--coverage") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "snapshot-coverage.json");
 
 string? ArgValue(string name)
 {
@@ -84,6 +93,25 @@ Type? Resolve(string name)
 }
 
 const BindingFlags All = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+const BindingFlags InstanceDeclared = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+
+// Types whose state StateSnapshot deep-captures (Check 3 / coverage-baseline default set).
+// Full names: these are looked up directly, no simple-name ambiguity to worry about.
+string[] snapshotCoverageTypeNames =
+{
+    "MegaCrit.Sts2.Core.Entities.Creatures.Creature",
+    "MegaCrit.Sts2.Core.Models.PowerModel",
+    "MegaCrit.Sts2.Core.Models.MonsterModel",
+    "MegaCrit.Sts2.Core.Models.PotionModel",
+    "MegaCrit.Sts2.Core.Models.RelicModel",
+    "MegaCrit.Sts2.Core.Entities.Players.Player",
+    "MegaCrit.Sts2.Core.Entities.Players.PlayerCombatState",
+    "MegaCrit.Sts2.Core.Entities.Cards.CardPile",
+    "MegaCrit.Sts2.Core.Entities.Orbs.OrbQueue",
+    "MegaCrit.Sts2.Core.Combat.CombatState",
+};
+
+List<string> FieldNamesOf(Type t) => t.GetFields(InstanceDeclared).Select(fi => fi.Name).ToList();
 
 int failures = 0;
 var warnings = new List<string>();
@@ -168,6 +196,39 @@ if (mode == "baseline")
     return failures == 0 ? 0 : 1;
 }
 
+if (mode == "coverage-baseline")
+{
+    var coverage = File.Exists(coveragePath)
+        ? JsonSerializer.Deserialize<SortedDictionary<string, TypeCoverage>>(File.ReadAllText(coveragePath))!
+        : new SortedDictionary<string, TypeCoverage>();
+
+    // Union of what's already in the file and the canonical list, so re-running this
+    // after the file is deleted (or hand-edited to add/drop a type) still converges.
+    var coverageTypeNames = coverage.Keys.Union(snapshotCoverageTypeNames).OrderBy(s => s, StringComparer.Ordinal);
+
+    int added = 0;
+    foreach (var typeName in coverageTypeNames)
+    {
+        var t = Resolve(typeName);
+        if (t == null) { Console.WriteLine($"  WARN  coverage type unresolved (ambiguous/missing): {typeName}"); continue; }
+        if (!coverage.TryGetValue(typeName, out var tc)) coverage[typeName] = tc = new TypeCoverage();
+
+        // PRESERVE every existing entry and its reason verbatim (never touched below);
+        // only ever ADD an entry for a field seen in neither map, and only as "UNREVIEWED"
+        // — never silently downgrade an existing captured/ignored reason.
+        foreach (var fieldName in FieldNamesOf(t))
+        {
+            if (tc.Captured.ContainsKey(fieldName) || tc.Ignored.ContainsKey(fieldName)) continue;
+            tc.Ignored[fieldName] = "UNREVIEWED";
+            added++;
+        }
+    }
+
+    File.WriteAllText(coveragePath, JsonSerializer.Serialize(coverage, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    Console.WriteLine($"\ncoverage baseline updated: {coveragePath} ({coverage.Count} types, {added} field(s) newly marked UNREVIEWED)");
+    return failures == 0 ? 0 : 1;
+}
+
 Console.WriteLine($"\n── Check 2: field surface of {surface.Count} state types vs baseline ──");
 if (!File.Exists(baselinePath))
 {
@@ -186,4 +247,76 @@ foreach (var key in baseline.Keys.Union(surface.Keys))
 if (diffs == 0) Console.WriteLine("  no changes — snapshot assumptions hold");
 else Console.WriteLine($"  {diffs} changes! Review the CombatSnapshot capture list, then refresh the baseline");
 
-return failures + diffs == 0 ? 0 : 1;
+// ───────────── Check 3: snapshot coverage ─────────────
+
+int coverageFailures = 0;
+
+if (!File.Exists(coveragePath))
+{
+    Console.WriteLine($"\n── Check 3: snapshot coverage — no coverage file at {coveragePath}; skipping (generate one with `dotnet run -- coverage-baseline`) ──");
+}
+else
+{
+    var coverage = JsonSerializer.Deserialize<SortedDictionary<string, TypeCoverage>>(File.ReadAllText(coveragePath))!;
+    Console.WriteLine($"\n── Check 3: snapshot coverage of {coverage.Count} tracked types (do we still capture everything?) ──");
+
+    var unreviewed = new List<(string Type, string Field)>();
+
+    foreach (var (typeName, tc) in coverage)
+    {
+        var t = Resolve(typeName);
+        if (t == null) { Console.WriteLine($"  FAIL  coverage type unresolved (ambiguous/missing): {typeName}"); coverageFailures++; continue; }
+
+        var liveFields = FieldNamesOf(t).ToHashSet();
+
+        // Stale entries: named in the coverage file but no longer exist on the type.
+        foreach (var stale in tc.Captured.Keys.Concat(tc.Ignored.Keys).Distinct().Where(f => !liveFields.Contains(f)))
+        {
+            Console.WriteLine($"  FAIL  {t.Name}.{stale}: stale coverage entry (field no longer exists on the type)");
+            coverageFailures++;
+        }
+
+        // Every non-empty reason is required, regardless of which map it's in.
+        foreach (var (field, reason) in tc.Captured.Concat(tc.Ignored))
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                Console.WriteLine($"  FAIL  {t.Name}.{field}: empty justification");
+                coverageFailures++;
+            }
+
+        // Unaccounted: exist on the type but named in neither map — the case that would
+        // have caught MaxPotionCount/PlayerRng/RelicGrabBag going missing.
+        var accounted = new HashSet<string>(tc.Captured.Keys.Concat(tc.Ignored.Keys));
+        var unaccounted = liveFields.Where(f => !accounted.Contains(f)).ToList();
+        foreach (var field in unaccounted)
+        {
+            Console.WriteLine($"  FAIL  {t.Name}.{field}: unaccounted for (neither captured nor ignored)");
+            coverageFailures++;
+        }
+
+        int unreviewedCount = 0;
+        foreach (var (field, reason) in tc.Ignored)
+            if (reason == "UNREVIEWED") { unreviewed.Add((t.Name, field)); unreviewedCount++; }
+
+        Console.WriteLine($"  {t.Name}: {tc.Captured.Count} captured, {tc.Ignored.Count - unreviewedCount} ignored, {unreviewedCount} unreviewed, {unaccounted.Count} unaccounted");
+    }
+
+    Console.WriteLine($"\n── Check 3 UNREVIEWED backlog: {unreviewed.Count} field(s) nobody has judged yet ──");
+    if (unreviewed.Count == 0) Console.WriteLine("  none");
+    else foreach (var (type, field) in unreviewed) Console.WriteLine($"  UNREVIEWED  {type}.{field}");
+
+    Console.WriteLine(coverageFailures == 0
+        ? "  Check 3: every covered field is accounted for"
+        : $"  Check 3: {coverageFailures} failure(s) — a game update added state StateSnapshot doesn't know about, or a coverage entry is stale");
+}
+
+return failures + diffs + coverageFailures == 0 ? 0 : 1;
+
+sealed class TypeCoverage
+{
+    [System.Text.Json.Serialization.JsonPropertyName("captured")]
+    public SortedDictionary<string, string> Captured { get; set; } = new();
+
+    [System.Text.Json.Serialization.JsonPropertyName("ignored")]
+    public SortedDictionary<string, string> Ignored { get; set; } = new();
+}
