@@ -5,6 +5,8 @@
 - **Left Arrow** = undo
   - Singleplayer: restores immediately
   - Multiplayer: all players vote; unanimous acceptance restores every peer simultaneously
+  - The step picker also has a "restart combat" button that jumps straight to the
+    start of the fight, through the same vote/restore path as any other step
 - Inspired by [luojiesi/SLS2Mods](https://github.com/luojiesi/SLS2Mods) UndoAndRedo
   (single-player only); written from scratch against the game's decompiled
   internals to coexist with the multiplayer synchronization architecture.
@@ -174,10 +176,10 @@ instances share the user-data directory).
   cannot vote → the proposal times out
 - A restore exception can leave a partial restore (per-section try/catch) —
   multiplayer catches it via checksum kick; singleplayer only via logs
-- Turn-boundary anchors ("After player turn start") predate the pre-play-phase
-  hooks, so undoing to them rolls back hook effects without re-running them —
-  harmless for the base kit, edge cases with turn-start-hook content
-  (candidate fix: pre-action anchors)
+- Turn-boundary anchors ("After player turn start") defer their snapshot until
+  `CombatManager.TurnStarted` fires for the player side — by then every
+  player's pre-play-phase hooks have already run, so undoing to a turn start
+  no longer rolls back their effects without re-running them
 - Orb visuals are not rebuilt after restore (model state is; display catches
   up on the next orb event) — none of the base test characters use orbs
 - Untested: real Steam matchmaking sessions

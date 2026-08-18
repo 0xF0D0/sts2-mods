@@ -42,7 +42,21 @@ internal static class ChecksumHook
     // Sorted by checksum id (ascending). Newest snapshots at the end.
     private static readonly SortedList<uint, SyncPoint> SyncPoints = new();
 
+    // The combat's first turn-start anchor, kept outside SyncPoints so it survives
+    // MaxSyncPoints trimming in a long combat — without this, "restart combat" would
+    // silently resolve to whatever's now the oldest surviving point instead of the
+    // actual start. Captured once in TryStoreSyncPoint, cleared on CombatSetUp (new
+    // combat) and in ClearSyncPoints.
+    private static SyncPoint? _combatStartPoint;
+
     private static ChecksumTracker? _subscribedTracker;
+    private static CombatManager? _subscribedCombatManager;
+
+    // Set when "After player turn start" fires (OnChecksumGenerated) and consumed when
+    // CombatManager.TurnStarted fires for the player side (OnTurnStarted) — see the doc
+    // comment on OnChecksumGenerated for why the capture itself is deferred to that point.
+    private static uint? _pendingTurnStartId;
+    private static string _pendingTurnStartContext = "";
 
     private static readonly System.Reflection.PropertyInfo? TrackerNextIdProp =
         AccessTools.Property(typeof(ChecksumTracker), "NextId");
@@ -54,14 +68,35 @@ internal static class ChecksumHook
     internal static void EnsureSubscribed()
     {
         var tracker = RunManager.Instance?.ChecksumTracker;
-        if (tracker == null || ReferenceEquals(tracker, _subscribedTracker))
-            return;
-        if (_subscribedTracker != null)
-            _subscribedTracker.ChecksumGenerated -= OnChecksumGenerated;
-        tracker.ChecksumGenerated += OnChecksumGenerated;
-        _subscribedTracker = tracker;
-        SyncPoints.Clear();
-        Log.Write($"[ChecksumHook] Subscribed to ChecksumTracker. net={RunManager.Instance?.NetService?.Type} netId={RunManager.Instance?.NetService?.NetId}");
+        if (tracker != null && !ReferenceEquals(tracker, _subscribedTracker))
+        {
+            if (_subscribedTracker != null)
+                _subscribedTracker.ChecksumGenerated -= OnChecksumGenerated;
+            tracker.ChecksumGenerated += OnChecksumGenerated;
+            _subscribedTracker = tracker;
+            SyncPoints.Clear();
+            Log.Write($"[ChecksumHook] Subscribed to ChecksumTracker. net={RunManager.Instance?.NetService?.Type} netId={RunManager.Instance?.NetService?.NetId}");
+        }
+
+        // CombatManager.Instance (CombatManager.cs:91) is a static singleton, but guard anyway
+        // since EnsureSubscribed can run before it exists.
+        var cm = CombatManager.Instance;
+        if (cm != null && !ReferenceEquals(cm, _subscribedCombatManager))
+        {
+            if (_subscribedCombatManager != null)
+            {
+                _subscribedCombatManager.TurnStarted -= OnTurnStarted;
+                _subscribedCombatManager.CombatSetUp -= OnCombatSetUp;
+            }
+            cm.TurnStarted += OnTurnStarted;
+            // CombatSetUp (CombatManager.cs:245, invoked at :467, end of SetUpCombat :444-468 —
+            // once per combat, before the separate AfterCombatRoomLoaded :470-475 starts the
+            // turn loop) is when we drop the previous combat's start anchor so
+            // TryGetCombatStart can't return a stale target into a new combat.
+            cm.CombatSetUp += OnCombatSetUp;
+            _subscribedCombatManager = cm;
+            Log.Write("[ChecksumHook] Subscribed to CombatManager.TurnStarted + CombatSetUp.");
+        }
     }
 
     /// <summary>
@@ -70,6 +105,17 @@ internal static class ChecksumHook
     /// and the synchronizer counters so both can be rolled back together.
     /// Only play-phase moments are stored — same policy as the original single-player
     /// mod, which only ever snapshotted player-initiated actions during the play phase.
+    ///
+    /// The turn-start boundary ("After player turn start", CombatManager.cs:797) is special:
+    /// it fires BEFORE RunAutoPrePlayPhase (:859-869) has run the play-phase entry hooks
+    /// (Hook.AfterAutoPrePlayPhaseEntered, Hook.cs:940) and BEFORE the synchronizer flips to
+    /// PlayPhase (:830-832). Capturing right here would restore into PlayerTurnPhase.Start with
+    /// those hooks never re-run for the turn (confirmed via a NetFullCombatState.ToString() diff:
+    /// "Phase: Play" vs "Phase: Start" was the only line that differed). So for this context we
+    /// don't capture at all — we remember the id and capture later, in OnTurnStarted, once
+    /// CombatManager.TurnStarted fires for the player side (:834), which happens only after every
+    /// player's RunAutoPrePlayPhase has completed. Storing under the SAME checksum id keeps
+    /// "restore to id N" resolving to the same id on every peer.
     /// </summary>
     private static void OnChecksumGenerated(NetChecksumData data, string context, NetFullCombatState fullState)
     {
@@ -81,47 +127,143 @@ internal static class ChecksumHook
             if (cs == null || cs.CurrentSide != CombatSide.Player) return;
             var syncr = RunManager.Instance?.ActionQueueSynchronizer;
             if (syncr == null) return;
-            // The turn-start boundary checksum can fire a beat before the synchronizer
-            // flips to PlayPhase (slower with more peers) — it is still the same
-            // logical moment on every peer, and it is the anchor that lets the first
-            // action of a turn be undone.
-            bool turnStartAnchor = context.StartsWith("After player turn start");
-            if (!turnStartAnchor && syncr.CombatState != ActionSynchronizerCombatState.PlayPhase) return;
+
+            if (context.StartsWith("After player turn start"))
+            {
+                if (_pendingTurnStartId.HasValue)
+                    Log.Write($"[ChecksumHook] turn-start id={data.id} arrived while id={_pendingTurnStartId.Value} was still pending (TurnStarted never fired for it) — dropping the stale pending id.");
+                _pendingTurnStartId = data.id;
+                _pendingTurnStartContext = context;
+                Log.Write($"[ChecksumHook] Deferred turn-start capture for id={data.id} ({context}) until CombatManager.TurnStarted.");
+                return;
+            }
+
+            // A non-turn-start checksum arriving while a turn-start anchor is still pending
+            // means TurnStarted never fired for it (e.g. combat ended, or every player was
+            // already ready to end turn — CombatManager.cs:806-812). Drop it so a later turn's
+            // TurnStarted can't store this now-stale id.
+            if (_pendingTurnStartId.HasValue)
+            {
+                Log.Write($"[ChecksumHook] Dropping pending turn-start id={_pendingTurnStartId.Value} — checksum id={data.id} ({context}) arrived first, so TurnStarted never fired for the pending anchor.");
+                _pendingTurnStartId = null;
+                _pendingTurnStartContext = "";
+            }
+
+            if (syncr.CombatState != ActionSynchronizerCombatState.PlayPhase) return;
 
             // Only the player's own deliberate moves are worth rewinding to. Relic and
             // power triggers run as their own GameActions (GenericHookGameAction) and
             // would otherwise flood the picker with steps nobody wants to undo to —
             // "just before my relic fired" is not a decision the player made.
-            if (!turnStartAnchor && !IsPlayerDecision(context)) return;
+            if (!IsPlayerDecision(context)) return;
 
-            var snapshot = StateSnapshot.Capture();
-            if (snapshot == null || snapshot.IsFailed)
-            {
-                Log.Write($"[ChecksumHook] id={data.id} capture failed, skipping");
-                return;
-            }
-
-            var sp = new SyncPoint
-            {
-                ChecksumId = data.id,
-                Context = context,
-                Snapshot = snapshot,
-                NextActionId = RunManager.Instance!.ActionQueueSet.NextActionId,
-                NextHookId = syncr.NextHookId,
-                ChoiceIds = new List<uint>(RunManager.Instance.PlayerChoiceSynchronizer.ChoiceIds),
-                StateDump = fullState.ToString(),
-                // Independent recompute (not a serialize of fullState) — see SerializeCurrentState
-                // for why it must always pass justFinishedAction=null.
-                StateBytes = SerializeCurrentState(),
-            };
-            SyncPoints[data.id] = sp;
-            while (SyncPoints.Count > MaxSyncPoints)
-                SyncPoints.RemoveAt(0);
-            Log.Write($"[ChecksumHook] Stored sync point id={data.id} ({context}) | actionId={sp.NextActionId} hookId={sp.NextHookId} choiceIds=[{string.Join(",", sp.ChoiceIds)}] | total={SyncPoints.Count}");
+            TryStoreSyncPoint(data.id, context);
         }
         catch (Exception ex)
         {
             Log.Write($"[ChecksumHook] OnChecksumGenerated ERROR: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// CombatManager.TurnStarted (CombatManager.cs:273) fires for both sides (:834 player,
+    /// :840 enemy). This is the deferred capture point for the turn-start checksum id recorded
+    /// by OnChecksumGenerated above: by the time it fires for the player side, every player's
+    /// RunAutoPrePlayPhase has completed (Phase == Play, synchronizer already in PlayPhase), so
+    /// capturing here anchors the turn-start undo target at a point the game will actually
+    /// replay identically.
+    /// </summary>
+    private static void OnTurnStarted(CombatState cs)
+    {
+        try
+        {
+            if (UndoSyncMod.IsRestoring) return;
+            if (!_pendingTurnStartId.HasValue) return;
+            if (cs.CurrentSide != CombatSide.Player) return; // enemy-side TurnStarted — not ours
+
+            var id = _pendingTurnStartId.Value;
+            var context = _pendingTurnStartContext;
+            _pendingTurnStartId = null;
+            _pendingTurnStartContext = "";
+            TryStoreSyncPoint(id, context);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[ChecksumHook] OnTurnStarted ERROR: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// CombatManager.CombatSetUp (CombatManager.cs:245/:467) fires once per combat, before
+    /// any checksum for the new combat is generated. Clears the previous combat's start
+    /// anchor so it can't be mistaken for the new combat's — TryStoreSyncPoint below
+    /// re-captures it from the new combat's first turn-start anchor.
+    /// </summary>
+    private static void OnCombatSetUp(CombatState cs)
+    {
+        try
+        {
+            _combatStartPoint = null;
+            Log.Write("[ChecksumHook] CombatSetUp — cleared combat-start anchor.");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[ChecksumHook] OnCombatSetUp ERROR: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Captures a sync point under the given checksum id/context: game state, synchronizer
+    /// counters, and both state dumps. Shared by the immediate-capture path
+    /// (OnChecksumGenerated, for in-play-phase player decisions) and the deferred turn-start
+    /// path (OnTurnStarted). StateDump is always recomputed here the same way
+    /// SerializeCurrentState computes StateBytes — NetFullCombatState.FromRun(rs, null).ToString(),
+    /// justFinishedAction always null (see SerializeCurrentState's doc comment for why) — rather
+    /// than trusting a caller-supplied NetFullCombatState, so both capture paths are consistent.
+    /// </summary>
+    private static void TryStoreSyncPoint(uint checksumId, string context)
+    {
+        var rm = RunManager.Instance;
+        var syncr = rm?.ActionQueueSynchronizer;
+        if (rm == null || syncr == null)
+        {
+            Log.Write($"[ChecksumHook] id={checksumId} TryStoreSyncPoint: RunManager/synchronizer unavailable, skipping");
+            return;
+        }
+
+        var snapshot = StateSnapshot.Capture();
+        if (snapshot == null || snapshot.IsFailed)
+        {
+            Log.Write($"[ChecksumHook] id={checksumId} capture failed, skipping");
+            return;
+        }
+
+        var rs = rm.DebugOnlyGetState();
+        string stateDump = rs != null ? NetFullCombatState.FromRun(rs, null).ToString() : "";
+
+        var sp = new SyncPoint
+        {
+            ChecksumId = checksumId,
+            Context = context,
+            Snapshot = snapshot,
+            NextActionId = rm.ActionQueueSet.NextActionId,
+            NextHookId = syncr.NextHookId,
+            ChoiceIds = new List<uint>(rm.PlayerChoiceSynchronizer.ChoiceIds),
+            StateDump = stateDump,
+            StateBytes = SerializeCurrentState(),
+        };
+        SyncPoints[checksumId] = sp;
+        while (SyncPoints.Count > MaxSyncPoints)
+            SyncPoints.RemoveAt(0);
+        Log.Write($"[ChecksumHook] Stored sync point id={checksumId} ({context}) | actionId={sp.NextActionId} hookId={sp.NextHookId} choiceIds=[{string.Join(",", sp.ChoiceIds)}] | total={SyncPoints.Count}");
+
+        // The first turn-start anchor of a combat is the earliest restorable moment — capture
+        // it once and keep it outside SyncPoints (see the field's doc comment) so MaxSyncPoints
+        // trimming in a long combat can't lose it.
+        if (_combatStartPoint == null && context.StartsWith("After player turn start"))
+        {
+            _combatStartPoint = sp;
+            Log.Write($"[ChecksumHook] Captured combat-start anchor id={checksumId}.");
         }
     }
 
@@ -240,7 +382,13 @@ internal static class ChecksumHook
         || context.Contains("UsePotionAction")
         || context.Contains("DiscardPotionGameAction");
 
-    internal static void ClearSyncPoints() => SyncPoints.Clear();
+    internal static void ClearSyncPoints()
+    {
+        SyncPoints.Clear();
+        _pendingTurnStartId = null;
+        _pendingTurnStartContext = "";
+        _combatStartPoint = null;
+    }
 
     /// <summary>
     /// The undo target = second-newest sync point (the newest describes the current
@@ -258,7 +406,11 @@ internal static class ChecksumHook
         return true;
     }
 
-    internal static bool HasSyncPoint(uint id) => SyncPoints.ContainsKey(id);
+    // Falls back to _combatStartPoint: by the time the restart-combat button is pressed in a
+    // long combat, that anchor may already have been trimmed out of SyncPoints (MaxSyncPoints)
+    // even though it is still the vote/restore target UndoProtocol resolves by id.
+    internal static bool HasSyncPoint(uint id) =>
+        SyncPoints.ContainsKey(id) || (_combatStartPoint != null && _combatStartPoint.ChecksumId == id);
 
     /// <summary>All stored sync points, newest first (index 0 = current state).</summary>
     internal static List<SyncPoint> SyncPointsNewestFirst()
@@ -268,11 +420,35 @@ internal static class ChecksumHook
         return list;
     }
 
+    // See HasSyncPoint: same _combatStartPoint fallback, for the same reason.
     internal static bool TryGetSyncPoint(uint id, out SyncPoint sp)
     {
         if (SyncPoints.TryGetValue(id, out var found))
         {
             sp = found;
+            return true;
+        }
+        if (_combatStartPoint != null && _combatStartPoint.ChecksumId == id)
+        {
+            sp = _combatStartPoint;
+            return true;
+        }
+        sp = null!;
+        return false;
+    }
+
+    /// <summary>
+    /// The combat-start anchor, when there's actually somewhere to restart TO: null until the
+    /// first turn-start anchor has been captured, and also withheld once it's already the
+    /// newest stored point (restoring to "now" is pointless — same moment the picker is
+    /// already showing as "current state").
+    /// </summary>
+    internal static bool TryGetCombatStart(out SyncPoint sp)
+    {
+        if (_combatStartPoint != null
+            && (SyncPoints.Count == 0 || SyncPoints.Keys[SyncPoints.Count - 1] != _combatStartPoint.ChecksumId))
+        {
+            sp = _combatStartPoint;
             return true;
         }
         sp = null!;
@@ -282,6 +458,10 @@ internal static class ChecksumHook
     internal static void RestoreTo(SyncPoint sp)
     {
         Log.Write($">>> [ChecksumHook] RESTORE to checksum id={sp.ChecksumId} ({sp.Context})");
+        // A restore invalidates any not-yet-fired turn-start anchor — the turn it belonged to
+        // is being rewound away.
+        _pendingTurnStartId = null;
+        _pendingTurnStartContext = "";
         UndoSyncMod.IsRestoring = true;
         try
         {

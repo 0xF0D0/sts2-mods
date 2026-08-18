@@ -109,6 +109,15 @@ internal static class UiRefresh
     private static readonly FieldInfo? FCreatureCurrentHpChanged = AccessTools.Field(typeof(Creature), "CurrentHpChanged");
     private static readonly FieldInfo? FCreatureMaxHpChanged = AccessTools.Field(typeof(Creature), "MaxHpChanged");
 
+    // Backs DropOrphanedCardVfx: NSovereignBladeVfx is the per-forge-card VFX node ForgeCmd
+    // parents directly onto the player's NCreature (ForgeCmd.PlayCombatRoomForgeVfx,
+    // ForgeCmd.cs:108-122) and finds again by CARD IDENTITY (SovereignBlade.GetVfxNode,
+    // SovereignBlade.cs:221-225). Both the type and its Card getter (NSovereignBladeVfx.cs:18,372)
+    // are resolved once through reflection, same as the other optional handles above, so a game
+    // version without this class makes the whole section a no-op instead of a build break.
+    private static readonly Type? TBladeVfx = AccessTools.TypeByName("MegaCrit.Sts2.Core.Nodes.Vfx.NSovereignBladeVfx");
+    private static readonly PropertyInfo? PBladeVfxCard = TBladeVfx != null ? AccessTools.Property(TBladeVfx, "Card") : null;
+
     internal static void RefreshAll(CombatState cs)
     {
         Section("interaction", () => ResetInteraction(cs));
@@ -120,6 +129,7 @@ internal static class UiRefresh
         Section("intents", () => RefreshIntents(cs));
         Section("global", () => NotifyGlobal(cs));
         Section("card visuals", DeferredCardVisualRefresh);
+        Section("orphaned blade vfx", () => DropOrphanedCardVfx(cs));
     }
 
     private static void Section(string name, Action action)
@@ -372,6 +382,49 @@ internal static class UiRefresh
                 holder.CardNode?.UpdateVisuals(PileType.Hand, CardPreviewMode.Normal);
         }
         catch (Exception ex) { Log.Write($"RedrawHandCards ERROR: {ex.Message}"); }
+    }
+
+    /// <summary>
+    /// Drops Sovereign Blade VFX left attached to a player after a restore removed the card it
+    /// belongs to. ForgeCmd.PlayCombatRoomForgeVfx (ForgeCmd.cs:108-122) parents one NSovereignBladeVfx
+    /// per blade to the player's NCreature and finds it again by CARD IDENTITY
+    /// (SovereignBlade.GetVfxNode, SovereignBlade.cs:221-225). Undoing a forge removes the blade card
+    /// from the piles but not its VFX, so the next forge — which correctly creates a NEW blade card —
+    /// misses the identity lookup and attaches a second sword; they pile up one per undo+forge cycle.
+    /// Nothing here is checksummed, so restore fidelity cannot catch it.
+    /// </summary>
+    private static void DropOrphanedCardVfx(CombatState cs)
+    {
+        if (TBladeVfx == null || PBladeVfxCard == null) return;
+        if (NCombatRoom.Instance == null) return;
+
+        int dropped = 0;
+        foreach (var creature in cs.Allies)
+        {
+            var player = creature.Player;
+            if (player?.PlayerCombatState == null) continue;
+
+            var node = NCombatRoom.Instance.GetCreatureNode(creature);
+            if (node == null) continue;
+
+            // Materialized once per player: the live piles the game itself checks
+            // (SovereignBlade.GetVfxNode does the same `== originalCard` reference lookup).
+            var liveCards = player.PlayerCombatState.AllCards.ToList();
+
+            foreach (var child in node.GetChildren())
+            {
+                if (!TBladeVfx.IsInstanceOfType(child)) continue;
+
+                var card = PBladeVfxCard.GetValue(child) as CardModel;
+                if (card != null && liveCards.Contains(card)) continue; // still in play — keep it
+
+                child.QueueFreeSafely();
+                dropped++;
+            }
+        }
+
+        if (dropped > 0)
+            Log.Write($"DropOrphanedCardVfx: dropped {dropped} stale blade vfx");
     }
 
     // ── creature roster changes (called from StateSnapshot) ──

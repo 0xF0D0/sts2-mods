@@ -74,15 +74,22 @@ internal static class UndoPicker
         NModalContainer.Instance.Add(popup);
         _popup = popup;
 
+        // Captured up front (not re-resolved inside the continuation) so HandlePopupResult
+        // acts on the same SyncPoint instance the popup advertised via its button label —
+        // ChecksumHook.TryGetCombatStart's "not already newest" check could in principle flip
+        // between now and the button press.
+        bool hasCombatStart = ChecksumHook.TryGetCombatStart(out var combatStart);
         var task = popup.WaitForConfirmation(
             new LocString(LocTableName, "UNDOSYNC.PICKER_BODY"),
             new LocString(LocTableName, "UNDOSYNC.PICKER_TITLE"),
-            null,
+            // The no-button slot: null hides it (NGenericPopup.cs:104-107) when there is no
+            // combat-start anchor to offer (e.g. this IS the combat start already).
+            hasCombatStart ? new LocString(LocTableName, "UNDOSYNC.RESTART_COMBAT") : null,
             new LocString(LocTableName, "UNDOSYNC.CANCEL"));
-        _ = HandleCancelled(task, popup);
+        _ = HandlePopupResult(task, popup, hasCombatStart ? combatStart : null);
 
         int shown = InjectCardStrip(popup, points, korean);
-        Log.Write($"[UndoPicker] opened with {shown} choices (native chrome)");
+        Log.Write($"[UndoPicker] opened with {shown} choices (native chrome), restartCombat={hasCombatStart}");
     }
 
     internal static void Close()
@@ -119,12 +126,14 @@ internal static class UndoPicker
                     ["UNDOSYNC.PICKER_TITLE"] = "어느 시점으로 되돌릴까요?",
                     ["UNDOSYNC.PICKER_BODY"] = "",
                     ["UNDOSYNC.CANCEL"] = "취소",
+                    ["UNDOSYNC.RESTART_COMBAT"] = "전투 처음부터",
                 }
                 : new Dictionary<string, string>
                 {
                     ["UNDOSYNC.PICKER_TITLE"] = "Undo to which point?",
                     ["UNDOSYNC.PICKER_BODY"] = "",
                     ["UNDOSYNC.CANCEL"] = "Cancel",
+                    ["UNDOSYNC.RESTART_COMBAT"] = "restart combat",
                 });
         }
         catch (Exception ex)
@@ -133,13 +142,37 @@ internal static class UndoPicker
         }
     }
 
-    /// <summary>Awaits the popup's Cancel button; a card pick closes the picker itself first.</summary>
-    private static async Task HandleCancelled(Task<bool> task, NGenericPopup popup)
+    /// <summary>
+    /// Awaits the popup's two buttons (a card pick in the strip closes the picker itself
+    /// first, before either of these can fire). Yes button ("Cancel") → result true
+    /// (NGenericPopup.cs:111-115) → just close, as before this method handled anything else.
+    /// No button ("restart combat", only wired up when <paramref name="combatStart"/> is
+    /// non-null — see Open()) → result false (:117-119) → close, then propose the combat-start
+    /// checksum id the same way a card-tile click does (UndoProtocol.ProposeTarget), so
+    /// singleplayer restores immediately and multiplayer opens the normal unanimous vote.
+    /// </summary>
+    private static async Task HandlePopupResult(Task<bool> task, NGenericPopup popup, SyncPoint? combatStart)
     {
-        try { await task; }
+        bool cancelled;
+        try { cancelled = await task; }
         catch { return; }
         if (!ReferenceEquals(_popup, popup)) return; // already closed via a card pick
         Close();
+
+        if (cancelled)
+        {
+            Log.Write("[UndoPicker] cancel button pressed, closing without proposing");
+            return;
+        }
+        if (combatStart == null)
+        {
+            // No-button slot was never shown (Open() passed null), so the game itself
+            // cannot have produced a false result — defensive only.
+            Log.Write("[UndoPicker] WARN: no-button result but combatStart was null — ignoring");
+            return;
+        }
+        Log.Write($"[UndoPicker] restart-combat button pressed, targetId={combatStart.ChecksumId}");
+        UndoProtocol.ProposeTarget(combatStart.ChecksumId);
     }
 
     /// <summary>

@@ -784,8 +784,11 @@ internal sealed class StateSnapshot
             // is not in the checksum payload, so the byte-exact fidelity check cannot prove
             // it, and a player left with hooks=False silently loses every relic/potion/card
             // trigger for the rest of the combat.
-            Log.Write($"RestorePlayer {player.NetId}: hooks={player.IsActiveForHooks} turn={player.PlayerCombatState.TurnNumber} " +
-                      $"maxPotions={player.MaxPotionCount} relics={player.Relics.Count()}");
+            // phase= is worth logging alongside hooks=: restoring a turn-start anchor used to
+            // land on Start (the anchor predated the play-phase entry hooks), which replayed the
+            // turn without them. It must read Play after a turn-start undo.
+            Log.Write($"RestorePlayer {player.NetId}: hooks={player.IsActiveForHooks} phase={player.PlayerCombatState.Phase} " +
+                      $"turn={player.PlayerCombatState.TurnNumber} maxPotions={player.MaxPotionCount} relics={player.Relics.Count()}");
         }
     }
 
