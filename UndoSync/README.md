@@ -187,13 +187,40 @@ Three layers of defense:
    process with no UI, driving `TestMode` + `RunManager.SetUpTest` +
    `EnterRoomDebug`. Per combat it picks a random character from
    `ModelDb.AllCharacters` (all 5) at ascension 10, a random encounter from
-   every `RoomType.Monster`/`Elite`/`Boss` in the game's own model db (event
-   encounters excluded — 80 in v0.111), and injects a random loadout before
-   combat starts: 0-4 relics, 0-`MaxPotionCount` potions, 0-8 extra deck
-   cards from the character's pool, ~30% upgrade chance and ~15% enchantment
-   chance per deck card. A random `ICardSelector` is installed via
+   the act it actually sets (act 0's own `AllRegularEncounters` /
+   `AllWeakEncounters` / `AllEliteEncounters` / `AllBossEncounters` — 22 in
+   v0.111), records a visited map coord whose `MapPointType` matches that
+   encounter's `RoomType`, and injects a random loadout before combat starts:
+   0-4 relics, 0-`MaxPotionCount` potions, 0-8 extra deck cards, plus a ~30%
+   upgrade roll per deck card. A random `ICardSelector` is installed via
    `CardSelectCmd.UseSelector` so cards/relics that prompt for a card
-   selection resolve headlessly instead of blocking forever. It then plays
+   selection resolve headlessly instead of blocking forever.
+
+   **Everything injected comes from the game's own factories, never from a
+   `ModelDb` catalogue** — `RelicFactory.PullNextRelicFromFront`,
+   `PotionFactory.CreateRandomPotionOutOfCombat`,
+   `CardFactory.CreateForReward` with `CardCreationOptions.ForRoom`, each fed
+   `player.PlayerRng.Rewards`. That is not a stylistic choice: `ModelDb.All*`
+   is a catalogue of everything *defined in the game*, not a pool of what
+   *this run can produce*, and an earlier version of this fuzzer drew from it
+   directly. It handed Ironclad another character's starting relic, fought
+   act-3 bosses in act 1, and — via `ModelDb.DebugEnchantments`, whose own
+   doc comment says it includes "mock ones for testing" — stapled arbitrary
+   enchantments onto arbitrary cards. Those are states the game cannot reach,
+   and the failures they produce are not findings. Routing through the
+   factories makes rarity rolls, character restrictions, unlocks and
+   no-duplicate rules the game's job rather than something this harness
+   reimplements (and gets wrong).
+
+   Enchantments are deliberately **not** injected: they have no gameplay pool
+   at all. Each one is applied by a specific source that also decides which
+   card receives it — `BladeOfInk.OnPlay` enchants only the `Shiv`s it
+   creates (BladeOfInk.cs:32-37), and `Shiv` is `TargetType.AnyEnemy`
+   (Shiv.cs:54), which is exactly why `Inky.OnPlay`'s use of `cardPlay.Target`
+   is safe in the real game. Enchantment capture/restore still gets exercised
+   whenever the reward factory happens to deal a card like `BladeOfInk` into
+   the deck — that path is authentic; injecting enchantments directly was
+   not. It then plays
    random legal cards at random legal targets, ends turns, and at random
    points restores to a random stored sync point. After every restore, beyond
    `ChecksumHook`'s byte-exact restore fidelity, it also checks that the
@@ -301,37 +328,34 @@ instances share the user-data directory).
   peer divergence, or a downed-teammate restore.
 - The fuzzer tests model state, not UI: `UiRefresh` runs, but nothing
   verifies what a human would actually see.
-- About 3-5% of fuzzer combats end in a drive error rather than completing,
-  and the cause is now known rather than guessed at. The fuzzer mirrors the
-  game's own `Log.Error` into its log (a `--undosync-fuzz`-only Harmony
-  prefix, since `CombatManager.RunTurnLoopAfter` reports a dead turn loop
-  only through `Log.Error` and Sentry — CombatManager.cs:516-528 — with no
-  public flag or event), and dumps the executor/queue/turn-coordination state
-  on every stall. Two distinct causes, neither of them UndoSync:
+- Fuzzer stalls are self-diagnosing, and the two that were actually observed
+  are fixed. The fuzzer mirrors the game's own `Log.Error` into its log (a
+  `--undosync-fuzz`-only Harmony prefix, since `CombatManager.RunTurnLoopAfter`
+  reports a dead turn loop only through `Log.Error` and Sentry —
+  CombatManager.cs:516-528 — with no public flag or event), and dumps the
+  executor/queue/turn-coordination state on every stall. That turned ~4% of
+  combats stalling for 10s each into two named causes, **both of them the
+  harness's own doing**:
 
-  1. **A vanilla softlock, surfaced by the fuzzer.** `Inky.OnPlay`
-     (Inky.cs) builds its target list as `new
-     ReadOnlySingleElementList<Creature>(cardPlay.Target)` for every card
-     whose `TargetType != AllEnemies`, then hands it to `PowerCmd.Apply`,
-     which dereferences each target (`!target.CanReceivePowers`,
-     PowerCmd.cs:77). `cardPlay.Target` is null for any untargeted card, and
-     `EnchantmentModel.CanEnchant` (EnchantmentModel.cs:273) filters by card
-     *type*, not target type, so Inky is legal on such cards. Playing one
-     throws inside `PlayCardAction`, which leaves
-     `ActionExecutor.CurrentlyRunningAction` set to a finished
-     player-driven action, which makes
+  1. `Inky.OnPlay` (Inky.cs) takes `cardPlay.Target` as its target for every
+     card whose `TargetType != AllEnemies`, and `PowerCmd.Apply` dereferences
+     it (PowerCmd.cs:77). That is safe in the real game, where Inky is only
+     ever applied to `Shiv` — the fuzzer was stapling it onto arbitrary cards
+     out of `ModelDb.DebugEnchantments`. The throw stranded
+     `ActionExecutor.CurrentlyRunningAction` on a finished player-driven
+     action, which left
      `CombatManager.WaitUntilQueueIsEmptyOrWaitingOnNonPlayerDrivenAction`
-     (CombatManager.cs:1474-1480) await a `TaskCompletionSource` that only
-     completes on the next `AfterActionExecuted` — and the queue is already
-     empty. The combat is stuck in `EndTurnPhaseOne` for good. This is base
-     game behaviour, reachable without any mod.
-  2. **A genuine harness limit.** `FurCoat.BeforeCombatStart`
-     (FurCoat.cs:127-133) reads `Owner.RunState.CurrentMapPoint.coord`
-     unguarded. The harness enters combat through `EnterRoomDebug` without
-     ever selecting a map point, so that is null here and never null in a
-     real run.
+     (CombatManager.cs:1474-1480) awaiting a `TaskCompletionSource` that only
+     fires on the next `AfterActionExecuted`, with the queue already empty —
+     stuck in `EndTurnPhaseOne` for good. Fixed by not manufacturing the state
+     (see the enchantment note under defense 3).
+  2. `FurCoat.BeforeCombatStart` (FurCoat.cs:127-133) reads
+     `Owner.RunState.CurrentMapPoint.coord` unguarded; the harness entered
+     combat through `EnterRoomDebug` without ever selecting a map point.
+     Fixed by recording a visited map coord before the location routers run.
 
-  Neither shape involves the restore path — several of the stalled combats
-  had performed zero restores when they stalled — which is why the harness
-  counts them separately from fidelity failures, and now lists the seeds
-  where the game's own logger fired as an explicitly non-finding line.
+  With both fixed, 250 combats complete cleanly in ~70s with zero captured
+  game errors, against 243/250 in ~190s before. As a standing net for any
+  future cause, a captured "turn loop died while its combat is in progress"
+  now abandons that combat immediately and is reported on its own summary
+  line — the game's failure, not an UndoSync finding.

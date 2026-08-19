@@ -12,6 +12,7 @@ using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Factories;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Map;
@@ -101,13 +102,6 @@ internal static class UndoFuzz
     /// therefore the whole fuzz run — forever. See AwaitWithTimeoutAsync.</summary>
     private static readonly TimeSpan LoadoutStepTimeout = TimeSpan.FromSeconds(5);
 
-    /// <summary>Materialized once and cached: ModelDb.DebugEnchantments is a LINQ query over reflection
-    /// (ModelDb.cs:106, `from t in AllAbstractModelSubtypes ...`), so re-evaluating it every combat
-    /// would re-walk every loaded type via reflection for no reason — this file runs dozens of combats
-    /// per invocation.</summary>
-    private static List<EnchantmentModel>? _debugEnchantmentsCache;
-    private static List<EnchantmentModel> DebugEnchantmentsCache => _debugEnchantmentsCache ??= ModelDb.DebugEnchantments.ToList();
-
     private sealed class CombatOutcome
     {
         public int CombatIndex;
@@ -150,15 +144,15 @@ internal static class UndoFuzz
 
         /// <summary>Counts of what SetUpRandomLoadoutAsync actually managed to inject before combat
         /// start — each counts only successful applications (relic actually obtained, potion actually
-        /// procured, card actually added to the deck pile, upgrade actually applied, enchantment
-        /// actually applied), never attempts. Surfaced in both the per-combat log line and the
-        /// run-level coverage summary so "did this run actually explore anything beyond the untouched
-        /// starting deck" is answerable from the log alone.</summary>
+        /// procured, card actually added to the deck pile, upgrade actually applied), never attempts.
+        /// Surfaced in both the per-combat log line and the run-level coverage summary so "did this run
+        /// actually explore anything beyond the untouched starting deck" is answerable from the log
+        /// alone. No EnchantsApplied counter: see SetUpRandomLoadoutAsync's enchantment comment block
+        /// for why there is no enchantment injection step left to count.</summary>
         public int RelicsInjected;
         public int PotionsInjected;
         public int DeckCardsInjected;
         public int CardsUpgraded;
-        public int EnchantsApplied;
 
         /// <summary>TurnsPlayed's value as of the most recent restore (0 if none yet this combat) —
         /// TurnsPlayed - LastRestoreTurnMark is "turns played since last restore" for the
@@ -191,6 +185,17 @@ internal static class UndoFuzz
         /// CombatManager.RunTurnLoopAfter's turn-loop death (CombatManager.cs:516-528), which
         /// production only ever reports through Log.Error/Sentry with no public flag or event.</summary>
         public bool SawGameError;
+
+        /// <summary>True when the GAME's own combat turn loop died (CombatManager.RunTurnLoopAfter,
+        /// CombatManager.cs:516-528) — set by DriveCombatAsync when WaitForIdleOurTurnAsync returns
+        /// IdleWait.GameTurnLoopDied, i.e. _gameTurnLoopDied was seen set by RecordGameError. This
+        /// combat can never complete: the game's own turn loop is gone, so nothing the driver does from
+        /// here on can ever be picked up again. Deliberately NOT an UndoSync/ChecksumHook finding (this
+        /// combat never got as far as attempting or verifying a restore) and deliberately distinct from
+        /// both StuckAfterRestore (a driver that COULD still act but didn't within the timeout) and a
+        /// generic DriveError (budget/wall-clock/setup) — see RunAllCombatsAsync's summary for how each
+        /// is kept out of the others' seed lists.</summary>
+        public bool TurnLoopDied;
 
         public readonly List<string> FailureRepros = new();
     }
@@ -278,6 +283,20 @@ internal static class UndoFuzz
     private const int MaxCapturedGameErrors = 20;
 
     /// <summary>
+    /// Set true by <see cref="RecordGameError"/> when the captured text is CombatManager.
+    /// RunTurnLoopAfter's own report of its turn loop dying (CombatManager.cs:521) — "the combat is
+    /// stuck until the room is restarted" is the game's own diagnosis, reported ONLY via Log.Error/
+    /// Sentry with no public flag or event otherwise. Checked at the top of every
+    /// WaitForIdleOurTurnAsync poll iteration, before the normal IsInProgress check, so DriveCombatAsync
+    /// finds out within one IdlePollInterval instead of burning the full IdleWaitTimeout waiting on a
+    /// combat that can never move again — the game's own turn loop is gone, so nothing this driver does
+    /// (a card play, an end-turn) can ever be picked up again. Reset to false in RunOneCombatAsync at
+    /// the exact place <see cref="_gameErrors"/> is already cleared, so a death in combat N-1 can never
+    /// be attributed to combat N.
+    /// </summary>
+    private static bool _gameTurnLoopDied;
+
+    /// <summary>
     /// Installs a Harmony PREFIX on MegaCrit.Sts2.Core.Logging.Log.Error(string text, int
     /// skipFrames = 2) (Log.cs:75) so every game-side error the fuzzer's combats provoke lands in
     /// this fuzz log instead of only in Godot's own separate stdout log file.
@@ -355,6 +374,13 @@ internal static class UndoFuzz
     private static void RecordGameError(string text)
     {
         Log.Write($"[Fuzz][gameerror] {text}");
+
+        // CombatManager.RunTurnLoopAfter's own report of its turn loop dying (CombatManager.cs:521) —
+        // matched by literal substring since `text` also carries the full exception appended after it
+        // (`{e}` in the source). See _gameTurnLoopDied's doc comment for why this gets its own flag
+        // instead of just another entry in _gameErrors.
+        if (text.Contains("turn loop died while its combat is in progress"))
+            _gameTurnLoopDied = true;
 
         string entry = text.Length > 4000 ? text.Substring(0, 4000) + "… (truncated)" : text;
         _gameErrors.Add(entry);
@@ -461,7 +487,7 @@ internal static class UndoFuzz
         var pool = ResolveEncounterPool();
         if (pool.Count == 0)
         {
-            Log.Write("[Fuzz] ABORT: no encounters resolved from ModelDb.AllEncounters — nothing to fight.");
+            Log.Write("[Fuzz] ABORT: no encounters resolved from the harness's act (ModelDb.Acts.FirstOrDefault()) — nothing to fight.");
             return;
         }
 
@@ -474,6 +500,7 @@ internal static class UndoFuzz
         var stuckAfterRestoreSeeds = new List<string>();
         var sectionFailureSeeds = new List<string>();
         var gameErrorSeeds = new List<string>();
+        var turnLoopDiedSeeds = new List<string>();
 
         // Coverage accumulators for the "coverage:" summary line below — answer "did this run
         // actually explore anything beyond the untouched starting deck" from the log alone, without
@@ -484,7 +511,6 @@ internal static class UndoFuzz
         int totalPotionsInjected = 0;
         int totalDeckCardsInjected = 0;
         int totalCardsUpgraded = 0;
-        int totalEnchantsApplied = 0;
 
         try
         {
@@ -530,9 +556,14 @@ internal static class UndoFuzz
                     sectionFailureSeeds.Add(outcome.Seed);
                 if (outcome.SawGameError)
                     gameErrorSeeds.Add(outcome.Seed);
+                if (outcome.TurnLoopDied)
+                    turnLoopDiedSeeds.Add(outcome.Seed);
                 if (outcome.BudgetExhausted)
                     budgetExhausted++;
-                else if (outcome.DriveError != null)
+                // TurnLoopDied combats also set DriveError (see DriveCombatAsync's GameTurnLoopDied
+                // branch) — excluded here so they land only in turnLoopDiedSeeds above, never also in
+                // driveErrorSeeds, which would double-count the same combat under two different labels.
+                else if (outcome.DriveError != null && !outcome.TurnLoopDied)
                     driveErrorSeeds.Add(outcome.Seed);
 
                 if (outcome.CharacterId.Length > 0)
@@ -543,7 +574,6 @@ internal static class UndoFuzz
                 totalPotionsInjected += outcome.PotionsInjected;
                 totalDeckCardsInjected += outcome.DeckCardsInjected;
                 totalCardsUpgraded += outcome.CardsUpgraded;
-                totalEnchantsApplied += outcome.EnchantsApplied;
 
                 // One line per combat on the happy path; failures already got a full block logged
                 // from inside RunOneCombatAsync/TryAttemptRestore, so this line is just the index.
@@ -553,7 +583,7 @@ internal static class UndoFuzz
                     + $"character={outcome.CharacterId} roomType={outcome.RoomTypeName} "
                     + $"completed={outcome.Completed} turnsPlayed={outcome.TurnsPlayed} cardsPlayed={outcome.CardsPlayed} "
                     + $"relics={outcome.RelicsInjected} potions={outcome.PotionsInjected} deckAdds={outcome.DeckCardsInjected} "
-                    + $"upgrades={outcome.CardsUpgraded} enchants={outcome.EnchantsApplied} "
+                    + $"upgrades={outcome.CardsUpgraded} "
                     + $"restoresAttempted={outcome.RestoresAttempted} restoresFailed={outcome.RestoresFailed}"
                     + (outcome.BudgetExhausted ? " budgetExhausted=true" : "")
                     + (outcome.StuckAfterRestore ? $" stuckAfterRestore=\"{outcome.StuckAfterRestoreDetail}\"" : "")
@@ -599,6 +629,16 @@ internal static class UndoFuzz
         Log.Write(gameErrorSeeds.Count == 0
             ? "[Fuzz] no game errors captured (MegaCrit.Sts2.Core.Logging.Log.Error)."
             : $"[Fuzz] combat seeds with game errors ({gameErrorSeeds.Count}) — the GAME's own Log.Error fired during these, not an UndoSync finding; see \"[Fuzz][gameerror]\" lines above for full text: {string.Join(", ", gameErrorSeeds)}");
+        // Every turn-loop death is also captured above as a game error (RecordGameError sees the same
+        // Log.Error text) — this is a strict subset of gameErrorSeeds, but a more actionable one:
+        // WaitForIdleOurTurnAsync detected it and DriveCombatAsync gave up immediately instead of
+        // reporting a generic stuck-after-restore/drive-error for it. This is the GAME's own failure
+        // (CombatManager.RunTurnLoopAfter, CombatManager.cs:516-528), NOT an UndoSync/ChecksumHook
+        // finding — kept out of driveErrorSeeds below so the two lists never double-count the same
+        // combat.
+        Log.Write(turnLoopDiedSeeds.Count == 0
+            ? "[Fuzz] no game turn-loop deaths detected."
+            : $"[Fuzz] combat seeds where the game's own turn loop died ({turnLoopDiedSeeds.Count}) — not an UndoSync finding, the combat could never complete regardless; see \"[Fuzz][gameerror]\" lines above for the stack: {string.Join(", ", turnLoopDiedSeeds)}");
         // Separate, deliberately not called "failures": harness/drive-loop trouble (timeouts, stuck
         // waits, setup errors, budget exhaustion) that never got far enough to attempt a fidelity
         // comparison, and isn't a stuck-after-restore or section-failure finding either.
@@ -610,7 +650,7 @@ internal static class UndoFuzz
         // injected/applied totals show the loadout-side spread (SetUpRandomLoadoutAsync).
         Log.Write($"[Fuzz] coverage: characters {FormatCoverageCounts(characterCounts)} roomTypes {FormatCoverageCounts(roomTypeCounts)} "
             + $"relicsInjected={totalRelicsInjected} potionsInjected={totalPotionsInjected} deckCardsInjected={totalDeckCardsInjected} "
-            + $"upgrades={totalCardsUpgraded} enchants={totalEnchantsApplied}");
+            + $"upgrades={totalCardsUpgraded}");
 
         Log.Write("[Fuzz] ==================== done ====================");
 
@@ -649,6 +689,8 @@ internal static class UndoFuzz
         // DescribeStallState/SawGameError — "gameErrors={n}" only means "this combat" if the ring
         // buffer actually starts empty at combat start.
         _gameErrors.Clear();
+        // Same reasoning as _gameErrors.Clear() above: see _gameTurnLoopDied's doc comment.
+        _gameTurnLoopDied = false;
 
         // TestMode.TurnOnInternal's own doc comment says "NEVER CALL THIS. Only calls should be in
         // NetCoreRunner and CiCoreRunner" (TestMode.cs:53) — called anyway because this whole file
@@ -734,6 +776,58 @@ internal static class UndoFuzz
             // unset and both location-targeted routers without a current location, which is the
             // difference between this harness and the sequence the game itself is known to work from.
             await RunManager.Instance.SetActInternal(0);
+
+            // Records a visited map coord matching the encounter's own RoomType, before the two
+            // location-router calls below. A real run only ever reaches combat by walking a map point
+            // (MapScreenHandler), so RunState.CurrentMapCoord is always already set once combat
+            // starts. This harness instead drives straight into EnterRoomDebug with no map navigation
+            // at all, so without this step RunState.CurrentMapCoord stays null forever (RunState.cs:
+            // 112-121, `_visitedMapCoords.Last()` on a list nothing has ever added to) and
+            // RunState.CurrentMapPoint stays null right behind it (RunState.cs:127-137).
+            //
+            // That matters because game code reads CurrentMapPoint with no null guard:
+            // FurCoat.BeforeCombatStart (FurCoat.cs:127-133) does
+            // `Owner.RunState.CurrentMapPoint.coord`, which NREs and kills the combat's own turn loop
+            // the instant a fuzzed loadout happens to include FurCoat. A real run can never enter
+            // combat without a current map point, so this is a harness defect being fixed here, not a
+            // game bug being worked around.
+            //
+            // The recorded point's PointType must match the encounter's RoomType, not just be ANY
+            // point: fighting a Boss encounter while RunState says the player is standing on a Monster
+            // map point is exactly the kind of state-the-game-cannot-produce pairing the rest of this
+            // change (ResolveEncounterPool, the relic/potion/card factories in SetUpRandomLoadoutAsync)
+            // exists to eliminate.
+            //
+            // Must run before RunLocationTargetedBuffer.OnLocationChanged/MapSelectionSynchronizer.
+            // OnLocationChanged just below, not after: RunState.MapLocation is
+            // `new MapLocation(CurrentMapCoord, CurrentActIndex)` (RunState.cs:147), and RunLocation
+            // embeds MapLocation (RunState.cs:142) — recording the coord after either router call
+            // would hand both routers a location whose coord is still null.
+            //
+            // Must run after SetActInternal (immediately above), not before: RunState.Map defaults to
+            // NullActMap.Instance until SetActInternal installs a real map (RunState.cs:102), so
+            // map.GetAllMapPoints()/StartingMapPoint below need the real map already in place.
+            //
+            // Wrapped in try/catch, log-and-continue rather than aborting the combat: this is
+            // best-effort scaffolding for FurCoat and anything else that reads CurrentMapPoint, not
+            // itself something this fuzzer exists to test.
+            try
+            {
+                MapPointType wanted = encounterPrototype.RoomType switch
+                {
+                    RoomType.Elite => MapPointType.Elite,
+                    RoomType.Boss => MapPointType.Boss,
+                    _ => MapPointType.Monster,
+                };
+                var map = runState.Map;
+                var point = map.GetAllMapPoints().FirstOrDefault(p => p.PointType == wanted) ?? map.StartingMapPoint;
+                runState.AddVisitedMapCoord(point.coord);
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"[Fuzz] combat={combatIndex} WARNING: failed to record a visited map point matching the encounter's RoomType: {ex.Message}");
+            }
+
             RunManager.Instance.RunLocationTargetedBuffer.OnLocationChanged(runState.RunLocation);
             RunManager.Instance.MapSelectionSynchronizer.OnLocationChanged(runState.MapLocation);
 
@@ -747,7 +841,7 @@ internal static class UndoFuzz
             // Before EnterRoomDebug, not after: relics/potions can carry "at the start of combat"
             // hooks, and those should fire naturally as part of EnterRoomDebug's own combat-start
             // sequence rather than being separately simulated after the fact.
-            await SetUpRandomLoadoutAsync(player, character, combatIndex, rng, outcome);
+            await SetUpRandomLoadoutAsync(player, encounterPrototype.RoomType, combatIndex, rng, outcome);
 
             var mutableEncounter = encounterPrototype.ToMutable();
             // Deliberately NOT calling DebugRandomizeRng() here (contrast FightConsoleCmd.cs:44, which
@@ -849,30 +943,44 @@ internal static class UndoFuzz
     }
 
     /// <summary>
-    /// Randomizes this combat's starting loadout — relics, potions, extra deck cards, upgrades,
-    /// enchantments — all driven off `rng` (never the game's own Rng/RunRngSet, same reasoning as
-    /// everywhere else in this file). Called from RunOneCombatAsync after the location-router calls
-    /// and after the card selector is installed, but before EnterRoomDebug (see the call site's own
-    /// comment for why).
+    /// Randomizes this combat's starting loadout — relics, potions, extra deck cards — all driven off
+    /// `rng` for HOW MANY of each to inject (never the game's own Rng/RunRngSet for that count, same
+    /// reasoning as everywhere else in this file), but drawn via the game's own reward factories
+    /// (RelicFactory/PotionFactory/CardFactory) for WHICH one — off player.PlayerRng.Rewards, the same
+    /// stream a real reward screen draws from (PlayerRngSet.cs:19, Player.cs:55) — rather than from
+    /// ModelDb's catalogues of everything defined in the game (ModelDb.AllRelics/AllPotions,
+    /// character.CardPool.AllCards). Those catalogues include content the game itself would never
+    /// actually offer here — mock/deprecated entries, rarity-blind draws, a character's full card pool
+    /// regardless of the room's own rarity odds — which was manufacturing loadouts a real run can't
+    /// reach. Called from RunOneCombatAsync after the location-router calls and after the card
+    /// selector is installed, but before EnterRoomDebug (see the call site's own comment for why).
     ///
-    /// Every individual injection (one relic, one potion, one deck card, one upgrade, one enchantment)
-    /// is independently wrapped in try/catch and logs+continues on failure: this method exists
-    /// specifically to exercise models the fuzzer previously never touched, so one bad/incompatible
-    /// model throwing must never abort the rest of the loadout, let alone the combat. Every awaited
-    /// step is also guarded by AwaitWithTimeoutAsync, since CombatWallClockTimeout only covers
-    /// DriveCombatAsync and this method runs entirely before that.
+    /// Every individual injection (one relic, one potion, one card-reward batch) is independently
+    /// wrapped in try/catch and logs+continues on failure: this method exists specifically to exercise
+    /// models the fuzzer previously never touched, so one bad/incompatible model throwing must never
+    /// abort the rest of the loadout, let alone the combat. Every awaited step is also guarded by
+    /// AwaitWithTimeoutAsync, since CombatWallClockTimeout only covers DriveCombatAsync and this
+    /// method runs entirely before that.
+    ///
+    /// No enchantment step: see the comment block after the upgrade pass below for why there is
+    /// nothing here to fuzz.
     /// </summary>
-    private static async Task SetUpRandomLoadoutAsync(Player player, CharacterModel character, int combatIndex, Random rng, CombatOutcome outcome)
+    private static async Task SetUpRandomLoadoutAsync(Player player, RoomType roomType, int combatIndex, Random rng, CombatOutcome outcome)
     {
         // --- Relics --------------------------------------------------------------------------------
-        var relicPool = ModelDb.AllRelics.ToList();
+        // RelicFactory.PullNextRelicFromFront (RelicFactory.cs:21) is the game's own relic-reward
+        // factory, not a catalogue this file has to filter itself: it rolls a rarity off the rng
+        // passed in and pulls the next matching relic from player.RelicGrabBag, removing it from the
+        // bag as it goes (RelicFactory.cs:47-48) — so it can never hand back a relic already seen this
+        // run. The previous ModelDb.AllRelics draw-without-replacement loop was reimplementing exactly
+        // that no-duplicates guarantee, and only for the pool it happened to build, not the game's own
+        // per-run grab bag. The fuzzer's own `rng` still decides HOW MANY relics to inject (a synthetic
+        // decision the game never makes on its own); WHICH relic now comes from the same roll a real
+        // reward screen would make.
         int relicCount = rng.Next(0, 5); // 0-4 inclusive
-        for (int i = 0; i < relicCount && relicPool.Count > 0; i++)
+        for (int i = 0; i < relicCount; i++)
         {
-            int idx = rng.Next(relicPool.Count);
-            var model = relicPool[idx];
-            relicPool.RemoveAt(idx); // draw without replacement, independent of the ownership check below
-
+            var model = RelicFactory.PullNextRelicFromFront(player, player.PlayerRng.Rewards);
             try
             {
                 if (player.GetRelicById(model.Id) != null)
@@ -890,14 +998,17 @@ internal static class UndoFuzz
         }
 
         // --- Potions -------------------------------------------------------------------------------
-        var potionPool = ModelDb.AllPotions.ToList();
+        // PotionFactory.CreateRandomPotionOutOfCombat (PotionFactory.cs:30) is the game's own
+        // out-of-combat potion factory: it draws from GetPotionOptions(player) — this character's own
+        // PotionPool plus the shared pool, both already filtered by player.UnlockState
+        // (PotionFactory.cs:92-95) — with rarity rolled off the rng passed in, exactly what a
+        // rest-site/reward potion draw would produce. ModelDb.AllPotions, the previous source here,
+        // has no such filtering: it includes potions this character/unlock combination could never
+        // actually be offered.
         int potionCount = rng.Next(0, player.MaxPotionCount + 1);
-        for (int i = 0; i < potionCount && potionPool.Count > 0; i++)
+        for (int i = 0; i < potionCount; i++)
         {
-            int idx = rng.Next(potionPool.Count);
-            var model = potionPool[idx];
-            potionPool.RemoveAt(idx);
-
+            var model = PotionFactory.CreateRandomPotionOutOfCombat(player, player.PlayerRng.Rewards);
             try
             {
                 var procureTask = PotionCmd.TryToProcure(model.ToMutable(), player);
@@ -913,38 +1024,55 @@ internal static class UndoFuzz
         }
 
         // --- Deck cards ----------------------------------------------------------------------------
-        if (RunManager.Instance.DebugOnlyGetState() is not ICardScope scope)
+        // CardCreationOptions.ForRoom(player, roomType) (CardCreationOptions.cs:80) + CardFactory.
+        // CreateForReward (CardFactory.cs:89-109) is the game's own combat-reward card factory:
+        // ForRoom restricts the pool to player.Character.CardPool and picks rarity odds off roomType
+        // (Monster/Elite/Boss each get their own CardRarityOddsType, CardCreationOptions.cs:100-107)
+        // — exactly what this encounter's own reward screen would offer. character.CardPool.AllCards,
+        // the previous source here, ignored rarity odds entirely and drew every card in the pool with
+        // even weight regardless of room type. CreateForReward also rolls each returned card's
+        // upgrade itself unless CardCreationFlags.NoUpgradeRoll is set (CardFactory.cs:98-102) — left
+        // unset here on purpose, since that's the game's own upgrade behaviour, not something this
+        // harness should suppress.
+        //
+        // Cards come back already owned by `player` (CardFactory.cs:241, `player.RunState.CreateCard`),
+        // so unlike the old `scope.CreateCard(model, player)` call, nothing here needs
+        // RunManager.Instance.DebugOnlyGetState()/ICardScope any more.
+        //
+        // The whole batch call is wrapped, not just the per-card CardPileCmd.Add below: unlike
+        // RelicFactory/PotionFactory (which fall back to a default rather than throw), CreateForReward
+        // eagerly builds its full result list up front and can throw InvalidOperationException if
+        // cardCount asks for more unique cards/rarities than a small pool can offer
+        // (CardFactory.cs:229-232, :237-240) — that failure must still leave the rest of the loadout
+        // (and the combat) untouched, same as every other injection in this method.
+        int cardCount = rng.Next(0, 9);
+        try
         {
-            Log.Write($"[Fuzz] combat={combatIndex} loadout: RunManager.Instance.DebugOnlyGetState() returned null — skipping deck-card injection");
-        }
-        else
-        {
-            var cardPool = character.CardPool.AllCards.ToList();
-            int cardCount = rng.Next(0, 9);
-            for (int i = 0; i < cardCount && cardPool.Count > 0; i++)
+            var options = CardCreationOptions.ForRoom(player, roomType);
+            foreach (var result in CardFactory.CreateForReward(player, cardCount, options))
             {
-                int idx = rng.Next(cardPool.Count);
-                var model = cardPool[idx];
-                cardPool.RemoveAt(idx);
-
+                var card = result.Card; // already owned by player -- do not scope.CreateCard it again
                 try
                 {
-                    var card = scope.CreateCard(model, player);
                     var addTask = CardPileCmd.Add(card, PileType.Deck);
-                    if (!await AwaitWithTimeoutAsync(addTask, $"deck card '{model.Id.Entry}'", combatIndex))
+                    if (!await AwaitWithTimeoutAsync(addTask, $"deck card '{card.Id.Entry}'", combatIndex))
                         continue;
                     if (addTask.Result.success)
                         outcome.DeckCardsInjected++;
                 }
                 catch (Exception ex)
                 {
-                    Log.Write($"[Fuzz] combat={combatIndex} loadout: deck card '{model.Id.Entry}' FAILED: {ex.Message}");
+                    Log.Write($"[Fuzz] combat={combatIndex} loadout: deck card '{card.Id.Entry}' FAILED: {ex.Message}");
                 }
             }
         }
+        catch (Exception ex)
+        {
+            Log.Write($"[Fuzz] combat={combatIndex} loadout: card reward batch (cardCount={cardCount}) FAILED: {ex.Message}");
+        }
 
-        // --- Upgrades + enchantments -----------------------------------------------------------------
-        // Snapshot first: CardCmd.Upgrade/Enchant mutate the CardModel in place, and
+        // --- Upgrades ------------------------------------------------------------------------------
+        // Snapshot first: CardCmd.Upgrade mutates the CardModel in place, and
         // PileType.Deck.GetPile(player).Cards is the live IReadOnlyList backing the pile we'd be
         // mutating while iterating it, not a copy.
         var deckSnapshot = PileType.Deck.GetPile(player).Cards.ToList();
@@ -967,35 +1095,31 @@ internal static class UndoFuzz
             }
         }
 
-        var enchantments = DebugEnchantmentsCache;
-        if (enchantments.Count > 0)
-        {
-            foreach (var card in deckSnapshot)
-            {
-                if (rng.Next(100) >= 15) continue; // ~15% enchant chance
-                var enchantment = enchantments[rng.Next(enchantments.Count)];
-                try
-                {
-                    // Always check CanEnchant first: CardCmd.Enchant throws InvalidOperationException,
-                    // rather than returning null/false, both when CanEnchant is false and when the
-                    // card already carries a different enchantment (CardCmd.cs:536-553).
-                    if (enchantment.CanEnchant(card))
-                    {
-                        CardCmd.Enchant(enchantment.ToMutable(), card, 1m); // synchronous, no await
-                        outcome.EnchantsApplied++;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Write($"[Fuzz] combat={combatIndex} loadout: enchant '{enchantment.Id.Entry}' on '{card.Id.Entry}' FAILED: {ex.Message}");
-                }
-            }
-        }
+        // --- Enchantments ----------------------------------------------------------------------------
+        // Deliberately nothing here. Unlike relics/potions/cards, there is no gameplay pool of "cards
+        // that can be enchanted" for a harness to draw from: every enchantment in the game is applied
+        // by one specific source that also decides which card receives it. BladeOfInk.OnPlay, for
+        // example, enchants only the Shivs it creates with Inky (BladeOfInk.cs:32-37) — never an
+        // arbitrary card in hand or deck — and that pairing isn't incidental: Inky.OnPlay reads
+        // cardPlay.Target directly (Inky.cs:28) whenever the enchanted card's own TargetType isn't
+        // AllEnemies, which is safe only because BladeOfInk only ever hands Inky a Shiv, and Shiv is
+        // TargetType.AnyEnemy (Shiv.cs:54) and therefore always carries a target. Applying Inky to an
+        // arbitrary deck card via this file's previous injection loop routinely handed it a
+        // TargetType.Self/None card instead, with no cardPlay.Target to read — a "vanilla softlock"
+        // this harness manufactured entirely by itself, not a bug a real run could ever hit.
+        //
+        // ModelDb.DebugEnchantments — this file's previous source for this step — is documented as
+        // "Every Enchantment defined in the game code, including mock ones for testing"
+        // (ModelDb.cs:104-108); applying one of those to a random card was never representative of
+        // anything a real run does. Enchantment capture/restore still gets exercised whenever
+        // CardFactory.CreateForReward above happens to put a card like BladeOfInk in the deck and it
+        // gets played in combat — that path is authentic (the game's own OnPlay enchanting its own
+        // Shivs), unlike this deleted step.
     }
 
     /// <summary>Result of waiting for an actionable idle player-turn state — see
     /// WaitForIdleOurTurnAsync.</summary>
-    private enum IdleWait { Ready, CombatEnded, TimedOut }
+    private enum IdleWait { Ready, CombatEnded, TimedOut, GameTurnLoopDied }
 
     /// <summary>Set by WaitForIdleOurTurnAsync immediately before it returns TimedOut, to
     /// "phase={...} blockers=[{UndoSyncMod.DescribeUndoRedoBlockers()}]" — cleared back to "" on every
@@ -1243,12 +1367,23 @@ internal static class UndoFuzz
     /// Deliberately does NOT check the overall combat wall-clock itself (DriveCombatAsync's own loop
     /// does that once per iteration with a distinct, unambiguous message) — this keeps a plain
     /// wall-clock exhaustion from ever being misattributed as a stuck-after-restore finding.
+    ///
+    /// Checks <see cref="_gameTurnLoopDied"/> first, before even the IsInProgress check: once the
+    /// game's own turn loop has died (CombatManager.cs:516-528), IsInProgress can still read true —
+    /// nothing ever flips it false again on that path — so without this check ahead of it, a dead turn
+    /// loop would otherwise present as an ordinary TimedOut stall and burn the full IdleWaitTimeout
+    /// before DriveCombatAsync found out. See _gameTurnLoopDied's own doc comment for how it gets set.
     /// </summary>
     private static async Task<IdleWait> WaitForIdleOurTurnAsync(Player me)
     {
         var sw = Stopwatch.StartNew();
         while (true)
         {
+            if (_gameTurnLoopDied)
+            {
+                _lastIdleWaitBlockers = "";
+                return IdleWait.GameTurnLoopDied;
+            }
             if (!CombatManager.Instance.IsInProgress)
             {
                 _lastIdleWaitBlockers = "";
@@ -1348,6 +1483,19 @@ internal static class UndoFuzz
 
                 var wait = await WaitForIdleOurTurnAsync(me);
                 if (wait == IdleWait.CombatEnded) break;
+                if (wait == IdleWait.GameTurnLoopDied)
+                {
+                    // The GAME's own turn loop died (CombatManager.cs:516-528) — not this driver being
+                    // stuck. Deliberately NOT folded into the StuckAfterRestore branch below even when
+                    // watchingRestore is set: a dead turn loop fully explains the lack of progress on
+                    // its own (nothing enqueued from here on was ever going to drain, restore or no
+                    // restore), so reporting it as stuck-after-restore would misdirect an investigation
+                    // toward ChecksumHook.RestoreTo instead of the game's own turn loop.
+                    outcome.TurnLoopDied = true;
+                    outcome.DriveError = "the game's own combat turn loop died — see the [Fuzz][gameerror] lines above for the stack";
+                    Log.Write($"[Fuzz] combat={combatIndex} {outcome.DriveError}");
+                    return;
+                }
                 if (wait == IdleWait.TimedOut)
                 {
                     if (watchingRestore)
@@ -1560,20 +1708,32 @@ internal static class UndoFuzz
     // ==================================================================================
 
     /// <summary>
-    /// Pool of encounters EnterRoomDebug can fight, resolved live from ModelDb rather than a hard-coded
-    /// list of ids:
-    ///   (a) the pool is derived from the game's own model db, so a content update (new/removed/
-    ///       renamed encounters) automatically widens or narrows it instead of a hard-coded list
-    ///       silently drifting out of date or, worse, quietly resolving to nothing;
-    ///   (b) event encounters (ModelDb.EventEncounters) are excluded — they're reachable only through
-    ///       event flow (e.g. choosing "Start a Fight!"; see RoomType's own doc comment on the
-    ///       MapPointType/RoomType distinction), not through a plain EnterRoomDebug the way a
-    ///       Monster/Elite/Boss encounter is;
-    ///   (c) the explicit OrderBy on the encounter's own id makes pickRng.Next(pool.Count) in
-    ///       RunAllCombatsAsync reproducible for a given (baseSeed, combatIndex) even if ModelDb's own
-    ///       internal enumeration order ever changes (e.g. a Concat/Distinct implementation detail) —
-    ///       without a stable order, "REPRO: baseSeed=... combatIndex=..." in a failure log could stop
-    ///       reproducing the same encounter across two runs of the mod on different game builds.
+    /// Pool of encounters EnterRoomDebug can fight, for the ONE act this harness actually sets:
+    /// RunOneCombatAsync always calls RunManager.Instance.SetActInternal(0), so act 0
+    /// (ModelDb.Acts.FirstOrDefault()) is the only act whose encounters a combat here can ever
+    /// legitimately be fighting.
+    ///
+    /// This previously unioned every act's encounters via ModelDb.AllEncounters (ModelDb.cs:204,
+    /// `Acts.SelectMany(a => a.AllEncounters)`), which handed pickRng.Next(pool.Count) act-3 bosses
+    /// and act-2 elites to fight while RunState.CurrentActIndex stayed 0 — an act/encounter pairing
+    /// the game itself can never produce, since a real run only ever fights an act's own encounters
+    /// while that act is current. That's the same mistake as the relic/potion/enchantment catalogues
+    /// this change also fixes: drawing from "everything the game defines" instead of "everything this
+    /// state of the game could actually offer" manufactures states no real run can reach.
+    ///
+    /// ActModel.AllRegularEncounters / AllWeakEncounters / AllEliteEncounters / AllBossEncounters
+    /// (ActModel.cs:149-164) are the game's own partitioning of one act's encounters by RoomType, used
+    /// here directly instead of re-deriving a RoomType filter over ModelDb.AllEncounters. That also
+    /// makes the old ModelDb.EventEncounters filtering unnecessary: none of these four act-level pools
+    /// ever include event encounters — they're reachable only through event flow (e.g. choosing
+    /// "Start a Fight!"; see RoomType's own doc comment on the MapPointType/RoomType distinction), not
+    /// through a plain EnterRoomDebug the way a Monster/Elite/Boss encounter is.
+    ///
+    /// The explicit OrderBy on the encounter's own id makes pickRng.Next(pool.Count) in
+    /// RunAllCombatsAsync reproducible for a given (baseSeed, combatIndex) even if ModelDb/ActModel's
+    /// own internal enumeration order ever changes (e.g. a Concat/Distinct implementation detail) —
+    /// without a stable order, "REPRO: baseSeed=... combatIndex=..." in a failure log could stop
+    /// reproducing the same encounter across two runs of the mod on different game builds.
     /// </summary>
     /// <summary>
     /// Deterministic 32-bit seed for a combat's harness RNG.
@@ -1602,10 +1762,18 @@ internal static class UndoFuzz
 
     private static List<EncounterModel> ResolveEncounterPool()
     {
-        var eventEncounters = ModelDb.EventEncounters.ToHashSet();
-        var pool = ModelDb.AllEncounters
-            .Where(e => !eventEncounters.Contains(e))
-            .Where(e => e.RoomType is RoomType.Monster or RoomType.Elite or RoomType.Boss)
+        var act = ModelDb.Acts.FirstOrDefault();
+        if (act == null)
+        {
+            Log.Write("[Fuzz] encounter pool: ModelDb.Acts returned no acts.");
+            return new List<EncounterModel>();
+        }
+
+        var pool = act.AllRegularEncounters
+            .Concat(act.AllWeakEncounters)
+            .Concat(act.AllEliteEncounters)
+            .Concat(act.AllBossEncounters)
+            .Distinct()
             .OrderBy(e => e.Id.Entry, StringComparer.Ordinal)
             .ToList();
 
