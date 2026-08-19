@@ -81,8 +81,13 @@ internal static class PeerSpectate
         public required NCard Card;
     }
 
+    // Vanilla's deck/pile screen dims to StsColors.screenBackdrop (alpha 0.8, NCardPileScreen.cs:185).
+    // Spectate is not a modal screen — you still want to watch the fight — so this is much lighter.
+    private const float DimAlpha = 0.35f;
+
     private static Player? _peer;
     private static Control? _root;
+    private static ColorRect? _dim;
     private static Control? _cardLayer;
     private static Label? _header;
     private static NPlayerHand? _hiddenHand;
@@ -126,6 +131,25 @@ internal static class PeerSpectate
         _root = new Control { Name = "PeerViewStrip", MouseFilter = Control.MouseFilterEnum.Ignore };
         hand.GetParent().AddChildSafely(_root);
         Rect2 visible = hand.GetViewport().GetVisibleRect();
+
+        // Full-screen dim so spectate mode is unmistakable at a glance. Same technique
+        // as NCardPileScreen's Background ColorRect (NCardPileScreen.cs:182-185): start
+        // at StsColors.transparentBlack and tween Modulate's alpha up — but faster
+        // (0.2s vs vanilla's 1.0s), since this is a mode toggle, not a screen opening.
+        // MouseFilter.Ignore like the rest of this strip: clicks must keep passing
+        // through to the ally's character underneath, since clicking it is one of the
+        // ways to exit spectate. Added as _root's first child so _cardLayer, _header,
+        // and the exit button all draw above it (Godot draws siblings in child order).
+        _dim = new ColorRect { Color = Colors.Black, Modulate = StsColors.transparentBlack, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _root.AddChildSafely(_dim);
+        _root.MoveChildSafely(_dim, 0);
+        _dim.GlobalPosition = visible.Position;
+        _dim.Size = visible.Size;
+        _dim.CreateTween()
+            .TweenProperty(_dim, "modulate", new Color(0f, 0f, 0f, DimAlpha), 0.2)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Expo);
+
         _cardLayer = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
         _root.AddChildSafely(_cardLayer);
         // The fan tables are symmetric around x=0, so anchor the layer at the exact
@@ -230,6 +254,10 @@ internal static class PeerSpectate
         if (_root != null && GodotObject.IsInstanceValid(_root))
             _root.QueueFreeSafelyNoPool();
         _root = null;
+        // _dim is a child of _root, so QueueFreeSafelyNoPool above already frees it
+        // (and its running tween, which auto-invalidates when its target is freed) —
+        // an instant exit, matching Exit()'s no-fade-out treatment of everything else.
+        _dim = null;
         _cardLayer = null;
         _header = null;
 
@@ -355,6 +383,9 @@ internal static class PeerSpectate
     /// <summary>
     /// The strip draws above capstone screens (it lives near the top of the combat
     /// UI tree), so it hides while any capstone is open — see PatchCapstoneOpen.
+    /// _dim is a child of _root, so toggling Visible here hides the full-screen dim
+    /// along with the rest of the strip whenever a capstone (peer piles/deck) opens
+    /// on top — no extra work needed.
     /// </summary>
     internal static void SetStripVisible(bool visible)
     {

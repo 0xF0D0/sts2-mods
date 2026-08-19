@@ -3,7 +3,7 @@
   "name": "Peer View",
   "author": "beomsu",
   "description": "Read-only viewer for other players' cards in multiplayer combat. Click an ally's character to see their hand; while open, use the game's own view-pile hotkeys to switch to their deck / draw / discard / exhaust piles (H returns to their hand). UI-only: no game state is touched, peers do not need the mod installed.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": false
