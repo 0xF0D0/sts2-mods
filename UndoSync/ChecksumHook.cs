@@ -137,6 +137,11 @@ internal static class ChecksumHook
         {
             if (UndoSyncMod.IsRestoring) return;
 
+            // Fuzz-only trace: the filters below return silently, so without this there is no way to
+            // tell "the game never generated this checksum" from "we saw it and dropped it".
+            if (UndoFuzz.TraceChecksums)
+                Log.Write($"[Fuzz][trace] checksum id={data.id} context='{context}'");
+
             var cs = UndoSyncMod.GetCombatState();
             if (cs == null || cs.CurrentSide != CombatSide.Player) return;
             var syncr = RunManager.Instance?.ActionQueueSynchronizer;
@@ -375,14 +380,18 @@ internal static class ChecksumHook
     /// report PASS while whole checksummed fields are silently unrestored. The byte comparison below
     /// is authoritative; the ToString diff is kept only as a human-readable "what looks different"
     /// report for the fields it can see.
+    ///
+    /// Returns the same PASS/FAIL verdict the log lines below describe, so callers (UndoFuzz.cs) get
+    /// a programmatic result instead of having to scrape the log. All existing logging is unchanged;
+    /// this only adds `return`s of the verdict already being logged at each exit point.
     /// </summary>
-    private static void VerifyRestoreFidelity(SyncPoint sp)
+    private static bool VerifyRestoreFidelity(SyncPoint sp)
     {
         try
         {
-            if (string.IsNullOrEmpty(sp.StateDump)) return;
+            if (string.IsNullOrEmpty(sp.StateDump)) return true;
             var rs = RunManager.Instance?.DebugOnlyGetState();
-            if (rs == null) return;
+            if (rs == null) return true;
 
             var nowBytes = SerializeCurrentState();
             bool byteFail = false;
@@ -391,7 +400,7 @@ internal static class ChecksumHook
                 if (sp.StateBytes.AsSpan().SequenceEqual(nowBytes))
                 {
                     Log.Write($"[ChecksumHook] RESTORE FIDELITY: PASS — checksum payload byte-identical ({nowBytes.Length} bytes, id={sp.ChecksumId})");
-                    return;
+                    return true;
                 }
                 byteFail = true;
                 Log.Write($"[ChecksumHook] RESTORE FIDELITY: FAIL — checksum payload differs (captured {sp.StateBytes.Length} bytes vs restored {nowBytes.Length} bytes, id={sp.ChecksumId}); falling back to the ToString field diff below to name what looks different.");
@@ -413,10 +422,12 @@ internal static class ChecksumHook
             if (captured.SequenceEqual(restored))
             {
                 if (byteFail)
+                {
                     Log.Write($"[ChecksumHook] RESTORE FIDELITY: ToString diff found NO differences (id={sp.ChecksumId}) even though the byte payload disagrees above — the real mismatch is in a field ToString() never prints (rngSet / relicGrabBag / pile-potion-relic contents rather than counts).");
-                else
-                    Log.Write($"[ChecksumHook] RESTORE FIDELITY: PASS — all checksummed state matches capture (id={sp.ChecksumId})");
-                return;
+                    return false;
+                }
+                Log.Write($"[ChecksumHook] RESTORE FIDELITY: PASS — all checksummed state matches capture (id={sp.ChecksumId})");
+                return true;
             }
             Log.Write($"[ChecksumHook] RESTORE FIDELITY: FAIL — state differs from capture! (id={sp.ChecksumId}, {captured.Length} vs {restored.Length} lines)");
             foreach (var line in captured.Except(restored).Take(20))
@@ -434,12 +445,24 @@ internal static class ChecksumHook
                     shown++;
                 }
             }
+            return false;
         }
         catch (Exception ex)
         {
             Log.Write($"[ChecksumHook] fidelity check ERROR: {ex.Message}");
+            return false;
         }
     }
+
+    /// <summary>
+    /// Result of the most recent VerifyRestoreFidelity call, for the headless fuzzer (UndoFuzz.cs) to
+    /// assert on without scraping the log. RestoreTo resets this to false before calling
+    /// VerifyRestoreFidelity (see RestoreTo's step 4), so an exception anywhere in RestoreTo — before
+    /// or during the fidelity check — leaves this correctly false instead of a stale PASS carried over
+    /// from an earlier, unrelated restore. Dormant outside the fuzzer: normal play (UndoPicker /
+    /// UndoProtocol) never reads it.
+    /// </summary>
+    internal static bool LastRestoreFidelityOk;
 
     /// <summary>
     /// True when the checksum context names an action the player actively chose.
@@ -533,6 +556,10 @@ internal static class ChecksumHook
         _pendingTurnStartId = null;
         _pendingTurnStartContext = "";
         UndoSyncMod.IsRestoring = true;
+        // Reset before the attempt (not just before step 4) so a throw anywhere in this method —
+        // e.g. Snapshot.Restore() itself failing — leaves LastRestoreFidelityOk false rather than
+        // whatever an earlier, unrelated restore last left it as. See the field's doc comment.
+        LastRestoreFidelityOk = false;
         try
         {
             // 1. Game state
@@ -605,7 +632,7 @@ internal static class ChecksumHook
             //    with what was captured. PASS = every checksummed field restored
             //    byte-identically — a local proof, works in singleplayer too. FAIL logs
             //    exactly which lines differ (= what the snapshot is missing).
-            VerifyRestoreFidelity(sp);
+            LastRestoreFidelityOk = VerifyRestoreFidelity(sp);
 
             // 5. Drop sync points that are now in the future.
             var stale = SyncPoints.Keys.Where(k => k > sp.ChecksumId).ToList();

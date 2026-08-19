@@ -57,6 +57,11 @@ string[] surfaceTypeNames =
     "Creature", "Player", "PlayerCombatState",
     "CardModel", "CardPile", "PowerModel", "PotionModel", "RelicModel",
     "MonsterModel", "MonsterMoveStateMachine", "OrbModel", "OrbQueue",
+    // Sub-objects that carry an owner back-reference and are deep-cloned with their
+    // owner. They never appear in a snapshot field list of their own, so nothing else
+    // here watches them — and a stale back-reference on one of these is a real,
+    // checksum-visible defect (see StateSnapshot.RebindDeepCloneOwnership).
+    "CardEnergyCost", "EnchantmentModel", "AfflictionModel",
     "RunState", "RunRngSet", "PlayerRngSet", "Rng",
     "NetFullCombatState", "ChecksumTracker",
     "ActionQueueSet", "ActionQueueSynchronizer", "PlayerChoiceSynchronizer",

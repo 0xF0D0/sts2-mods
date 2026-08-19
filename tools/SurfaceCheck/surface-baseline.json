@@ -57,6 +57,15 @@
     "_entries : List\u00601",
     "Changed : Action"
   ],
+  "MegaCrit.Sts2.Core.Entities.Cards.CardEnergyCost": [
+    "_base : Int32",
+    "_capturedXValue : Int32",
+    "_card : CardModel",
+    "_localModifiers : List\u00601",
+    "\u003CCanonical\u003Ek__BackingField : Int32",
+    "\u003CCostsX\u003Ek__BackingField : Boolean",
+    "\u003CWasJustUpgraded\u003Ek__BackingField : Boolean"
+  ],
   "MegaCrit.Sts2.Core.Entities.Cards.CardPile": [
     "_cards : List\u00601",
     "\u003CType\u003Ek__BackingField : PileType",
@@ -189,6 +198,12 @@
     "_receivedChoices : List\u00601",
     "PlayerChoiceReceived : Action\u00603"
   ],
+  "MegaCrit.Sts2.Core.Models.AfflictionModel": [
+    "_amount : Int32",
+    "_canonicalInstance : AfflictionModel",
+    "_card : CardModel",
+    "AmountChanged : Action\u00602"
+  ],
   "MegaCrit.Sts2.Core.Models.CardModel": [
     "_baseReplayCount : Int32",
     "_baseStarCost : Int32",
@@ -234,6 +249,16 @@
     "ReplayCountChanged : Action",
     "StarCostChanged : Action",
     "Upgraded : Action"
+  ],
+  "MegaCrit.Sts2.Core.Models.EnchantmentModel": [
+    "_amount : Int32",
+    "_canonicalInstance : EnchantmentModel",
+    "_card : CardModel",
+    "_dynamicVars : DynamicVarSet",
+    "_iconPath : String",
+    "_status : EnchantmentStatus",
+    "\u003CProps\u003Ek__BackingField : SavedProperties",
+    "StatusChanged : Action"
   ],
   "MegaCrit.Sts2.Core.Models.MonsterModel": [
     "_canonicalInstance : MonsterModel",

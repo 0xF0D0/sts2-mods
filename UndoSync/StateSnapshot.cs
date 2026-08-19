@@ -290,6 +290,64 @@ internal sealed class StateSnapshot
     /// </summary>
     private static AbstractModel Pristine(AbstractModel stored) => stored.MutableClone();
 
+    private static readonly MethodInfo? MDeepCloneFields =
+        AccessTools.Method(typeof(AbstractModel), "DeepCloneFields");
+
+    /// <summary>
+    /// CopyMutableFields (above) assigns every field BY REFERENCE, so a live model just handed a
+    /// throwaway Pristine() clone's deep sub-objects also inherits those sub-objects' back-
+    /// references to the throwaway. CardModel.DeepCloneFields (CardModel.cs:1194-1217) is the
+    /// concrete failure: `_energyCost = _energyCost?.Clone(this)` binds CardEnergyCost._card to
+    /// whatever "this" was at clone time — after CopyMutableFields(Pristine(clone), card), that's
+    /// the discarded pristine clone, not the live card. CardEnergyCost.GetWithModifiers
+    /// (CardEnergyCost.cs:94-121) reads that back-reference straight off _card (`if
+    /// (_card.IsCanonical) return num;`, then a `_card.CombatState != null` gate before applying
+    /// Hook.ModifyEnergyCostInCombat); a detached clone has CombatState == null, so every global
+    /// cost modifier silently evaporates after a restore. NetFullCombatState.FromRun only writes
+    /// the energyCost field when the modified cost differs from canonical
+    /// (NetFullCombatState.cs:330-333), so the drop is invisible until a byte-diff catches it
+    /// missing: measured on a headless fuzz run (seed widen1-24, QUEEN_BOSS, Ironclad, after
+    /// CARD.CORRUPTION zeroed skill costs) as a 964-byte restore checksum against a 988-byte
+    /// capture, with the field diff showing "Energy Cost: 0" lines present in the capture and gone
+    /// from the restore. RelicModel.DeepCloneFields (RelicModel.cs:512-516) and
+    /// PowerModel.DeepCloneFields (PowerModel.cs:582-587) both do the identical
+    /// `_dynamicVars = DynamicVars.Clone(this)` rebind, so the same stale-back-reference shape
+    /// exists at every CopyMutableFields call site in this file, not just cards.
+    ///
+    /// The fix is to run the game's OWN DeepCloneFields on the live model right after
+    /// CopyMutableFields, instead of hand-rebinding _energyCost/_dynamicVars/etc. one field at a
+    /// time: DeepCloneFields IS the game's "make this model's deep sub-objects belong to me" step,
+    /// so it stays correct the moment the game adds another deep-cloned sub-object, where a
+    /// hand-written field list would silently drift out of date — exactly the failure mode this
+    /// mod keeps getting bitten by (CopyMutableFields itself exists because a hand-rolled field
+    /// list drifted). Invoked via reflection on the live instance, not called directly, so virtual
+    /// dispatch picks whichever override the model's runtime type defines (CardModel/RelicModel/
+    /// PowerModel/EnchantmentModel/EventModel all override AbstractModel's `protected virtual void
+    /// DeepCloneFields()`).
+    ///
+    /// Safe to call on a live in-combat model, not only on a freshly-minted clone: everything
+    /// DeepCloneFields does is either a re-clone (_dynamicVars, _energyCost,
+    /// _temporaryStarCosts) or a re-clone-and-rebind through EnchantInternal/AfflictInternal
+    /// (CardModel.cs:1492-1499 / 1508-1520) — both preceded by nulling the field before rebinding,
+    /// so neither method's "already set" InvalidOperationException guard can trigger here.
+    /// </summary>
+    private static void RebindDeepCloneOwnership(AbstractModel live)
+    {
+        if (MDeepCloneFields == null)
+        {
+            Log.Write("RebindDeepCloneOwnership: AbstractModel.DeepCloneFields not found, skipping");
+            return;
+        }
+        try
+        {
+            MDeepCloneFields.Invoke(live, null);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"RebindDeepCloneOwnership({live.Id}) FAILED: {ex.Message}");
+        }
+    }
+
     // ── capture ──
 
     internal static StateSnapshot? Capture()
@@ -535,10 +593,23 @@ internal sealed class StateSnapshot
         Log.Write("Restore complete");
     }
 
+    /// <summary>Count of Try() sections that threw during a restore, and the name of the most recent
+    /// one — for the headless fuzzer (UndoFuzz.cs) to notice a silently-swallowed restore failure
+    /// without re-reading the log file. Incremented from this catch block, the actual source of truth,
+    /// rather than string-matching Log.Write's output. Dormant/unused outside the fuzzer — normal play
+    /// never reads these.</summary>
+    internal static int RestoreSectionFailureCount;
+    internal static string LastFailedRestoreSection = "";
+
     private static void Try(string what, Action action)
     {
         try { action(); }
-        catch (Exception ex) { Log.Write($"Restore section '{what}' FAILED: {ex}"); }
+        catch (Exception ex)
+        {
+            RestoreSectionFailureCount++;
+            LastFailedRestoreSection = what;
+            Log.Write($"Restore section '{what}' FAILED: {ex}");
+        }
     }
 
     private void RestoreCreatures(CombatState cs)
@@ -873,6 +944,7 @@ internal sealed class StateSnapshot
         {
             if (!_cardClones.TryGetValue(card, out var clone)) continue;
             CopyMutableFields(Pristine(clone), card);
+            RebindDeepCloneOwnership(card);
             restored++;
         }
         Log.Write($"RestoreCardFields: {restored} cards");
@@ -887,7 +959,10 @@ internal sealed class StateSnapshot
         foreach (var orb in cap.Orbs)
         {
             if (_orbClones.TryGetValue(orb, out var clone))
+            {
                 CopyMutableFields(Pristine(clone), orb);
+                RebindDeepCloneOwnership(orb);
+            }
             orbs.Add(orb);
         }
         POrbQueueCapacity?.SetValue(queue, cap.OrbCapacity);
@@ -915,7 +990,10 @@ internal sealed class StateSnapshot
             slots[i] = potion;
             if (potion == null) continue;
             if (_potionClones.TryGetValue(potion, out var clone))
+            {
                 CopyMutableFields(Pristine(clone), potion);
+                RebindDeepCloneOwnership(potion);
+            }
             // Must come after CopyMutableFields above: the stored clone's _dynamicVars
             // still aliases whatever object the live potion already has (see
             // FPotionDynVars), so the generic sweep is a no-op on this field either way —
@@ -975,7 +1053,10 @@ internal sealed class StateSnapshot
             if (r.DynamicVarsClone != null) FRelicDynVars?.SetValue(r.Ref, r.DynamicVarsClone);
             // subclass-private per-turn counters (e.g. cards-played trackers)
             if (_relicShadow.TryGetValue(r.Ref, out var shadow))
+            {
                 CopyMutableFields(shadow, r.Ref);
+                RebindDeepCloneOwnership(r.Ref);
+            }
         }
     }
 

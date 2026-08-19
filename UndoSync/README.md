@@ -64,6 +64,29 @@ don't — i.e. the difference is in a field `ToString()` never prints. (An early
 run of this check caught `PlayerCombatState.Phase`, gameplay-relevant state read
 by relics like Unceasing Top. Fixed since.)
 
+A later run caught something the line diff couldn't have named as a missing
+field, because no field was missing: `StateSnapshot.CopyMutableFields` assigns
+every field **by reference**, and four restore paths (`CardModel`, `OrbModel`,
+`PotionModel`, `RelicModel`) copy a throwaway clone's fields onto a live
+model. The game's own `DeepCloneFields` binds a model's deep sub-objects back
+to *the clone* — `CardModel.DeepCloneFields` re-binds `_energyCost`,
+`_dynamicVars`, `Enchantment` and `Affliction` to `this` — so after a restore,
+a live card's `CardEnergyCost._card` still pointed at the discarded clone.
+`CardEnergyCost.GetWithModifiers` reads that back-reference and skips the
+global-modifier hook whenever `_card.CombatState == null`, so every global
+card-cost modifier (Corruption, anything else routed through
+`Hook.ModifyEnergyCostInCombat`) silently vanished on restore. This is a
+**symmetric** omission — every peer restores identically wrong — so peer
+checksum comparison could never have caught it; only this local byte-exact
+check could, and only because `NetFullCombatState.FromRun` writes a card's
+`energyCost` at all when the modified cost differs from canonical (a 964-byte
+payload against a captured 988). Fixed by
+`StateSnapshot.RebindDeepCloneOwnership`, which re-runs the game's own
+`DeepCloneFields` on the live model after each `CopyMutableFields`, at all
+four sites. A/B proof, same seed, 250 combats each: without the fix, 577
+restores / 2 fidelity failures; with it, 575 restores / 0 failures, identical
+injected-loadout coverage in both arms.
+
 ### Synchronizer bookkeeping rolled back on restore
 
 Beyond the snapshotted game state, the shared ordering counters are rewound
@@ -116,7 +139,7 @@ English otherwise.
 ## Surviving game updates
 
 The snapshot enumerates fields by hand, so new game state must be added to it.
-Two layers of defense:
+Three layers of defense:
 
 1. **`tools/SurfaceCheck`** (static, run after each game update — no game launch
    needed). Checks 1-2 answer *"did the game change?"*; Check 3 answers *"do we
@@ -130,9 +153,15 @@ Two layers of defense:
    - **Check 1**: verifies every `AccessTools`/`[HarmonyPatch]` string
      reference in the mod still exists in `sts2.dll` (catches renames/removals
      the compiler cannot).
-   - **Check 2**: diffs the instance-field surface of 25 state-bearing types
+   - **Check 2**: diffs the instance-field surface of 28 state-bearing types
      against a committed baseline (catches added state before it becomes a
-     silent under-restore).
+     silent under-restore). `CardEnergyCost`, `EnchantmentModel` and
+     `AfflictionModel` are in that surface now (up from 25) — they're
+     owner-back-referencing sub-objects that no snapshot field list of its
+     own ever watched. Neither this check nor Check 3 can catch a *stale*
+     back-reference, though: the field is present and the surface is
+     unchanged, only the value's owner is wrong — that's what defense 3
+     (below) exists for.
    - **Check 3**: for the 10 types `StateSnapshot` deep-captures, verifies
      every instance field is named in `snapshot-coverage.json` as either
      `captured` (with the code location that reads/writes it) or deliberately
@@ -151,6 +180,45 @@ Two layers of defense:
 
 2. **Restore fidelity self-check** (runtime, every restore): proves the
    checksummed portion of state was restored exactly; failures name the fields.
+
+3. **Headless regression fuzzer (`UndoFuzz.cs`)** (runtime, opt-in only — gated
+   entirely behind `--undosync-fuzz`; nothing in the file executes or
+   subscribes to anything without that flag). Runs inside the real game
+   process with no UI, driving `TestMode` + `RunManager.SetUpTest` +
+   `EnterRoomDebug`. Per combat it picks a random character from
+   `ModelDb.AllCharacters` (all 5) at ascension 10, a random encounter from
+   every `RoomType.Monster`/`Elite`/`Boss` in the game's own model db (event
+   encounters excluded — 80 in v0.111), and injects a random loadout before
+   combat starts: 0-4 relics, 0-`MaxPotionCount` potions, 0-8 extra deck
+   cards from the character's pool, ~30% upgrade chance and ~15% enchantment
+   chance per deck card. A random `ICardSelector` is installed via
+   `CardSelectCmd.UseSelector` so cards/relics that prompt for a card
+   selection resolve headlessly instead of blocking forever. It then plays
+   random legal cards at random legal targets, ends turns, and at random
+   points restores to a random stored sync point. After every restore, beyond
+   `ChecksumHook`'s byte-exact restore fidelity, it also checks that the
+   driver can still act afterward (the shape an action-id-reuse bug would
+   take) and that no `StateSnapshot.Try`/`UiRefresh.Section` catch block
+   silently swallowed an exception. Throughput: 250 combats in about 3
+   minutes.
+
+   ```bash
+   ./"Slay the Spire 2" --undosync-fuzz --undosync-fuzz-count=250 --undosync-fuzz-seed=abtest
+   ```
+
+   Logs to the same per-process `UndoSync-<pid>.log`; quits the game when the
+   run finishes unless `--undosync-fuzz-noquit` is also passed;
+   `--undosync-fuzz-trace` adds per-checksum and action-enqueue/execution
+   tracing to the log, for diagnosing drive stalls. Seeds are deterministic
+   across processes: the per-combat seed is derived with an
+   FNV-1a hash, deliberately not `HashCode.Combine` — .NET randomizes string
+   hashing per process, so `HashCode.Combine` gave every run a different
+   `pickRng` from the same `--undosync-fuzz-seed`, and the harness's own
+   "REPRO: baseSeed=… combatIndex=…" failure line handed back a *different*
+   combat on the next run (measured: re-running seed `widen1` after a fix
+   turned combat 24 from QUEEN_BOSS/Ironclad into SEAPUNK_NORMAL/Defect).
+   FNV-1a over the UTF-16 code units is stable across processes, machines and
+   runtimes, so a REPRO line now reproduces the same combat every time.
 
 Known limits: references whose type is only obtainable at runtime (card holder
 internals etc.) cannot be verified statically (reported as WARN), and semantic
@@ -220,3 +288,23 @@ instances share the user-data directory).
   `ChecksumHook.RestoreTo`'s Change B comment and `snapshot-coverage.json`.
   A non-zero count at restore is logged loudly, since it would mean this
   invariant broke.
+- The fuzzer (`UndoFuzz.cs`) has no per-action checksums to compare on the
+  headless path by design: `NonInteractiveMode.IsActive` makes
+  `ActionExecutor` take a branch that never subscribes `JustBeforeFinished`,
+  which is what `RunManager.SendPostActionChecksum` hangs off
+  (RunManager.cs:489, :568). The harness generates its own, mirroring
+  `SendPostActionChecksum`'s own filter, but the timing differs slightly:
+  production fires from inside `GameAction.Execute`'s finally right after
+  `State = Finished`; the harness fires after `Execute()` returned and the
+  executor called `AfterActionFinished`.
+- The fuzzer is singleplayer only — it cannot exercise the vote protocol,
+  peer divergence, or a downed-teammate restore.
+- The fuzzer tests model state, not UI: `UiRefresh` runs, but nothing
+  verifies what a human would actually see.
+- About 3% of fuzzer combats (8 of 250) end in a drive error rather than
+  completing. The diagnostic now names the blocker: 12 stalls were
+  `syncState=EndTurnPhaseOne` with the player still in `Play` phase, 4 were
+  `syncState=NotPlayPhase`. These are headless-harness limits, not restore
+  bugs — four of the eight had performed zero restores when they stalled.
+  The harness counts them separately from fidelity failures for exactly this
+  reason.

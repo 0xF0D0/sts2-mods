@@ -132,10 +132,22 @@ internal static class UiRefresh
         Section("orphaned blade vfx", () => DropOrphanedCardVfx(cs));
     }
 
+    /// <summary>Same purpose as StateSnapshot.RestoreSectionFailureCount — a counter incremented from
+    /// this catch block (the source of truth) so the headless fuzzer (UndoFuzz.cs) can notice a
+    /// silently-swallowed UI-refresh failure without re-reading the log file. Dormant/unused outside
+    /// the fuzzer.</summary>
+    internal static int UiRefreshFailureCount;
+    internal static string LastFailedUiRefreshSection = "";
+
     private static void Section(string name, Action action)
     {
         try { action(); }
-        catch (Exception ex) { Log.Write($"UiRefresh '{name}' FAILED: {ex}"); }
+        catch (Exception ex)
+        {
+            UiRefreshFailureCount++;
+            LastFailedUiRefreshSection = name;
+            Log.Write($"UiRefresh '{name}' FAILED: {ex}");
+        }
     }
 
     // ── interaction / end-turn state ──
