@@ -202,16 +202,21 @@ instances share the user-data directory).
 - Orb visuals are not rebuilt after restore (model state is; display catches
   up on the next orb event) — none of the base test characters use orbs
 - Untested: real Steam matchmaking sessions
-- `CombatTurnState.PendingLoss` is not yet handled: `CombatManager.LoseCombat()`
-  can set it synchronously mid-action (e.g. lethal self-damage), and the game
-  only drains it (`CheckWinCondition`/`ProcessPendingLoss`) *after* that same
-  action's own checksum already fired — so a lethal player-decision action's
-  checksum could in principle land with it non-null. Not confirmed to happen
-  in practice; tracked as `UNREVIEWED` in `snapshot-coverage.json` pending a
-  deliberate decision (extra anchor-eligibility gate, or capture it)
-- `ActionQueueSet._actionsWaitingForResumption` is deliberately left
-  untouched by restore (see `snapshot-coverage.json`): its entries are normal
-  network-reordering artifacts, not something a restore should discard, but
-  because `RestoreTo` reuses action ids after rewinding `NextActionId`, a
-  leftover entry referencing a rewound id is a latent (unconfirmed) collision
-  risk with a future action that reuses that id
+- `CombatTurnState.PendingLoss`: handled. `CombatManager.LoseCombat()` can set
+  it synchronously mid-action (e.g. lethal self-damage) before the game drains
+  it (`CheckWinCondition`/`ProcessPendingLoss`), so `TryStoreSyncPoint` now
+  refuses to anchor at all while `CombatManager.IsAboutToLose` is true — a
+  lethal action's finished-execution checksum can no longer become an undo
+  target while the loss is still only pending. See `snapshot-coverage.json`
+  for the full reasoning (including why a restore can't land after the loss
+  is processed either).
+- `ActionQueueSet._actionsWaitingForResumption` /
+  `PlayerChoiceSynchronizer._receivedChoices`: handled. `RestoreTo` now clears
+  both unconditionally. A restore only ever runs with every action queue
+  empty, so neither list can have a live waiter at that moment — any
+  surviving entry is orphan garbage, and leaving it behind is actively
+  dangerous (a stale `_actionsWaitingForResumption` entry can collide with an
+  action id `RestoreTo` reuses after rewinding `NextActionId`). See
+  `ChecksumHook.RestoreTo`'s Change B comment and `snapshot-coverage.json`.
+  A non-zero count at restore is logged loudly, since it would mean this
+  invariant broke.

@@ -71,6 +71,14 @@ internal static class ChecksumHook
     private static readonly System.Reflection.FieldInfo? ActionQueueSetWasResetField =
         AccessTools.Field(typeof(ActionQueueSet), "_wasReset");
 
+    // Change B: both buffer cross-peer messages that arrive before the code that consumes
+    // them is ready. Cleared unconditionally in RestoreTo — see the comment there for why an
+    // idle-queue restore can never leave a live waiter behind in either one.
+    private static readonly System.Reflection.FieldInfo? ActionQueueSetActionsWaitingForResumptionField =
+        AccessTools.Field(typeof(ActionQueueSet), "_actionsWaitingForResumption");
+    private static readonly System.Reflection.FieldInfo? PlayerChoiceSynchronizerReceivedChoicesField =
+        AccessTools.Field(typeof(PlayerChoiceSynchronizer), "_receivedChoices");
+
     internal static void EnsureSubscribed()
     {
         var tracker = RunManager.Instance?.ChecksumTracker;
@@ -228,7 +236,7 @@ internal static class ChecksumHook
     /// than trusting a caller-supplied NetFullCombatState, so both capture paths are consistent.
     ///
     /// Anchor eligibility gate: even a checksum that passed every filter above (player side,
-    /// PlayPhase, IsPlayerDecision) is not automatically safe to anchor on. Both conditions below
+    /// PlayPhase, IsPlayerDecision) is not automatically safe to anchor on. All conditions below
     /// read game logic state at a checksum moment — never local input/UI/frame timing — so they
     /// evaluate identically on every peer, and living here (rather than in the two callers) means
     /// neither capture path can bypass them.
@@ -247,6 +255,23 @@ internal static class ChecksumHook
         if (cs == null)
         {
             Log.Write($"[ChecksumHook] id={checksumId} TryStoreSyncPoint: no combat state, skipping");
+            return;
+        }
+
+        // A0: combat must not be facing a pending loss. CombatManager.LoseCombat()
+        // (CombatManager.cs:1262-1270) does NOT end combat immediately — it only sets
+        // CombatTurnState.PendingLoss, "to avoid race conditions where effects try to run
+        // after IsInProgress is false" (LoseCombat's own doc comment). The actual loss
+        // processing (IsInProgress = false, CombatEnded fired) happens later, in
+        // ProcessPendingLoss (:1274-1284), called only from CheckWinCondition (:1387-1392) at
+        // the next safe point. So a lethal action's finished-execution checksum can fire while
+        // the loss is still only pending — anchoring there would store an undo target that
+        // looks like ongoing combat but is already doomed. IsAboutToLose (CombatManager.cs:192,
+        // public property, no reflection: `_turnState?.PendingLoss != null`) reads that same
+        // game-logic state, so — like A1/A2 below — it evaluates identically on every peer.
+        if (CombatManager.Instance.IsAboutToLose)
+        {
+            Log.Write($"[ChecksumHook] id={checksumId} ({context}) SKIPPED — combat loss pending (IsAboutToLose)");
             return;
         }
 
@@ -520,6 +545,43 @@ internal static class ChecksumHook
             rm.ActionQueueSynchronizer.FastForwardHookId(sp.NextHookId);
             rm.PlayerChoiceSynchronizer.FastForwardChoiceIds(new List<uint>(sp.ChoiceIds));
 
+            // 2b. Drop cross-peer message buffers that belong to the timeline this restore
+            // discards. Both are safe to clear unconditionally: RestoreTo only ever runs once
+            // ActionQueueSet.IsEmpty is true (UndoProtocol.CommitAsync's gate), which means no
+            // action anywhere is executing OR paused mid-choice — so neither list can have a
+            // live waiter at this moment.
+            //  - _actionsWaitingForResumption (ActionQueueSet.cs:50): entries are {oldId, newId}
+            //    pairs queued by ResumeActionWithoutSynchronizing (:499-520) when a resume
+            //    message arrives before the action it targets has reached
+            //    PauseActionForPlayerChoice (:261-269) — the only consumer, matched by
+            //    action.Id while that action still sits at the front of its owner's queue. An
+            //    action with an unconsumed entry is therefore still occupying its queue's front
+            //    slot, which would keep IsEmpty false — so any entry surviving to an idle
+            //    restore belongs to an action already gone from every queue: orphan garbage,
+            //    not a live pending resume. Leaving it behind is actively dangerous rather than
+            //    merely inert — FastForwardNextActionId above rewinds _nextId, so the orphan's
+            //    stored newId will be handed out again to an unrelated future action.
+            //  - PlayerChoiceSynchronizer._receivedChoices (PlayerChoiceSynchronizer.cs:38):
+            //    entries come from WaitForRemoteChoice (:114-147, awaits the entry's
+            //    TaskCompletionSource from inside an executing action — ruled out at an idle
+            //    restore by the same queue-occupancy argument above) or OnReceivePlayerChoice
+            //    (:168-190, inserts an already-completed entry — SetResult already called —
+            //    when a choice result arrives before anyone is waiting). Only the latter kind
+            //    can survive to an idle restore, and it has no waiter to strand.
+            // Cleared via reflection (both are List<T>, i.e. IList) since neither type exposes a
+            // public Clear. A non-zero count means the "idle queue at restore" invariant this
+            // reasoning rests on didn't hold — evidence worth logging loudly, not silence.
+            var actionsWaitingForResumption = ActionQueueSetActionsWaitingForResumptionField?.GetValue(rm.ActionQueueSet) as System.Collections.IList;
+            var receivedChoices = PlayerChoiceSynchronizerReceivedChoicesField?.GetValue(rm.PlayerChoiceSynchronizer) as System.Collections.IList;
+            int clearedResumptions = actionsWaitingForResumption?.Count ?? 0;
+            int clearedChoices = receivedChoices?.Count ?? 0;
+            if (clearedResumptions > 0)
+                Log.Write($">>> [ChecksumHook] RestoreTo: expected empty, found ActionQueueSet._actionsWaitingForResumption with {clearedResumptions} entry(ies) at an idle-queue restore — clearing (see RestoreTo's Change B comment for why this should be unreachable).");
+            if (clearedChoices > 0)
+                Log.Write($">>> [ChecksumHook] RestoreTo: expected empty, found PlayerChoiceSynchronizer._receivedChoices with {clearedChoices} entry(ies) at an idle-queue restore — clearing (see RestoreTo's Change B comment for why this should be unreachable).");
+            actionsWaitingForResumption?.Clear();
+            receivedChoices?.Clear();
+
             // ActionQueueSet._wasReset (ActionQueueSet.cs:63) is set true ONLY by Reset()
             // (:437), and Reset() is called from exactly one place in the whole game assembly —
             // RunManager.CleanUp (RunManager.cs:1557), which also empties _actionQueues
@@ -555,7 +617,7 @@ internal static class ChecksumHook
             if (cs != null)
                 UiRefresh.RefreshAll(cs);
 
-            Log.Write($">>> [ChecksumHook] RESTORE complete. nextChecksumId={sp.ChecksumId + 1} nextActionId={sp.NextActionId} nextHookId={sp.NextHookId} | remaining sync points={SyncPoints.Count}");
+            Log.Write($">>> [ChecksumHook] RESTORE complete. nextChecksumId={sp.ChecksumId + 1} nextActionId={sp.NextActionId} nextHookId={sp.NextHookId} clearedResumptions={clearedResumptions} clearedChoices={clearedChoices} | remaining sync points={SyncPoints.Count}");
         }
         catch (Exception ex)
         {
