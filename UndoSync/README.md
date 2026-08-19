@@ -301,10 +301,37 @@ instances share the user-data directory).
   peer divergence, or a downed-teammate restore.
 - The fuzzer tests model state, not UI: `UiRefresh` runs, but nothing
   verifies what a human would actually see.
-- About 3% of fuzzer combats (8 of 250) end in a drive error rather than
-  completing. The diagnostic now names the blocker: 12 stalls were
-  `syncState=EndTurnPhaseOne` with the player still in `Play` phase, 4 were
-  `syncState=NotPlayPhase`. These are headless-harness limits, not restore
-  bugs — four of the eight had performed zero restores when they stalled.
-  The harness counts them separately from fidelity failures for exactly this
-  reason.
+- About 3-5% of fuzzer combats end in a drive error rather than completing,
+  and the cause is now known rather than guessed at. The fuzzer mirrors the
+  game's own `Log.Error` into its log (a `--undosync-fuzz`-only Harmony
+  prefix, since `CombatManager.RunTurnLoopAfter` reports a dead turn loop
+  only through `Log.Error` and Sentry — CombatManager.cs:516-528 — with no
+  public flag or event), and dumps the executor/queue/turn-coordination state
+  on every stall. Two distinct causes, neither of them UndoSync:
+
+  1. **A vanilla softlock, surfaced by the fuzzer.** `Inky.OnPlay`
+     (Inky.cs) builds its target list as `new
+     ReadOnlySingleElementList<Creature>(cardPlay.Target)` for every card
+     whose `TargetType != AllEnemies`, then hands it to `PowerCmd.Apply`,
+     which dereferences each target (`!target.CanReceivePowers`,
+     PowerCmd.cs:77). `cardPlay.Target` is null for any untargeted card, and
+     `EnchantmentModel.CanEnchant` (EnchantmentModel.cs:273) filters by card
+     *type*, not target type, so Inky is legal on such cards. Playing one
+     throws inside `PlayCardAction`, which leaves
+     `ActionExecutor.CurrentlyRunningAction` set to a finished
+     player-driven action, which makes
+     `CombatManager.WaitUntilQueueIsEmptyOrWaitingOnNonPlayerDrivenAction`
+     (CombatManager.cs:1474-1480) await a `TaskCompletionSource` that only
+     completes on the next `AfterActionExecuted` — and the queue is already
+     empty. The combat is stuck in `EndTurnPhaseOne` for good. This is base
+     game behaviour, reachable without any mod.
+  2. **A genuine harness limit.** `FurCoat.BeforeCombatStart`
+     (FurCoat.cs:127-133) reads `Owner.RunState.CurrentMapPoint.coord`
+     unguarded. The harness enters combat through `EnterRoomDebug` without
+     ever selecting a map point, so that is null here and never null in a
+     real run.
+
+  Neither shape involves the restore path — several of the stalled combats
+  had performed zero restores when they stalled — which is why the harness
+  counts them separately from fidelity failures, and now lists the seeds
+  where the game's own logger fired as an explicitly non-finding line.

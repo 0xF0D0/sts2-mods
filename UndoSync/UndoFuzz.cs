@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
@@ -180,6 +182,16 @@ internal static class UndoFuzz
         public int SectionFailures;
         public string SectionFailureDetail = "";
 
+        /// <summary>True when at least one game-side Log.Error call was observed during this combat —
+        /// captured via the fuzz-only Harmony prefix on MegaCrit.Sts2.Core.Logging.Log.Error (see
+        /// InstallGameErrorCapturePatch/OnGameLogError). Set in RunOneCombatAsync right after
+        /// DriveCombatAsync returns, from whether _gameErrors is non-empty (cleared at the top of
+        /// RunOneCombatAsync so a prior combat's errors can never leak into this flag). These are the
+        /// GAME's own errors, not an UndoSync/ChecksumHook finding — most commonly
+        /// CombatManager.RunTurnLoopAfter's turn-loop death (CombatManager.cs:516-528), which
+        /// production only ever reports through Log.Error/Sentry with no public flag or event.</summary>
+        public bool SawGameError;
+
         public readonly List<string> FailureRepros = new();
     }
 
@@ -249,6 +261,108 @@ internal static class UndoFuzz
     internal static bool TraceChecksums;
 
     /// <summary>
+    /// Ring buffer of game-side error text captured via <see cref="OnGameLogError"/> — the Harmony
+    /// prefix on MegaCrit.Sts2.Core.Logging.Log.Error installed only under --undosync-fuzz (see
+    /// <see cref="InstallGameErrorCapturePatch"/>). Single-threaded harness (everything in this file
+    /// runs on the one task chain kicked off from RunWhenReadyAsync), so no lock is needed. Cleared at
+    /// the start of every combat in RunOneCombatAsync so an error from combat N-1's own turn loop can
+    /// never be attributed to combat N.
+    /// </summary>
+    private static readonly List<string> _gameErrors = new();
+
+    /// <summary>Cap on <see cref="_gameErrors"/> — oldest entries are trimmed from the front once
+    /// exceeded. Only a diagnostic aid for the stall-dump/summary surfacing (DescribeStallState,
+    /// RunAllCombatsAsync's summary): the full, untruncated text of every capture already went to the
+    /// mod log via Log.Write at capture time — see RecordGameError — so this only bounds how much
+    /// stays resident in memory.</summary>
+    private const int MaxCapturedGameErrors = 20;
+
+    /// <summary>
+    /// Installs a Harmony PREFIX on MegaCrit.Sts2.Core.Logging.Log.Error(string text, int
+    /// skipFrames = 2) (Log.cs:75) so every game-side error the fuzzer's combats provoke lands in
+    /// this fuzz log instead of only in Godot's own separate stdout log file.
+    ///
+    /// Why this exists: CombatManager.RunTurnLoopAfter's catch block (CombatManager.cs:516-528) is
+    /// the game's only handling for its own turn loop dying — "the combat is stuck until the room is
+    /// restarted" — and it reports that ONLY via Log.Error and Sentry; there is no public flag or
+    /// event exposing it. Without this patch, a stalled fuzz combat showed nothing but "stuck" in the
+    /// fuzz log, while the actual exception/stack trace sat in a different log file that nobody
+    /// investigating a stall would think to open.
+    ///
+    /// Gated on --undosync-fuzz ONLY: called from MaybeStart, right after its
+    /// CommandLineHelper.HasArg(FuzzArg) check, so this patch is never applied in a normal player's
+    /// game. Deliberately NOT a [HarmonyPatch] attribute class (unlike ChecksumHook/UndoSyncMod's
+    /// patches) — those get swept up by UndoSyncMod.Initialize()'s harmony.PatchAll(...) and would
+    /// therefore patch the game's own logger for every player, not just this opt-in fuzz tool.
+    ///
+    /// Uses its own Harmony instance, not UndoSyncMod's: the Harmony("com.beomsu.undosync") instance
+    /// UndoSyncMod.Initialize() creates is a local variable there, not stored anywhere this file can
+    /// reach, so a second instance ("undosync.fuzz") is created here for this fuzz-only patch.
+    ///
+    /// The patch is a passive observer ONLY, never suppressing the original call — see
+    /// OnGameLogError's doc comment for why. Wrapped in try/catch: a diagnostic capture must never be
+    /// able to break the run it exists to help diagnose.
+    /// </summary>
+    private static void InstallGameErrorCapturePatch()
+    {
+        try
+        {
+            var harmony = new Harmony("undosync.fuzz");
+            var original = AccessTools.Method(typeof(MegaCrit.Sts2.Core.Logging.Log), "Error");
+            var prefix = new HarmonyMethod(AccessTools.Method(typeof(UndoFuzz), nameof(OnGameLogError)));
+            harmony.Patch(original, prefix: prefix);
+            Log.Write("[Fuzz] Patched MegaCrit.Sts2.Core.Logging.Log.Error (fuzz-only, passive observer) to capture game errors into this log.");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[Fuzz] WARNING: failed to install game-error capture patch on Log.Error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Harmony prefix target for MegaCrit.Sts2.Core.Logging.Log.Error(string text, int
+    /// skipFrames = 2) (Log.cs:75) — see <see cref="InstallGameErrorCapturePatch"/> for how/why this
+    /// gets installed. Harmony matches this by parameter NAME against the original's `text` parameter;
+    /// the original's `skipFrames` parameter is simply omitted here since this prefix has no use for
+    /// it.
+    ///
+    /// A pure observer, nothing else: `void` return means Harmony always runs the original Log.Error
+    /// afterward regardless of what happens in here (a prefix can only skip the original by returning
+    /// `bool` and returning false — this one can't, its return type is void). The try/catch below
+    /// means an exception in here can also never propagate into the game's own logging call.
+    /// </summary>
+    private static void OnGameLogError(string text)
+    {
+        try
+        {
+            RecordGameError(text);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[Fuzz] OnGameLogError ERROR: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Records one game-side error (captured via <see cref="OnGameLogError"/>) into the fuzz-only
+    /// ring buffer <see cref="_gameErrors"/>, so a stalled combat's dump (DescribeStallState) and the
+    /// run summary (RunAllCombatsAsync) can report it instead of it sitting only in Godot's own
+    /// stdout log file. Logs the FULL text immediately, in order, via Log.Write — so nothing is lost
+    /// even if the run crashes before the ring buffer is ever read back — and only THEN truncates what
+    /// gets kept in memory, since a turn-loop death (CombatManager.cs:516-528) carries a very long
+    /// stack.
+    /// </summary>
+    private static void RecordGameError(string text)
+    {
+        Log.Write($"[Fuzz][gameerror] {text}");
+
+        string entry = text.Length > 4000 ? text.Substring(0, 4000) + "… (truncated)" : text;
+        _gameErrors.Add(entry);
+        while (_gameErrors.Count > MaxCapturedGameErrors)
+            _gameErrors.RemoveAt(0);
+    }
+
+    /// <summary>
     /// Stands in for RunManager.SendPostActionChecksum (RunManager.cs:568-572), which the headless
     /// path never reaches. Same guard as production: in-combat, and skipping the two action types it
     /// skips. Fuzz-only — nothing subscribes this outside a --undosync-fuzz run.
@@ -273,6 +387,12 @@ internal static class UndoFuzz
         try
         {
             if (!CommandLineHelper.HasArg(FuzzArg)) return;
+
+            // Fuzz-only, passive: captures the game's own Log.Error calls into this log too — see
+            // InstallGameErrorCapturePatch's doc comment for why (CombatManager's turn-loop death is
+            // otherwise reported only via Log.Error/Sentry, with no public flag or event).
+            InstallGameErrorCapturePatch();
+
             TraceChecksums = CommandLineHelper.HasArg("undosync-fuzz-trace");
 
             int count = DefaultCombatCount;
@@ -353,6 +473,7 @@ internal static class UndoFuzz
         var driveErrorSeeds = new List<string>();
         var stuckAfterRestoreSeeds = new List<string>();
         var sectionFailureSeeds = new List<string>();
+        var gameErrorSeeds = new List<string>();
 
         // Coverage accumulators for the "coverage:" summary line below — answer "did this run
         // actually explore anything beyond the untouched starting deck" from the log alone, without
@@ -407,6 +528,8 @@ internal static class UndoFuzz
                     stuckAfterRestoreSeeds.Add(outcome.Seed);
                 if (outcome.SectionFailures > 0)
                     sectionFailureSeeds.Add(outcome.Seed);
+                if (outcome.SawGameError)
+                    gameErrorSeeds.Add(outcome.Seed);
                 if (outcome.BudgetExhausted)
                     budgetExhausted++;
                 else if (outcome.DriveError != null)
@@ -466,6 +589,16 @@ internal static class UndoFuzz
         Log.Write(sectionFailureSeeds.Count == 0
             ? "[Fuzz] no section failures (StateSnapshot.Restore / UiRefresh)."
             : $"[Fuzz] combat seeds with section failures ({sectionFailureSeeds.Count}) — a Restore/UiRefresh section swallowed an exception, investigate: {string.Join(", ", sectionFailureSeeds)}");
+        // These are the GAME's own errors (MegaCrit.Sts2.Core.Logging.Log.Error, captured via the
+        // fuzz-only patch — see InstallGameErrorCapturePatch), NOT an UndoSync/ChecksumHook finding —
+        // most commonly CombatManager.RunTurnLoopAfter's turn-loop death (CombatManager.cs:516-528),
+        // which production only ever reports through Log.Error/Sentry with no public flag or event.
+        // Kept separate from failingSeeds/stuckAfterRestoreSeeds/sectionFailureSeeds above for the
+        // same reason those stay separate from each other: conflating "the game itself errored" with
+        // an UndoSync-specific finding would send someone chasing the wrong code.
+        Log.Write(gameErrorSeeds.Count == 0
+            ? "[Fuzz] no game errors captured (MegaCrit.Sts2.Core.Logging.Log.Error)."
+            : $"[Fuzz] combat seeds with game errors ({gameErrorSeeds.Count}) — the GAME's own Log.Error fired during these, not an UndoSync finding; see \"[Fuzz][gameerror]\" lines above for full text: {string.Join(", ", gameErrorSeeds)}");
         // Separate, deliberately not called "failures": harness/drive-loop trouble (timeouts, stuck
         // waits, setup errors, budget exhaustion) that never got far enough to attempt a fidelity
         // comparison, and isn't a stuck-after-restore or section-failure finding either.
@@ -510,6 +643,12 @@ internal static class UndoFuzz
     {
         string combatSeed = $"{baseSeed}-{combatIndex}";
         var outcome = new CombatOutcome { CombatIndex = combatIndex, BaseSeed = baseSeed, Seed = combatSeed, EncounterId = encounterPrototype.Id.Entry };
+
+        // Cleared per combat, not just once for the whole run: an error captured by OnGameLogError
+        // during combat N-1 (e.g. its own turn-loop death) must not be attributed to combat N's
+        // DescribeStallState/SawGameError — "gameErrors={n}" only means "this combat" if the ring
+        // buffer actually starts empty at combat start.
+        _gameErrors.Clear();
 
         // TestMode.TurnOnInternal's own doc comment says "NEVER CALL THIS. Only calls should be in
         // NetCoreRunner and CiCoreRunner" (TestMode.cs:53) — called anyway because this whole file
@@ -635,6 +774,12 @@ internal static class UndoFuzz
             }
 
             await DriveCombatAsync(combatIndex, me, rng, outcome);
+            // See CombatOutcome.SawGameError's doc comment: the game's own errors, not an UndoSync
+            // finding — checked here, right after the drive loop returns, against whatever
+            // OnGameLogError appended to _gameErrors (cleared at the top of this method) during this
+            // combat specifically.
+            if (_gameErrors.Count > 0)
+                outcome.SawGameError = true;
         }
         catch (Exception ex)
         {
@@ -859,6 +1004,212 @@ internal static class UndoFuzz
     /// </summary>
     private static string _lastIdleWaitBlockers = "";
 
+    /// <summary>Set by DriveCombatAsync right after a driver-issued action is actually taken —
+    /// "TryManualPlay({card.Id.Entry})" right after a CardModel.TryManualPlay(target) call returns
+    /// true, "EndTurn" right after the PlayerCmd.EndTurn call — and read back into
+    /// DescribeStallState's log line as lastDriverAction=. Lets a stall be told apart as "stuck right
+    /// after ending the turn" (lastDriverAction=EndTurn) from "stuck after a specific card"
+    /// (lastDriverAction=TryManualPlay(...)), which neither _lastIdleWaitBlockers nor DescribeStallState
+    /// alone can say — both only describe the CURRENT stuck state, not what the driver did to get
+    /// there.</summary>
+    private static string _lastDriverAction = "";
+
+    // ==================================================================================
+    // Stall diagnostics
+    // ==================================================================================
+
+    /// <summary>Reflection handle for ActionQueueSet's private field `_actionQueues`
+    /// (List&lt;ActionQueue&gt;, ActionQueueSet.cs:48) — the declaring type (ActionQueueSet) is public
+    /// and known at compile time, so this one can be a plain readonly field, unlike the per-element
+    /// handles below.</summary>
+    private static readonly FieldInfo? FActionQueues = AccessTools.Field(typeof(ActionQueueSet), "_actionQueues");
+
+    /// <summary>Same reflection pattern StateSnapshot.cs:240/249-250 already uses to reach
+    /// CombatManager._turnState and, off its runtime field type, the PlayersReadyToBeginEnemyTurn
+    /// property (CombatTurnState.cs:66, live HashSet&lt;Player&gt;) — CombatManager exposes public
+    /// wrappers for IsEnemyTurnStarted/EndingPlayerTurnPhaseOne/EndingPlayerTurnPhaseTwo/IsAboutToLose
+    /// (CombatManager.cs:123-153) but not for PlayersReadyToBeginEnemyTurn, so this is the only way to
+    /// reach it. Declared independently here rather than reusing StateSnapshot's private members.</summary>
+    private static readonly FieldInfo? FCmTurnState = AccessTools.Field(typeof(CombatManager), "_turnState");
+    private static readonly PropertyInfo? PTsPlayersReadyToBeginEnemyTurn =
+        FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "PlayersReadyToBeginEnemyTurn") : null;
+
+    /// <summary>Lazily-cached reflection handles for ActionQueueSet's private nested `ActionQueue` type
+    /// (ActionQueueSet.cs:22) — private, so it cannot be named in source, meaning its declaring Type is
+    /// only knowable at runtime (off the first element's GetType()). Every element of _actionQueues
+    /// shares that same runtime type, so this dictionary is populated once per field name on first use
+    /// and reused for every element on every call afterward, rather than re-reflecting per element per
+    /// call.</summary>
+    private static Type? _cachedActionQueueElementType;
+    private static Dictionary<string, FieldInfo?> _cachedActionQueueElementFields = new();
+
+    private static FieldInfo? GetActionQueueElementField(Type elementType, string fieldName)
+    {
+        if (elementType != _cachedActionQueueElementType)
+        {
+            _cachedActionQueueElementType = elementType;
+            _cachedActionQueueElementFields = new Dictionary<string, FieldInfo?>();
+        }
+        if (!_cachedActionQueueElementFields.TryGetValue(fieldName, out var field))
+        {
+            field = AccessTools.Field(elementType, fieldName);
+            _cachedActionQueueElementFields[fieldName] = field;
+        }
+        return field;
+    }
+
+    /// <summary>Formats one ActionQueueSet._actionQueues element (a private ActionQueue instance,
+    /// ActionQueueSet.cs:22-33) by reflecting its public fields — ownerId, actions, isPaused,
+    /// isCancellingPlayerDrivenCombatActions, actionCancellingPlayCardActions — via
+    /// GetActionQueueElementField. Every field read is individually null-guarded, degrading to "?"/
+    /// "null" rather than throwing, since the caller (DescribeStallState) must never throw either.
+    /// </summary>
+    private static string DescribeActionQueue(object queueElement)
+    {
+        var t = queueElement.GetType();
+        object? ownerIdVal = GetActionQueueElementField(t, "ownerId")?.GetValue(queueElement);
+        object? actionsVal = GetActionQueueElementField(t, "actions")?.GetValue(queueElement);
+        object? isPausedVal = GetActionQueueElementField(t, "isPaused")?.GetValue(queueElement);
+        object? isCancellingVal = GetActionQueueElementField(t, "isCancellingPlayerDrivenCombatActions")?.GetValue(queueElement);
+        object? cancelPlayCardsVal = GetActionQueueElementField(t, "actionCancellingPlayCardActions")?.GetValue(queueElement);
+
+        int actionCount = 0;
+        var actionTypeNames = new List<string>();
+        if (actionsVal is System.Collections.IEnumerable actionsEnumerable)
+        {
+            foreach (var a in actionsEnumerable)
+            {
+                actionCount++;
+                if (actionTypeNames.Count < 3 && a != null)
+                    actionTypeNames.Add(a.GetType().Name);
+            }
+        }
+        string actionsSuffix = actionTypeNames.Count == 0
+            ? ""
+            : $"({string.Join(",", actionTypeNames)}{(actionCount > actionTypeNames.Count ? ",..." : "")})";
+
+        string cancelPlayCardsDesc = cancelPlayCardsVal == null ? "null" : cancelPlayCardsVal.GetType().Name;
+
+        return $"q[{ownerIdVal?.ToString() ?? "?"}]{{actions={actionCount}{actionsSuffix} "
+            + $"paused={isPausedVal?.ToString() ?? "?"} cancellingPlayerDriven={isCancellingVal?.ToString() ?? "?"} "
+            + $"cancelPlayCards={cancelPlayCardsDesc}}}";
+    }
+
+    /// <summary>
+    /// Diagnostic dump of the end-turn chain's live state, called from DriveCombatAsync's two
+    /// IdleWait.TimedOut branches. UndoSyncMod.DescribeUndoRedoBlockers() alone narrowed a 250-combat
+    /// headless run's ~3% stuck combats down to two shapes — 12 stalls at phase=Play/
+    /// syncState=EndTurnPhaseOne, 4 at phase=None/syncState=NotPlayPhase — but names the symptom, not
+    /// the cause. The end-turn chain (CombatManager.cs): SetCombatState(EndTurnPhaseOne) (:1461) ->
+    /// StartCancellingAllPlayerDrivenCombatActions() -> WaitUntilQueueIsEmptyOrWaitingOnNonPlayerDrivenAction
+    /// (:1474) -> EndPlayerTurnPhaseOneInternal -> enqueue ReadyToBeginEnemyTurnAction (:1467) -> once
+    /// every player is ready, AfterAllPlayersReadyToBeginEnemyTurn (:1699) calls
+    /// SetCombatState(NotPlayPhase) (:1709). Staying stuck in EndTurnPhaseOne therefore means exactly
+    /// one of: the action queue never drained, phase-one itself never finished, or
+    /// ReadyToBeginEnemyTurnAction never completed / never registered this player as ready — this dump
+    /// prints executor + queue + turn-coordination state so those can be told apart from the log alone.
+    ///
+    /// Every field is read through its own null-guard (degrading to a placeholder rather than skipping
+    /// the rest of the line), and the whole body is additionally wrapped in try/catch: this only ever
+    /// runs from an already-broken drive-loop path and must never itself throw and mask the original
+    /// stall.
+    /// </summary>
+    private static string DescribeStallState()
+    {
+        try
+        {
+            // --- executor: ActionExecutor.IsPaused (ActionExecutor.cs:31), CurrentlyRunningAction
+            // (ActionExecutor.cs:50) -----------------------------------------------------------------
+            string executorPart;
+            var executor = RunManager.Instance.ActionExecutor;
+            if (executor == null)
+            {
+                executorPart = "executor{null}";
+            }
+            else
+            {
+                var current = executor.CurrentlyRunningAction;
+                string runningDesc = "none";
+                if (current != null)
+                {
+                    bool playerDriven = ActionQueueSet.IsGameActionPlayerDriven(current);
+                    runningDesc = $"{current.GetType().Name}({current.State}) playerDriven={playerDriven}";
+                }
+                executorPart = $"executor{{paused={executor.IsPaused} running={runningDesc}}}";
+            }
+
+            // --- queues: ActionQueueSet.IsEmpty (:65), NextActionId (:77), per-player _actionQueues
+            // (:48) -----------------------------------------------------------------------------------
+            string queuesPart;
+            var queueSet = RunManager.Instance.ActionQueueSet;
+            if (queueSet == null)
+            {
+                queuesPart = "queues{null}";
+            }
+            else
+            {
+                var queueDescs = new List<string>();
+                if (FActionQueues?.GetValue(queueSet) is System.Collections.IEnumerable rawQueues)
+                {
+                    foreach (var q in rawQueues)
+                    {
+                        if (q != null) queueDescs.Add(DescribeActionQueue(q));
+                    }
+                }
+                queuesPart = $"queues{{empty={queueSet.IsEmpty} nextId={queueSet.NextActionId} {string.Join(" ", queueDescs)}}}";
+            }
+
+            // --- turn coordination: public wrappers already used elsewhere in this mod
+            // (CombatManager.cs:123-153), plus PlayersReadyToBeginEnemyTurn via reflection (no public
+            // wrapper exists for it) -------------------------------------------------------------------
+            string turnPart;
+            var cm = CombatManager.Instance;
+            if (cm == null)
+            {
+                turnPart = "turn{null}";
+            }
+            else
+            {
+                string readyDesc = "?/?";
+                var turnStateObj = FCmTurnState?.GetValue(cm);
+                if (turnStateObj != null && PTsPlayersReadyToBeginEnemyTurn?.GetValue(turnStateObj) is HashSet<Player> readySet)
+                {
+                    int? totalPlayers = UndoSyncMod.GetCombatState()?.Players.Count;
+                    string ids = string.Join(",", readySet.Select(p => p.NetId.ToString()));
+                    readyDesc = $"{readySet.Count}/{(totalPlayers?.ToString() ?? "?")} ids=[{ids}]";
+                }
+                turnPart = $"turn{{enemyStarted={cm.IsEnemyTurnStarted} endingP1={cm.EndingPlayerTurnPhaseOne} "
+                    + $"endingP2={cm.EndingPlayerTurnPhaseTwo} aboutToLose={cm.IsAboutToLose} ready={readyDesc}}}";
+            }
+
+            // --- game errors: _gameErrors, populated by OnGameLogError via the fuzz-only Log.Error
+            // patch (InstallGameErrorCapturePatch) — the count captured so far THIS combat (cleared at
+            // combat start in RunOneCombatAsync), plus the first line of the most recent one, so a
+            // stall caused by CombatManager.RunTurnLoopAfter's turn-loop death (CombatManager.cs:
+            // 516-528) is visible right in the stall dump instead of requiring a separate look at
+            // Godot's own stdout log. -------------------------------------------------------------
+            string gameErrorsPart = _gameErrors.Count == 0
+                ? "gameErrors=0"
+                : $"gameErrors={_gameErrors.Count} lastGameError=\"{FirstLineOf(_gameErrors[^1])}\"";
+
+            return $"{executorPart} {queuesPart} {turnPart} lastDriverAction={_lastDriverAction} {gameErrorsPart}";
+        }
+        catch (Exception ex)
+        {
+            return $"(stall dump threw: {ex.Message})";
+        }
+    }
+
+    /// <summary>First line of `text` (up to the first '\n', trimmed of a trailing '\r'), or the whole
+    /// string if it has no newline — used by DescribeStallState to preview the most recent captured
+    /// game error without dumping its full (possibly very long) stack trace into the stall-state
+    /// line.</summary>
+    private static string FirstLineOf(string text)
+    {
+        int idx = text.IndexOf('\n');
+        return idx < 0 ? text : text.Substring(0, idx).TrimEnd('\r');
+    }
+
     /// <summary>
     /// Polls until either combat ends, or the game reaches a state where it is genuinely safe/our turn
     /// to act: UndoSyncMod.CanUndoRedo() (UndoSync/UndoSyncMod.cs:44-66 — not mid-restore, combat in
@@ -1006,11 +1357,13 @@ internal static class UndoFuzz
                         string shape = restoreActionPending
                             ? "an action was issued after the restore but its queue never drained"
                             : "the driver never returned to an idle actionable state after the restore";
+                        Log.Write($"[Fuzz] combat={combatIndex} STALL STATE: {DescribeStallState()}");
                         Log.Write($"[Fuzz] combat={combatIndex} STUCK AFTER RESTORE — {shape} -> {restoreWatchDesc} | {_lastIdleWaitBlockers}. This is the shape an action-id-reuse bug (FastForwardNextActionId/FastForwardHookId) would take.");
                     }
                     else
                     {
                         outcome.DriveError = $"stuck waiting for idle player Play phase | {_lastIdleWaitBlockers}";
+                        Log.Write($"[Fuzz] combat={combatIndex} STALL STATE: {DescribeStallState()}");
                         Log.Write($"[Fuzz] combat={combatIndex} STUCK: {outcome.DriveError}");
                     }
                     return;
@@ -1069,6 +1422,7 @@ internal static class UndoFuzz
                         outcome.CardsPlayed++;
                         actionBudget--;
                         acted = true;
+                        _lastDriverAction = $"TryManualPlay({card.Id.Entry})";
                         break;
                     }
                     // Looked playable a moment ago (CanPlay) but CanPlayTargeting said no at the
@@ -1082,6 +1436,7 @@ internal static class UndoFuzz
                     PlayerCmd.EndTurn(me, canBackOut: false);
                     outcome.TurnsPlayed++;
                     actionBudget--;
+                    _lastDriverAction = "EndTurn";
                 }
                 if (watchingRestore)
                     restoreActionPending = true;
