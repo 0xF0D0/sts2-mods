@@ -12,6 +12,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.Orbs;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
@@ -23,9 +24,6 @@ namespace UndoSync;
 /// state directly (which fires none of the events the visual nodes listen to).
 /// Every section is best-effort: a failure logs and moves on, because a cosmetic
 /// glitch is better than an aborted restore.
-///
-/// Known v1 gap: orb visuals are not rebuilt (the model is restored; the display
-/// catches up on the next orb event). None of the current test characters use orbs.
 /// </summary>
 internal static class UiRefresh
 {
@@ -118,12 +116,25 @@ internal static class UiRefresh
     private static readonly Type? TBladeVfx = AccessTools.TypeByName("MegaCrit.Sts2.Core.Nodes.Vfx.NSovereignBladeVfx");
     private static readonly PropertyInfo? PBladeVfxCard = TBladeVfx != null ? AccessTools.Property(TBladeVfx, "Card") : null;
 
+    // Backs SyncOrbNodes: NOrbManager's node-per-slot list, the container they're parented
+    // to, and the tween that last animated their layout are all private fields
+    // (NOrbManager.cs:122-138), and TweenLayout/UpdateControllerNavigation — the game's own
+    // post-mutation layout/focus step, which every node-list mutator in that class calls
+    // (AddOrbAnim/EvokeOrbAnim, NOrbManager.cs:244-282) — are private methods too. Same
+    // reflection-access pattern as the power/potion sections above.
+    private static readonly FieldInfo? FOrbMgrOrbs = AccessTools.Field(typeof(NOrbManager), "_orbs"); // private List<NOrb>, NOrbManager.cs:124
+    private static readonly FieldInfo? FOrbMgrContainer = AccessTools.Field(typeof(NOrbManager), "_orbContainer"); // private Control, NOrbManager.cs:122
+    private static readonly FieldInfo? FOrbMgrCurTween = AccessTools.Field(typeof(NOrbManager), "_curTween"); // private Tween?, NOrbManager.cs:138
+    private static readonly MethodInfo? MOrbMgrTweenLayout = AccessTools.Method(typeof(NOrbManager), "TweenLayout"); // private, no args, NOrbManager.cs:306
+    private static readonly MethodInfo? MOrbMgrUpdateNav = AccessTools.Method(typeof(NOrbManager), "UpdateControllerNavigation"); // private, no args, NOrbManager.cs:283
+
     internal static void RefreshAll(CombatState cs)
     {
         Section("interaction", () => ResetInteraction(cs));
         Section("hand", () => SyncLocalHand(cs));
         Section("hand snap", SnapHandHolders);
         Section("powers", () => RebuildPowerIcons(cs));
+        Section("orbs", () => SyncOrbNodes(cs));
         Section("potions", () => RebuildPotionSlots(cs));
         Section("pile counters", () => SyncPileCounters(cs));
         Section("intents", () => RefreshIntents(cs));
@@ -138,6 +149,17 @@ internal static class UiRefresh
     /// the fuzzer.</summary>
     internal static int UiRefreshFailureCount;
     internal static string LastFailedUiRefreshSection = "";
+
+    /// <summary>Counts each PLAYER SyncOrbNodes actually rebuilt a node list for — incremented once
+    /// per loop iteration inside SyncOrbNodes, only after it has confirmed a non-null NOrbManager AND
+    /// finished rebuilding that player's node list (see the increment's own call site for exactly
+    /// where). Same purpose/pattern as UiRefreshFailureCount above: a plain counter the UI-mode fuzzer
+    /// (UndoFuzz.cs's --undosync-uitest path) reads back by delta, so a claim like "SyncOrbNodes was
+    /// actually exercised against real nodes" is backed by a number instead of an
+    /// ObserveOrbManagerPresence() sample taken at a completely different point in the combat — a real
+    /// NOrbManager existing once is not proof this method ever ran against it. Dormant/unused outside
+    /// the fuzzer.</summary>
+    internal static int SyncOrbNodesRebuiltCount;
 
     private static void Section(string name, Action action)
     {
@@ -263,6 +285,115 @@ internal static class UiRefresh
             }
             foreach (var power in creature.Powers)
                 MPowerAdd?.Invoke(container, new object[] { power });
+        }
+    }
+
+    // ── orbs ──
+
+    /// <summary>
+    /// Rebuilds NOrbManager's node list from the restored OrbQueue model, for every player
+    /// with an orb manager.
+    ///
+    /// NOrbManager keeps one NOrb node PER SLOT, not per orb (_orbs, NOrbManager.cs:124):
+    /// filled slots occupy indices 0..orbCount-1 in channel order, and an empty slot is a
+    /// node whose Model is null. The game maintains that invariant itself — AddOrbAnim
+    /// inserts a newly channeled orb's node at the first empty slot's index
+    /// (NOrbManager.cs:244-260), and EvokeOrbAnim removes the matching node and appends a
+    /// fresh empty one (NOrbManager.cs:264-280) — but StateSnapshot.Restore() writes
+    /// OrbQueue._orbs and Capacity directly, so none of that node bookkeeping runs and the
+    /// node list is left stale relative to the restored model. Two ways that surfaces:
+    ///   (A) EvokeOrbAnim does `_orbs.Last(node => node.Model == orb)` (NOrbManager.cs:265) —
+    ///       a reference-identity match against OrbModel. If no node holds the restored
+    ///       model instance, that Linq call throws InvalidOperationException.
+    ///   (B) TweenLayout reads `Player.PlayerCombatState.OrbQueue.Capacity` and then indexes
+    ///       `_orbs[i]` for i &lt; capacity (NOrbManager.cs:306-327). If the restored capacity
+    ///       is larger than the stale node list's length, that throws
+    ///       ArgumentOutOfRangeException.
+    /// Both are reachable from PlayCardAction — e.g. a power like StormPower channels an orb
+    /// via Hook.AfterCardPlayed on any card played at all, which reaches TweenLayout through
+    /// AddOrbAnim — so the card and its energy are already spent before the throw; the
+    /// effect itself never lands.
+    ///
+    /// This does not diff the old node list against the new model state; it always tears the
+    /// whole thing down and rebuilds it from scratch. That covers every case (orb count
+    /// growing or shrinking, capacity growing or shrinking, sitting at max capacity) with no
+    /// per-case branching, because the rebuild only ever has to make the node list equal the
+    /// model, never patch it. The new nodes are built directly from the LIVE (post-restore)
+    /// OrbModel instances, so node/model identity is restored by construction — exactly what
+    /// EvokeOrbAnim's reference match in (A) needs — and the rebuilt list's length always
+    /// equals Capacity by construction — exactly what TweenLayout's indexing in (B) needs.
+    /// It is deterministic on every peer: it reads only restored model state
+    /// (OrbQueue.Capacity/.Orbs) and LocalContext.IsMe, nothing transient.
+    /// </summary>
+    private static void SyncOrbNodes(CombatState cs)
+    {
+        foreach (var player in cs.Players)
+        {
+            var queue = player.PlayerCombatState?.OrbQueue;
+            if (queue == null) continue;
+
+            // Null here is the normal case for a character without orbs, and for every
+            // creature in a headless TestMode run (NCreature.Create returns null there,
+            // NCreature.cs:450-455) — not an error, so skip silently.
+            var mgr = NCombatRoom.Instance?.GetCreatureNode(player.Creature)?.OrbManager;
+            if (mgr == null) continue;
+
+            int capacity = queue.Capacity;
+            var models = queue.Orbs;
+
+            if (FOrbMgrOrbs?.GetValue(mgr) is not List<NOrb> list ||
+                FOrbMgrContainer?.GetValue(mgr) is not Control container)
+            {
+                Log.Write($"SyncOrbNodes: missing reflection handle(s) for player={player.NetId}, skipping");
+                continue;
+            }
+
+            // Kill the running layout tween BEFORE freeing any node below — it still targets
+            // the pre-restore nodes. TweenLayout kills _curTween too (NOrbManager.cs:311),
+            // but only once this method calls it further down; freeing a node the old tween
+            // is still animating first would reintroduce the same kind of stale-reference
+            // crash this method exists to fix.
+            if (FOrbMgrCurTween?.GetValue(mgr) is Tween tween)
+            {
+                tween.Kill();
+                FOrbMgrCurTween.SetValue(mgr, null);
+            }
+
+            foreach (var node in list)
+            {
+                container.RemoveChildSafely(node);
+                node.QueueFreeSafely();
+            }
+            list.Clear();
+
+            // One fresh node per slot, handed the LIVE restored model straight away (or null
+            // for a slot past the orb count) — see the method doc comment above for why that
+            // preserves model identity and fixes both (A) and (B).
+            bool isLocal = LocalContext.IsMe(player);
+            for (int i = 0; i < capacity; i++)
+            {
+                var model = i < models.Count ? models[i] : null;
+                var orbNode = NOrb.Create(isLocal, model);
+                container.AddChildSafely(orbNode);
+                list.Add(orbNode);
+                orbNode.Position = Vector2.Zero;
+            }
+
+            // TweenLayout indexes _orbs[i] for i < capacity (NOrbManager.cs:306-327), which is
+            // only safe now that the list's length equals capacity — that's the fix for (B).
+            // UpdateControllerNavigation re-links controller focus neighbors across the
+            // rebuilt list (NOrbManager.cs:283-303), and UpdateVisuals repaints every node's
+            // passive/evoke labels from its (possibly now different) model.
+            MOrbMgrTweenLayout?.Invoke(mgr, null);
+            MOrbMgrUpdateNav?.Invoke(mgr, null);
+            mgr.UpdateVisuals(OrbEvokeType.None);
+
+            // This player's node list is now fully rebuilt against a confirmed non-null manager —
+            // see SyncOrbNodesRebuiltCount's own doc comment for why this, not just observing `mgr`
+            // non-null somewhere else, is what the UI-mode fuzzer needs to prove this method ran.
+            SyncOrbNodesRebuiltCount++;
+
+            Log.Write($"SyncOrbNodes: player={player.NetId} capacity={capacity} orbs={models.Count} ids=[{string.Join(",", models.Select(m => m.Id.Entry))}]");
         }
     }
 

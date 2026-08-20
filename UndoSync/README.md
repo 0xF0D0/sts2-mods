@@ -294,8 +294,22 @@ instances share the user-data directory).
   `CombatManager.TurnStarted` fires for the player side — by then every
   player's pre-play-phase hooks have already run, so undoing to a turn start
   no longer rolls back their effects without re-running them
-- Orb visuals are not rebuilt after restore (model state is; display catches
-  up on the next orb event) — none of the base test characters use orbs
+- `NOrbManager` node sync: handled. This was not the cosmetic gap an earlier
+  version of this list called it — a desynced orb node layer **throws inside
+  `PlayCardAction`**, so the card and energy are spent and the effect never
+  lands. Two shapes were observed: `EvokeOrbAnim` matches nodes to models by
+  reference identity (`_orbs.Last(n => n.Model == orb)`, NOrbManager.cs:263)
+  and throws `Sequence contains no matching element` when no node holds the
+  restored model; and `TweenLayout` indexes `_orbs[i]` for `i < OrbQueue.Capacity`
+  (NOrbManager.cs:306-327), so a restored capacity larger than the node list
+  throws `ArgumentOutOfRangeException` — reachable from *any* card once a power
+  like `StormPower` channels through `Hook.AfterCardPlayed`.
+  `UiRefresh.SyncOrbNodes` now rebuilds the node list to equal the model after
+  every restore: one node per slot, the live restored models handed to the
+  first `Orbs.Count` of them in order, empty slots after — the same invariant
+  `AddOrbAnim`/`EvokeOrbAnim` maintain. It rebuilds rather than diffs, so orbs
+  and capacity growing or shrinking, and being at max capacity, are all covered
+  by construction.
 - Untested: real Steam matchmaking sessions
 - `CombatTurnState.PendingLoss`: handled. `CombatManager.LoseCombat()` can set
   it synchronously mid-action (e.g. lethal self-damage) before the game drains
@@ -326,8 +340,18 @@ instances share the user-data directory).
   executor called `AfterActionFinished`.
 - The fuzzer is singleplayer only — it cannot exercise the vote protocol,
   peer divergence, or a downed-teammate restore.
-- The fuzzer tests model state, not UI: `UiRefresh` runs, but nothing
-  verifies what a human would actually see.
+- **The fuzzer is blind to the node layer, by construction — and that is not
+  a cosmetic limitation.** Two independent reasons: `NCreature.Create` returns
+  null whenever `TestMode.IsOn` (NCreature.cs:450-455), so no `NCreature` and
+  therefore no `NOrbManager` ever exists in a headless run, and every call site
+  is null-conditional (`...?.OrbManager?.EvokeOrbAnim(orb)`, OrbCmd.cs:140) and
+  silently skipped; and the fuzzer's only assertion is the checksum payload,
+  which is model state by definition — per-client node state cannot be in a
+  checksum peers are expected to agree on. So a node/model desync passes
+  `FIDELITY: PASS` even if the nodes were present. The `NOrbManager` bug above
+  is exactly this class, and it kills runs rather than just looking wrong.
+  Covering it needs a harness with real nodes (`TestMode` off), not more
+  scenarios in this one.
 - Fuzzer stalls are self-diagnosing, and the two that were actually observed
   are fixed. The fuzzer mirrors the game's own `Log.Error` into its log (a
   `--undosync-fuzz`-only Harmony prefix, since `CombatManager.RunTurnLoopAfter`

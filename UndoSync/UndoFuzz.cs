@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
@@ -17,10 +18,14 @@ using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Characters;
+using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.TestSupport;
 using MegaCrit.Sts2.Core.Unlocks;
 
@@ -50,10 +55,32 @@ namespace UndoSync;
 ///                             off (baseSeed, combatIndex) — so re-running with the same base seed
 ///                             reproduces the same sequence of combats and in-combat decisions.
 ///
-/// Logs to the existing UndoSync-&lt;pid&gt;.log (Log.cs) with a "[Fuzz]" prefix, rather than a
-/// separate file: this tool only ever runs standalone (never alongside real multiplayer undo
-/// activity, since TestMode.IsOn makes RestoreTo's own picker/vote path irrelevant here), so there's
-/// nothing to disentangle by splitting files, and reusing Log.cs means no new file-IO error surface.
+/// A SECOND, independent entry path exists alongside the one above: --undosync-uitest
+/// [--undosync-uitest-count N] [--undosync-uitest-seed XXXX] [--undosync-uitest-noquit]. Where
+/// --undosync-fuzz boots a throwaway TestMode.IsOn run (no UI, no real NCreature/NOrbManager — see
+/// NCreature.cs:450-455), --undosync-uitest boots a real, non-TestMode run the same way
+/// NSceneBootstrapper.StartNewRun does (NSceneBootstrapper.cs:83-131), forces the character to Defect,
+/// and injects StormPower after combat starts so orb-node code (Hook.AfterCardPlayed's failure path)
+/// actually runs against real nodes instead of being silently skipped by every `?.` in the call chain.
+/// Both paths reuse the exact same drive loop (DriveCombatAsync/WaitForIdleOurTurnAsync/
+/// AttemptRestore/CombatOutcome) — only setup/teardown and a small set of per-path static selectors
+/// differ: idle-wait/wall-clock timeouts (_activeIdleWaitTimeout/_activeCombatWallClockTimeout — the
+/// UI path plays real animations in real time and needs far looser bounds than headless's tuned-tight
+/// ones) and restore pacing (_useDeterministicRestorePolicy — the UI path restores on a fixed cadence
+/// instead of headless's probability roll, since a short UI combat can't rely on a low-probability
+/// roll landing at all). Each selector defaults to the headless value/behaviour and is written ONLY
+/// by RunOneUiTestCombatAsync, right before its own DriveCombatAsync call — see each selector's own
+/// doc comment for why that makes leaking into the headless path structurally impossible. The drive
+/// loop's own SOURCE stays identical either way. See RunUiTestCombatsAsync's doc comment for the full
+/// design and MaybeStart for why the two flags are mutually exclusive within one process. Default
+/// seed is a fixed literal (DefaultUiTestSeed), not random, since this path's whole point is a
+/// specific, reproducible check ("did a real NOrbManager exist"), not broad fuzzing.
+///
+/// Logs to the existing UndoSync-&lt;pid&gt;.log (Log.cs) with a "[Fuzz]" prefix (the UI-mode path
+/// additionally tags its lines "[Fuzz][uitest]"), rather than a separate file: neither tool ever runs
+/// alongside real multiplayer undo activity (TestMode.IsOn or a throwaway singleplayer run both make
+/// RestoreTo's own picker/vote path irrelevant here), so there's nothing to disentangle by splitting
+/// files, and reusing Log.cs means no new file-IO error surface.
 /// </summary>
 internal static class UndoFuzz
 {
@@ -61,6 +88,27 @@ internal static class UndoFuzz
     private const string CountArg = "undosync-fuzz-count";
     private const string SeedArg = "undosync-fuzz-seed";
     private const int DefaultCombatCount = 50;
+
+    // --- UI-mode path (--undosync-uitest) -----------------------------------------------------------
+    // See this class's top-of-file doc comment for the design summary and RunUiTestCombatsAsync for the
+    // full rationale. Named distinctly from FuzzArg/CountArg/SeedArg (not reused) so each path's CLI
+    // surface stays independently documentable — see MaybeStart for how the two gates coexist.
+    private const string UiTestArg = "undosync-uitest";
+    private const string UiTestCountArg = "undosync-uitest-count";
+    private const string UiTestSeedArg = "undosync-uitest-seed";
+
+    /// <summary>A dedicated --undosync-uitest-noquit, rather than reusing --undosync-fuzz-noquit: the
+    /// two paths are mutually exclusive within one process (see MaybeStart), so a shared flag would
+    /// only ever make sense for whichever path actually ran — a separate flag keeps that unambiguous
+    /// from the command line alone, at the cost of one more constant.</summary>
+    private const string UiTestNoQuitArg = "undosync-uitest-noquit";
+
+    private const int DefaultUiTestCombatCount = 3;
+
+    /// <summary>Fixed literal, deliberately not SeedHelper.GetRandomSeed(): unlike the fuzz path (which
+    /// wants broad, varied coverage across many runs), this path exists to answer one specific,
+    /// reproducible question — see RunUiTestCombatsAsync's doc comment.</summary>
+    private const string DefaultUiTestSeed = "undosync-uitest-fixed-seed";
 
     /// <summary>Chance, checked once per eligible decision point, of attempting a restore. Kept low
     /// (~10-15%) and gated by <see cref="MaxRestoresPerCombat"/> + <see cref="MinTurnsBetweenRestores"/>
@@ -80,6 +128,28 @@ internal static class UndoFuzz
     /// unchanged decision point are possible (nothing forces forward progress in between).</summary>
     private const int MinTurnsBetweenRestores = 1;
 
+    // --- UI-path deterministic restore pacing (Defect 3) ---------------------------------------------
+    // RestoreProbability/MaxRestoresPerCombat/MinTurnsBetweenRestores above were tuned for headless
+    // combats that play many turns cheaply, where a low-probability roll checked on every idle
+    // iteration reliably lands a handful of restores somewhere across the whole combat. A UI combat
+    // (--undosync-uitest) plays only a handful of turns total — the first real run measured
+    // turnsPlayed=1, cardsPlayed=3, restoresAttempted=0 — so the same random gates can trivially
+    // produce zero restores, which defeats the entire point of this path (see Defect 2's
+    // SyncOrbNodesRebuiltCount / RunUiTestCombatsAsync's summary). TryAttemptDeterministicRestore
+    // uses these two instead, restoring on a fixed cadence rather than a roll.
+
+    /// <summary>UI path only. TryAttemptDeterministicRestore fires exactly one restore after every
+    /// this-many'th successful driver action (a TryManualPlay that returned true, or an EndTurn) —
+    /// see CombatOutcome.ActionsSinceLastDeterministicRestore for where that count comes from.
+    /// </summary>
+    private const int UiTestActionsPerRestore = 3;
+
+    /// <summary>UI path only. Hard cap on restores for that path — larger than the headless
+    /// MaxRestoresPerCombat above on purpose: a fixed cadence firing every UiTestActionsPerRestore
+    /// actions needs a correspondingly larger ceiling to actually matter within one short UI
+    /// combat.</summary>
+    private const int UiTestMaxRestoresPerCombat = 5;
+
     /// <summary>Hard cap on card-plays + end-turns for one combat, so a scripted loop that keeps
     /// producing "playable" cards (rather than a genuine game hang) can't run forever. Raised from the
     /// original 400: that budget was being burned by a restore policy that kept rewinding to turn 1
@@ -90,12 +160,63 @@ internal static class UndoFuzz
     private const int ActionBudgetPerCombat = 800;
 
     private static readonly TimeSpan CombatStartTimeout = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan CombatWallClockTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan IdlePollInterval = TimeSpan.FromMilliseconds(10);
-    private static readonly TimeSpan IdleWaitTimeout = TimeSpan.FromSeconds(10);
+
+    // --- per-path idle-wait / wall-clock timeouts (Defect 1) ----------------------------------------
+    // The original constants here (IdleWaitTimeout=10s, CombatWallClockTimeout=45s — now
+    // HeadlessIdleWaitTimeout/HeadlessCombatWallClockTimeout below) were tuned for HEADLESS combats: a
+    // 250-combat run's median was 0.39s (see ActionBudgetPerCombat's own doc comment for the same
+    // measured-not-assumed posture), and MEASURED tightening of these exact two bounds took a 570s run
+    // down to 69s (see WaitForIdleOurTurnAsync's own "MEASURED" paragraph). A UI combat
+    // (--undosync-uitest) plays real animations in real time and cannot share them: the first real UI
+    // run's enemy turn had legitimately started (enemyStarted=True, player queues paused by
+    // SetCombatState(NotPlayPhase) — CombatManager.cs:1709, ActionQueueSynchronizer.cs:133-136) and
+    // simply had not finished within 10s — the harness aborted a perfectly healthy combat. The 10s/45s
+    // bounds stay exactly as-is for the headless path (they are load-bearing there, per the 570s->69s
+    // result above) while the UI path gets its own, far looser pair below.
+    //
+    // Implemented as a pair of "active" static fields (_activeIdleWaitTimeout/
+    // _activeCombatWallClockTimeout) that WaitForIdleOurTurnAsync/DriveCombatAsync read, rather than a
+    // parameter threaded through either — both methods are shared, unmodified, by both paths (see this
+    // file's top-of-file doc comment), and a parameter would have to be threaded through every call in
+    // between for no benefit over a field. RunOneUiTestCombatAsync is the ONLY place in this file that
+    // ever writes these two fields, immediately before its own DriveCombatAsync call — the headless
+    // call graph (RunAllCombatsAsync -> RunOneCombatAsync -> DriveCombatAsync) never reaches that
+    // method, so the UI values can never leak into a headless run even in principle, independent of
+    // MaybeStart's own --undosync-fuzz/--undosync-uitest mutual-exclusivity check.
+    private static readonly TimeSpan HeadlessIdleWaitTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan HeadlessCombatWallClockTimeout = TimeSpan.FromSeconds(45);
+
+    /// <summary>UI path only. Deliberately far looser than the headless values above: these bound
+    /// WALL-CLOCK animation waits (a real enemy turn playing out in real time, or a real card-play
+    /// animation resolving before the next idle/actionable state is reached), not stall detection — a
+    /// combat that is legitimately mid-animation at the 10s/45s headless bounds is not stuck, it just
+    /// hasn't finished playing yet. See _activeIdleWaitTimeout/_activeCombatWallClockTimeout for how
+    /// these get switched in only for this path, and only for the duration of its one combat.</summary>
+    private static readonly TimeSpan UiTestIdleWaitTimeout = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan UiTestCombatWallClockTimeout = TimeSpan.FromSeconds(900);
+
+    /// <summary>Active idle-wait / wall-clock timeouts for whichever path is CURRENTLY driving — read
+    /// by WaitForIdleOurTurnAsync and DriveCombatAsync respectively. Default to the Headless* values
+    /// above, so a process that never runs --undosync-uitest (i.e. every --undosync-fuzz run) can never
+    /// observe anything else, regardless of static field initialization order. See
+    /// HeadlessIdleWaitTimeout's own doc comment for the full "why per-path, why static fields, why
+    /// this can't leak" reasoning.</summary>
+    private static TimeSpan _activeIdleWaitTimeout = HeadlessIdleWaitTimeout;
+    private static TimeSpan _activeCombatWallClockTimeout = HeadlessCombatWallClockTimeout;
+
+    /// <summary>Selects which restore policy AttemptRestore dispatches to for the CURRENTLY RUNNING
+    /// path (Defect 3) — false (the default) is the headless path's own random/probability-gated
+    /// policy (TryAttemptRestore); RunOneUiTestCombatAsync flips this true before its own
+    /// DriveCombatAsync call, so the UI path instead restores on a fixed cadence
+    /// (TryAttemptDeterministicRestore). Same "structurally cannot leak" reasoning as
+    /// _activeIdleWaitTimeout/_activeCombatWallClockTimeout above: only ever written inside
+    /// RunOneUiTestCombatAsync, which the headless call graph (RunAllCombatsAsync/RunOneCombatAsync)
+    /// never reaches, so a headless run can never observe anything but the default.</summary>
+    private static bool _useDeterministicRestorePolicy;
 
     /// <summary>Timeout for any single awaited step inside SetUpRandomLoadoutAsync (one relic Obtain,
-    /// one potion TryToProcure, one CardPileCmd.Add). CombatWallClockTimeout only wraps
+    /// one potion TryToProcure, one CardPileCmd.Add). _activeCombatWallClockTimeout only wraps
     /// DriveCombatAsync, so without a timeout here a relic/potion/card whose resolution blocks headless
     /// (e.g. it needs a selection prompt reachable only through UI, or awaits something that never
     /// completes without a human) would wedge this method — and therefore the whole combat, and
@@ -159,6 +280,24 @@ internal static class UndoFuzz
         /// MinTurnsBetweenRestores gate in TryAttemptRestore.</summary>
         public int LastRestoreTurnMark;
 
+        /// <summary>UI path only (Defect 3, TryAttemptDeterministicRestore) — count of successful
+        /// driver actions (a TryManualPlay that returned true, or an EndTurn) issued since the last
+        /// deterministic restore, reset to 0 every time one fires. Incremented unconditionally by
+        /// DriveCombatAsync right after every successful action on BOTH paths, but only ever read by
+        /// TryAttemptDeterministicRestore — dead, harmless data on the headless path, which paces
+        /// restores off RestoreProbability/MinTurnsBetweenRestores/LastRestoreTurnMark above instead.
+        /// See TryAttemptDeterministicRestore's own doc comment for the full cadence design.</summary>
+        public int ActionsSinceLastDeterministicRestore;
+
+        /// <summary>UI path only — the delta in UiRefresh.SyncOrbNodesRebuiltCount across this
+        /// combat's DriveCombatAsync call, snapshotted by RunOneUiTestCombatAsync immediately before
+        /// and after. Zero on the headless --undosync-fuzz path by construction (never read/set
+        /// there): NCreature.Create returns null under TestMode.IsOn (NCreature.cs:450-455), so
+        /// SyncOrbNodes's own `mgr == null` guard skips every player and the counter this tracks never
+        /// moves. See RunUiTestCombatsAsync's summary for why this, together with RestoresAttempted,
+        /// is what actually proves UiRefresh.SyncOrbNodes ran — not OrbManagerObserved alone.</summary>
+        public int SyncOrbNodesRebuiltDelta;
+
         /// <summary>True when the driver could not complete a successful action (a card play that
         /// resolved, or an end-turn) within the normal timeout after a restore — the shape an
         /// action-id-reuse bug in ChecksumHook.RestoreTo's FastForwardNextActionId/FastForwardHookId
@@ -198,6 +337,20 @@ internal static class UndoFuzz
         public bool TurnLoopDied;
 
         public readonly List<string> FailureRepros = new();
+
+        /// <summary>UI-mode path only (RunOneUiTestCombatAsync) — see ObserveOrbManagerPresence. True
+        /// once a real NCombatRoom.Instance.GetCreatureNode(player.Creature)?.OrbManager was observed
+        /// non-null at any point during this combat. Always false on the headless --undosync-fuzz path
+        /// (NCreature.Create returns null whenever TestMode.IsOn, NCreature.cs:450-455) — that's
+        /// expected there, not a bug, since the headless path never claims to exercise real orb nodes.
+        ///
+        /// NOT sufficient on its own to claim UiRefresh.SyncOrbNodes was exercised (Defect 2 — a real
+        /// manager existing is necessary but not proof anything downstream ran against it, e.g. if
+        /// RestoresAttempted stayed 0 for the whole combat). RunUiTestCombatsAsync's summary combines
+        /// this with RestoresAttempted and SyncOrbNodesRebuiltDelta before printing anything resembling
+        /// a PASS — see its own doc comment / summary block for the full "PROVEN"/"NOT PROVEN" logic.
+        /// </summary>
+        public bool OrbManagerObserved;
     }
 
     /// <summary>
@@ -288,7 +441,7 @@ internal static class UndoFuzz
     /// stuck until the room is restarted" is the game's own diagnosis, reported ONLY via Log.Error/
     /// Sentry with no public flag or event otherwise. Checked at the top of every
     /// WaitForIdleOurTurnAsync poll iteration, before the normal IsInProgress check, so DriveCombatAsync
-    /// finds out within one IdlePollInterval instead of burning the full IdleWaitTimeout waiting on a
+    /// finds out within one IdlePollInterval instead of burning the full _activeIdleWaitTimeout waiting on a
     /// combat that can never move again — the game's own turn loop is gone, so nothing this driver does
     /// (a card play, an end-turn) can ever be picked up again. Reset to false in RunOneCombatAsync at
     /// the exact place <see cref="_gameErrors"/> is already cleared, so a death in combat N-1 can never
@@ -308,11 +461,11 @@ internal static class UndoFuzz
     /// fuzz log, while the actual exception/stack trace sat in a different log file that nobody
     /// investigating a stall would think to open.
     ///
-    /// Gated on --undosync-fuzz ONLY: called from MaybeStart, right after its
-    /// CommandLineHelper.HasArg(FuzzArg) check, so this patch is never applied in a normal player's
-    /// game. Deliberately NOT a [HarmonyPatch] attribute class (unlike ChecksumHook/UndoSyncMod's
-    /// patches) — those get swept up by UndoSyncMod.Initialize()'s harmony.PatchAll(...) and would
-    /// therefore patch the game's own logger for every player, not just this opt-in fuzz tool.
+    /// Gated on --undosync-fuzz OR --undosync-uitest ONLY: called from MaybeStart once, before either
+    /// path's own dispatch, so this patch is never applied in a normal player's game. Deliberately NOT
+    /// a [HarmonyPatch] attribute class (unlike ChecksumHook/UndoSyncMod's patches) — those get swept
+    /// up by UndoSyncMod.Initialize()'s harmony.PatchAll(...) and would therefore patch the game's own
+    /// logger for every player, not just these opt-in tools.
     ///
     /// Uses its own Harmony instance, not UndoSyncMod's: the Harmony("com.beomsu.undosync") instance
     /// UndoSyncMod.Initialize() creates is a local variable there, not stored anywhere this file can
@@ -408,30 +561,75 @@ internal static class UndoFuzz
         }
     }
 
+    /// <summary>
+    /// The ONLY entry point called from UndoSyncMod.Initialize() (see this class's top-of-file doc
+    /// comment). Gates TWO independent, opt-in paths off two independent flags:
+    ///   --undosync-fuzz    the original headless TestMode.IsOn path (RunWhenReadyAsync/RunAllCombatsAsync).
+    ///   --undosync-uitest  the real, non-TestMode UI-mode path (RunUiTestWhenReadyAsync/
+    ///                      RunUiTestCombatsAsync) — see RunUiTestCombatsAsync's doc comment for why it
+    ///                      exists and what it verifies that the headless path structurally cannot.
+    ///
+    /// Deliberately mutually exclusive within one process, not merely independent: both paths drive the
+    /// same RunManager.Instance/TestMode.IsOn singletons via fire-and-forget tasks
+    /// (RunWhenReadyAsync/RunUiTestWhenReadyAsync are both started with `_ = ...` and interleave freely
+    /// via async/await), and one path flips TestMode.IsOn on while the other requires it to stay off
+    /// for its entire run — running both concurrently would corrupt whichever one loses the race. If
+    /// both flags are present, --undosync-fuzz wins and --undosync-uitest is skipped with a warning;
+    /// this also happens to be the guard against double-subscription the design for this method calls
+    /// out — the headless path's GenerateMissingPostActionChecksum subscription and TraceChecksums
+    /// probes live entirely inside RunOneCombatAsync/RunAllCombatsAsync, which the UI-mode path's own
+    /// methods (RunOneUiTestCombatAsync/RunUiTestCombatsAsync) never call, so this exclusivity check is
+    /// belt-and-suspenders on top of that structural separation, not a substitute for it.
+    /// </summary>
     internal static void MaybeStart()
     {
         try
         {
-            if (!CommandLineHelper.HasArg(FuzzArg)) return;
+            bool fuzzRequested = CommandLineHelper.HasArg(FuzzArg);
+            bool uiTestRequested = CommandLineHelper.HasArg(UiTestArg);
+            if (!fuzzRequested && !uiTestRequested) return;
 
-            // Fuzz-only, passive: captures the game's own Log.Error calls into this log too — see
-            // InstallGameErrorCapturePatch's doc comment for why (CombatManager's turn-loop death is
-            // otherwise reported only via Log.Error/Sentry, with no public flag or event).
+            if (fuzzRequested && uiTestRequested)
+            {
+                Log.Write($"[Fuzz] both --{FuzzArg} and --{UiTestArg} were passed — these are mutually exclusive (see MaybeStart's doc comment). Running --{FuzzArg} only.");
+                uiTestRequested = false;
+            }
+
+            // Shared diagnostic capture, useful for either path — see InstallGameErrorCapturePatch's
+            // doc comment for why (CombatManager's turn-loop death is otherwise reported only via
+            // Log.Error/Sentry, with no public flag or event).
             InstallGameErrorCapturePatch();
 
-            TraceChecksums = CommandLineHelper.HasArg("undosync-fuzz-trace");
+            if (fuzzRequested)
+            {
+                TraceChecksums = CommandLineHelper.HasArg("undosync-fuzz-trace");
 
-            int count = DefaultCombatCount;
-            if (CommandLineHelper.TryGetValue(CountArg, out var countStr)
-                && int.TryParse(countStr, out var parsedCount) && parsedCount > 0)
-                count = parsedCount;
+                int count = DefaultCombatCount;
+                if (CommandLineHelper.TryGetValue(CountArg, out var countStr)
+                    && int.TryParse(countStr, out var parsedCount) && parsedCount > 0)
+                    count = parsedCount;
 
-            string baseSeed = CommandLineHelper.TryGetValue(SeedArg, out var seedArg) && !string.IsNullOrEmpty(seedArg)
-                ? seedArg
-                : SeedHelper.GetRandomSeed();
+                string baseSeed = CommandLineHelper.TryGetValue(SeedArg, out var seedArg) && !string.IsNullOrEmpty(seedArg)
+                    ? seedArg
+                    : SeedHelper.GetRandomSeed();
 
-            Log.Write($"[Fuzz] --{FuzzArg} detected — will run {count} combat(s) once game startup completes (baseSeed=\"{baseSeed}\").");
-            _ = RunWhenReadyAsync(count, baseSeed);
+                Log.Write($"[Fuzz] --{FuzzArg} detected — will run {count} combat(s) once game startup completes (baseSeed=\"{baseSeed}\").");
+                _ = RunWhenReadyAsync(count, baseSeed);
+            }
+            else
+            {
+                int count = DefaultUiTestCombatCount;
+                if (CommandLineHelper.TryGetValue(UiTestCountArg, out var countStr)
+                    && int.TryParse(countStr, out var parsedCount) && parsedCount > 0)
+                    count = parsedCount;
+
+                string seed = CommandLineHelper.TryGetValue(UiTestSeedArg, out var seedArg) && !string.IsNullOrEmpty(seedArg)
+                    ? seedArg
+                    : DefaultUiTestSeed;
+
+                Log.Write($"[Fuzz][uitest] --{UiTestArg} detected — requested {count} combat(s) once game startup completes (seed=\"{seed}\"); see RunUiTestCombatsAsync for why only 1 actually runs.");
+                _ = RunUiTestWhenReadyAsync(count, seed);
+            }
         }
         catch (Exception ex)
         {
@@ -675,6 +873,63 @@ internal static class UndoFuzz
     }
 
     /// <summary>
+    /// Records a visited map coord whose MapPointType matches `roomType`, so RunState.CurrentMapCoord /
+    /// CurrentMapPoint are non-null before EnterRoomDebug. Shared by both harness paths in this file
+    /// (RunOneCombatAsync and RunOneUiTestCombatAsync) — factored out here rather than duplicated,
+    /// since both drive straight into EnterRoomDebug with no real map navigation and both need the
+    /// exact same fix for the exact same reason:
+    ///
+    /// A real run only ever reaches combat by walking a map point (MapScreenHandler), so
+    /// RunState.CurrentMapCoord is always already set once combat starts. Both harnesses instead drive
+    /// straight into EnterRoomDebug with no map navigation at all, so without this step
+    /// RunState.CurrentMapCoord stays null forever (RunState.cs:112-121, `_visitedMapCoords.Last()` on
+    /// a list nothing has ever added to) and RunState.CurrentMapPoint stays null right behind it
+    /// (RunState.cs:127-137).
+    ///
+    /// That matters because game code reads CurrentMapPoint with no null guard: FurCoat.
+    /// BeforeCombatStart (FurCoat.cs:127-133) does `Owner.RunState.CurrentMapPoint.coord`, which NREs
+    /// and kills the combat's own turn loop the instant a fuzzed loadout happens to include FurCoat. A
+    /// real run can never enter combat without a current map point, so this is a harness defect being
+    /// fixed here, not a game bug being worked around.
+    ///
+    /// The recorded point's PointType must match `roomType`, not just be ANY point: fighting a Boss
+    /// encounter while RunState says the player is standing on a Monster map point is exactly the kind
+    /// of state-the-game-cannot-produce pairing the rest of this file's design (ResolveEncounterPool,
+    /// the relic/potion/card factories in SetUpRandomLoadoutAsync) exists to eliminate.
+    ///
+    /// Callers must call this AFTER SetActInternal (RunState.Map defaults to NullActMap.Instance until
+    /// SetActInternal installs a real map, RunState.cs:102 — map.GetAllMapPoints()/StartingMapPoint
+    /// below need the real map already in place) and BEFORE RunLocationTargetedBuffer.
+    /// OnLocationChanged/MapSelectionSynchronizer.OnLocationChanged (RunState.MapLocation is
+    /// `new MapLocation(CurrentMapCoord, CurrentActIndex)`, RunState.cs:147, and RunLocation embeds
+    /// MapLocation, RunState.cs:142 — recording the coord after either router call would hand both
+    /// routers a location whose coord is still null).
+    ///
+    /// Wrapped in try/catch, log-and-continue rather than aborting the combat: this is best-effort
+    /// scaffolding for FurCoat and anything else that reads CurrentMapPoint, not itself something
+    /// either harness exists to test.
+    /// </summary>
+    private static void RecordVisitedMapCoordForEncounter(RunState runState, RoomType roomType, string logPrefix)
+    {
+        try
+        {
+            MapPointType wanted = roomType switch
+            {
+                RoomType.Elite => MapPointType.Elite,
+                RoomType.Boss => MapPointType.Boss,
+                _ => MapPointType.Monster,
+            };
+            var map = runState.Map;
+            var point = map.GetAllMapPoints().FirstOrDefault(p => p.PointType == wanted) ?? map.StartingMapPoint;
+            runState.AddVisitedMapCoord(point.coord);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"{logPrefix} WARNING: failed to record a visited map point matching the encounter's RoomType: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Sets up one throwaway TestMode run, drives one combat to completion (with random restores
     /// along the way), and tears the run back down — regardless of how it went. Never throws: any
     /// failure becomes outcome.DriveError instead, so RunAllCombatsAsync's loop is never at risk.
@@ -778,55 +1033,11 @@ internal static class UndoFuzz
             await RunManager.Instance.SetActInternal(0);
 
             // Records a visited map coord matching the encounter's own RoomType, before the two
-            // location-router calls below. A real run only ever reaches combat by walking a map point
-            // (MapScreenHandler), so RunState.CurrentMapCoord is always already set once combat
-            // starts. This harness instead drives straight into EnterRoomDebug with no map navigation
-            // at all, so without this step RunState.CurrentMapCoord stays null forever (RunState.cs:
-            // 112-121, `_visitedMapCoords.Last()` on a list nothing has ever added to) and
-            // RunState.CurrentMapPoint stays null right behind it (RunState.cs:127-137).
-            //
-            // That matters because game code reads CurrentMapPoint with no null guard:
-            // FurCoat.BeforeCombatStart (FurCoat.cs:127-133) does
-            // `Owner.RunState.CurrentMapPoint.coord`, which NREs and kills the combat's own turn loop
-            // the instant a fuzzed loadout happens to include FurCoat. A real run can never enter
-            // combat without a current map point, so this is a harness defect being fixed here, not a
-            // game bug being worked around.
-            //
-            // The recorded point's PointType must match the encounter's RoomType, not just be ANY
-            // point: fighting a Boss encounter while RunState says the player is standing on a Monster
-            // map point is exactly the kind of state-the-game-cannot-produce pairing the rest of this
-            // change (ResolveEncounterPool, the relic/potion/card factories in SetUpRandomLoadoutAsync)
-            // exists to eliminate.
-            //
-            // Must run before RunLocationTargetedBuffer.OnLocationChanged/MapSelectionSynchronizer.
-            // OnLocationChanged just below, not after: RunState.MapLocation is
-            // `new MapLocation(CurrentMapCoord, CurrentActIndex)` (RunState.cs:147), and RunLocation
-            // embeds MapLocation (RunState.cs:142) — recording the coord after either router call
-            // would hand both routers a location whose coord is still null.
-            //
-            // Must run after SetActInternal (immediately above), not before: RunState.Map defaults to
-            // NullActMap.Instance until SetActInternal installs a real map (RunState.cs:102), so
-            // map.GetAllMapPoints()/StartingMapPoint below need the real map already in place.
-            //
-            // Wrapped in try/catch, log-and-continue rather than aborting the combat: this is
-            // best-effort scaffolding for FurCoat and anything else that reads CurrentMapPoint, not
-            // itself something this fuzzer exists to test.
-            try
-            {
-                MapPointType wanted = encounterPrototype.RoomType switch
-                {
-                    RoomType.Elite => MapPointType.Elite,
-                    RoomType.Boss => MapPointType.Boss,
-                    _ => MapPointType.Monster,
-                };
-                var map = runState.Map;
-                var point = map.GetAllMapPoints().FirstOrDefault(p => p.PointType == wanted) ?? map.StartingMapPoint;
-                runState.AddVisitedMapCoord(point.coord);
-            }
-            catch (Exception ex)
-            {
-                Log.Write($"[Fuzz] combat={combatIndex} WARNING: failed to record a visited map point matching the encounter's RoomType: {ex.Message}");
-            }
+            // location-router calls below — see RecordVisitedMapCoordForEncounter's doc comment for the
+            // full "why" (FurCoat.BeforeCombatStart NREs on a null CurrentMapPoint otherwise). Shared
+            // with the UI-mode path (RunOneUiTestCombatAsync), which drives straight into EnterRoomDebug
+            // the exact same way and needs the exact same fix for the exact same reason.
+            RecordVisitedMapCoordForEncounter(runState, encounterPrototype.RoomType, $"[Fuzz] combat={combatIndex}");
 
             RunManager.Instance.RunLocationTargetedBuffer.OnLocationChanged(runState.RunLocation);
             RunManager.Instance.MapSelectionSynchronizer.OnLocationChanged(runState.MapLocation);
@@ -959,7 +1170,7 @@ internal static class UndoFuzz
     /// wrapped in try/catch and logs+continues on failure: this method exists specifically to exercise
     /// models the fuzzer previously never touched, so one bad/incompatible model throwing must never
     /// abort the rest of the loadout, let alone the combat. Every awaited step is also guarded by
-    /// AwaitWithTimeoutAsync, since CombatWallClockTimeout only covers DriveCombatAsync and this
+    /// AwaitWithTimeoutAsync, since _activeCombatWallClockTimeout only covers DriveCombatAsync and this
     /// method runs entirely before that.
     ///
     /// No enchantment step: see the comment block after the upgrade pass below for why there is
@@ -1353,7 +1564,7 @@ internal static class UndoFuzz
     /// method IS the wait for that action to actually finish — reaching Ready again is the
     /// confirmation it executed, not just that it was accepted.
     ///
-    /// Bound is wall-clock (IdleWaitTimeout, via a Stopwatch), not a poll count. MEASURED: the
+    /// Bound is wall-clock (_activeIdleWaitTimeout, via a Stopwatch), not a poll count. MEASURED: the
     /// previous bound was MaxConsecutiveIdlePolls = 4000 at IdlePollInterval = 10ms, documented in a
     /// comment as "~40s" — a 250-combat headless fuzz run instead showed 4 stalls each actually taking
     /// 133.5s to hit that poll count, because `await Task.Delay(10)` does not resolve in 10ms under
@@ -1371,7 +1582,7 @@ internal static class UndoFuzz
     /// Checks <see cref="_gameTurnLoopDied"/> first, before even the IsInProgress check: once the
     /// game's own turn loop has died (CombatManager.cs:516-528), IsInProgress can still read true —
     /// nothing ever flips it false again on that path — so without this check ahead of it, a dead turn
-    /// loop would otherwise present as an ordinary TimedOut stall and burn the full IdleWaitTimeout
+    /// loop would otherwise present as an ordinary TimedOut stall and burn the full _activeIdleWaitTimeout
     /// before DriveCombatAsync found out. See _gameTurnLoopDied's own doc comment for how it gets set.
     /// </summary>
     private static async Task<IdleWait> WaitForIdleOurTurnAsync(Player me)
@@ -1395,7 +1606,7 @@ internal static class UndoFuzz
                 _lastIdleWaitBlockers = "";
                 return IdleWait.Ready;
             }
-            if (sw.Elapsed > IdleWaitTimeout)
+            if (sw.Elapsed > _activeIdleWaitTimeout)
             {
                 _lastIdleWaitBlockers = $"phase={me.PlayerCombatState?.Phase.ToString() ?? "null"} blockers=[{UndoSyncMod.DescribeUndoRedoBlockers()}]";
                 return IdleWait.TimedOut;
@@ -1412,8 +1623,10 @@ internal static class UndoFuzz
     /// mistake with CardCmd.AutoPlay (see the file's top-of-file doc comment for the full diagnosis).
     ///
     /// Tracks `watchingRestore`/`restoreActionPending` across iterations to implement the
-    /// "progress after restore" assertion (requirement A): once TryAttemptRestore performs a restore,
-    /// the very next successful action (a TryManualPlay that returns true, or an EndTurn call) must
+    /// "progress after restore" assertion (requirement A): once AttemptRestore performs a restore
+    /// (via whichever policy is active for this path — TryAttemptRestore or
+    /// TryAttemptDeterministicRestore, see AttemptRestore's own doc comment), the very next successful
+    /// action (a TryManualPlay that returns true, or an EndTurn call) must
     /// resolve — confirmed by the following WaitForIdleOurTurnAsync returning Ready — within the normal
     /// timeout, or the combat is flagged StuckAfterRestore instead of a generic timeout. This is
     /// exactly the shape an action-id-reuse bug in ChecksumHook.RestoreTo's FastForward* calls would
@@ -1467,9 +1680,9 @@ internal static class UndoFuzz
 
             while (CombatManager.Instance.IsInProgress)
             {
-                if (sw.Elapsed > CombatWallClockTimeout)
+                if (sw.Elapsed > _activeCombatWallClockTimeout)
                 {
-                    outcome.DriveError = $"combat exceeded {CombatWallClockTimeout.TotalSeconds}s wall clock — abandoning";
+                    outcome.DriveError = $"combat exceeded {_activeCombatWallClockTimeout.TotalSeconds}s wall clock — abandoning";
                     Log.Write($"[Fuzz] combat={combatIndex} TIMEOUT: {outcome.DriveError}");
                     return;
                 }
@@ -1526,7 +1739,7 @@ internal static class UndoFuzz
                     restoreActionPending = false;
                 }
 
-                var restored = TryAttemptRestore(combatIndex, rng, outcome);
+                var restored = AttemptRestore(combatIndex, rng, outcome);
                 if (restored != null)
                 {
                     watchingRestore = true;
@@ -1588,6 +1801,12 @@ internal static class UndoFuzz
                 }
                 if (watchingRestore)
                     restoreActionPending = true;
+                // Defect 3 (UI path only): count this successful action — a TryManualPlay that
+                // returned true (the `break` above) or the EndTurn just above — toward
+                // TryAttemptDeterministicRestore's fixed cadence. Harmless dead data on the headless
+                // path, which paces restores off RestoreProbability/MinTurnsBetweenRestores instead
+                // and never reads this field — see CombatOutcome.ActionsSinceLastDeterministicRestore.
+                outcome.ActionsSinceLastDeterministicRestore++;
                 // No explicit wait here: TryManualPlay only enqueues, it doesn't resolve the card
                 // synchronously, and EndTurn just flips a ready flag. The very next loop iteration's
                 // WaitForIdleOurTurnAsync above is what waits for that PlayCardAction (or the
@@ -1634,15 +1853,82 @@ internal static class UndoFuzz
     }
 
     /// <summary>
-    /// With low probability (RestoreProbability), and only when all of the pacing gates below say
-    /// it's safe/worthwhile, picks a uniformly random *older* stored sync point and restores straight
-    /// to it via ChecksumHook.RestoreTo — bypassing UndoPicker/UndoProtocol entirely, since this is
-    /// singleplayer with no UI and no vote to run. Records the pass/fail via
-    /// ChecksumHook.LastRestoreFidelityOk.
+    /// Target selection shared by both restore policies below (TryAttemptRestore's headless
+    /// probability policy and TryAttemptDeterministicRestore's UI-mode fixed-cadence policy, Defect
+    /// 3) — factored out here rather than duplicated, since picking WHICH sync point to restore to is
+    /// identical between the two; only WHEN to restore differs.
     ///
-    /// Returns the SyncPoint that was actually restored to (regardless of whether its fidelity check
-    /// passed or failed — a restore happened either way, and the caller needs to know that to run the
-    /// "progress after restore" watch), or null if no restore was attempted this call.
+    /// Picks uniformly at random among every stored sync point strictly OLDER than "now".
+    /// SyncPointsNewestFirst (index 0 = current state, i.e. "now") plus the separate combat-start
+    /// anchor (ChecksumHook.cs:45-50, kept outside SyncPoints so MaxSyncPoints trimming can't lose
+    /// it) — both are legitimate RestoreTo targets, so both are fair game to fuzz. Deduped by
+    /// checksum id: TryStoreSyncPoint stores the combat's very first turn-start point in BOTH places
+    /// (ChecksumHook.cs:333-337) whenever it hasn't been trimmed out of SyncPoints yet, so without
+    /// this check that one anchor would be counted — and therefore picked — twice as often as every
+    /// other candidate. Combat-start's id is always &lt;= every id in SyncPoints (it's the earliest
+    /// point of the whole combat), so appending it can never make it "the newest".
+    ///
+    /// Uniformly random among everything OLDER than "now", not always the single oldest anchor — now
+    /// that anchors include card plays (via TryManualPlay's PlayCardAction), this exercises every
+    /// anchor kind, not just "After player turn start". stored[0] is newest-first, so Skip(1) drops
+    /// exactly "now" and nothing else.
+    ///
+    /// Returns null when there is no candidate besides "now" — restoring to the current state tests
+    /// nothing.
+    /// </summary>
+    private static SyncPoint? PickRandomOlderSyncPoint(Random rng)
+    {
+        var stored = ChecksumHook.SyncPointsNewestFirst();
+        if (ChecksumHook.TryGetCombatStart(out var startPoint) && stored.All(sp => sp.ChecksumId != startPoint.ChecksumId))
+            stored.Add(startPoint);
+
+        if (stored.Count < 2) return null;
+
+        var candidates = stored.Skip(1).ToList();
+        return candidates[rng.Next(candidates.Count)];
+    }
+
+    /// <summary>
+    /// Restore-and-verify step shared by both restore policies below (Defect 3's factoring
+    /// requirement) — the exact body TryAttemptRestore used to run inline before this file supported
+    /// a second policy. Restores straight to `target` via ChecksumHook.RestoreTo — bypassing
+    /// UndoPicker/UndoProtocol entirely, since both policies run singleplayer with no UI and no vote
+    /// to run — and records the pass/fail via ChecksumHook.LastRestoreFidelityOk.
+    ///
+    /// Always returns `target`: a restore happened either way (regardless of whether its fidelity
+    /// check passed or failed), and the caller (DriveCombatAsync) needs to know that to run its
+    /// "progress after restore" watch (requirement A) regardless of fidelity's own result.
+    /// </summary>
+    private static SyncPoint RestoreAndRecord(int combatIndex, SyncPoint target, CombatOutcome outcome)
+    {
+        outcome.RestoresAttempted++;
+        outcome.LastRestoreTurnMark = outcome.TurnsPlayed;
+        ChecksumHook.RestoreTo(target); // logs its own RESTORE/RESTORE FIDELITY lines, including the line-diff on failure
+
+        if (ChecksumHook.LastRestoreFidelityOk)
+        {
+            Log.Write($"[Fuzz] combat={combatIndex} restore -> id={target.ChecksumId} ({target.Context}): OK");
+            return target;
+        }
+
+        outcome.RestoresFailed++;
+        string repro = $"REPRO: baseSeed={outcome.BaseSeed} combatIndex={combatIndex} combatSeed={outcome.Seed} "
+            + $"encounter={outcome.EncounterId} anchorChecksumId={target.ChecksumId} anchorContext=\"{target.Context}\"";
+        outcome.FailureRepros.Add(repro);
+        Log.Write($"[Fuzz] combat={combatIndex} RESTORE FIDELITY FAILURE — {repro}");
+        Log.Write("[Fuzz] (full line-diff logged immediately above by ChecksumHook.RestoreTo/VerifyRestoreFidelity)");
+        return target;
+    }
+
+    /// <summary>
+    /// Headless path's restore policy. With low probability (RestoreProbability), and only when all
+    /// of the pacing gates below say it's safe/worthwhile, picks a target via
+    /// PickRandomOlderSyncPoint and restores to it via RestoreAndRecord. Unchanged behaviour from
+    /// before Defect 3 — only the target-selection and restore/verify bodies moved out into the two
+    /// shared helpers above; every gate, and the order they're checked in, is identical.
+    ///
+    /// Returns the SyncPoint that was actually restored to, or null if no restore was attempted this
+    /// call.
     ///
     /// Gates, cheapest/most-deterministic first (each one skipping avoids burning an rng.NextDouble()
     /// draw on a restore that couldn't happen anyway):
@@ -1660,47 +1946,58 @@ internal static class UndoFuzz
         if (rng.NextDouble() >= RestoreProbability) return null;
         if (!UndoSyncMod.CanUndoRedo()) return null;
 
-        // SyncPointsNewestFirst (index 0 = current state, i.e. "now") plus the separate combat-start
-        // anchor (ChecksumHook.cs:45-50, kept outside SyncPoints so MaxSyncPoints trimming can't lose
-        // it) — both are legitimate RestoreTo targets, so both are fair game to fuzz. Deduped by
-        // checksum id: TryStoreSyncPoint stores the combat's very first turn-start point in BOTH
-        // places (ChecksumHook.cs:333-337) whenever it hasn't been trimmed out of SyncPoints yet, so
-        // without this check that one anchor would be counted — and therefore picked — twice as often
-        // as every other candidate. Combat-start's id is always <= every id in SyncPoints (it's the
-        // earliest point of the whole combat), so appending it can never make it "the newest".
-        var stored = ChecksumHook.SyncPointsNewestFirst();
-        if (ChecksumHook.TryGetCombatStart(out var startPoint) && stored.All(sp => sp.ChecksumId != startPoint.ChecksumId))
-            stored.Add(startPoint);
+        var target = PickRandomOlderSyncPoint(rng);
+        if (target == null) return null;
 
-        // Need at least one candidate besides "now" — restoring to the current state tests nothing.
-        if (stored.Count < 2) return null;
+        return RestoreAndRecord(combatIndex, target, outcome);
+    }
 
-        // Uniformly random among everything OLDER than "now", not always the single oldest anchor —
-        // now that anchors include card plays (via TryManualPlay's PlayCardAction), this exercises
-        // every anchor kind, not just "After player turn start". stored[0] is newest-first, so
-        // Skip(1) drops exactly "now" and nothing else.
-        var candidates = stored.Skip(1).ToList();
-        var target = candidates[rng.Next(candidates.Count)];
+    /// <summary>
+    /// UI path only (Defect 3) — restores on a FIXED CADENCE instead of TryAttemptRestore's
+    /// probability roll: exactly one restore after every UiTestActionsPerRestore'th successful driver
+    /// action (a TryManualPlay that returned true, or an EndTurn — DriveCombatAsync increments
+    /// outcome.ActionsSinceLastDeterministicRestore right after each one, on both paths, though only
+    /// this method ever reads it), capped at UiTestMaxRestoresPerCombat total.
+    ///
+    /// WHY not the headless gates: RestoreProbability/MinTurnsBetweenRestores/MaxRestoresPerCombat
+    /// were tuned for headless combats that play many turns cheaply, where a low-probability roll
+    /// checked every idle iteration reliably lands a handful of restores somewhere across the whole
+    /// combat. A UI combat plays only a handful of turns total — the first real run measured
+    /// turnsPlayed=1, cardsPlayed=3, restoresAttempted=0 — so the same roll can trivially produce zero
+    /// restores, which is exactly the false-PASS risk Defect 2/3 exist to close off (see
+    /// UiRefresh.SyncOrbNodesRebuiltCount and RunUiTestCombatsAsync's summary).
+    ///
+    /// Shares target selection (PickRandomOlderSyncPoint) and the restore/verify/bookkeeping step
+    /// (RestoreAndRecord) with TryAttemptRestore rather than duplicating either — only the trigger
+    /// condition differs between the two policies, and DriveCombatAsync's own "progress after
+    /// restore" watch (requirement A) already treats either policy's non-null result identically, so
+    /// nothing downstream needed to change to pick this policy up.
+    /// </summary>
+    private static SyncPoint? TryAttemptDeterministicRestore(int combatIndex, Random rng, CombatOutcome outcome)
+    {
+        if (outcome.RestoresAttempted >= UiTestMaxRestoresPerCombat) return null;
+        if (outcome.ActionsSinceLastDeterministicRestore < UiTestActionsPerRestore) return null;
+        if (!UndoSyncMod.CanUndoRedo()) return null;
 
-        outcome.RestoresAttempted++;
-        outcome.LastRestoreTurnMark = outcome.TurnsPlayed;
-        ChecksumHook.RestoreTo(target); // logs its own RESTORE/RESTORE FIDELITY lines, including the line-diff on failure
+        var target = PickRandomOlderSyncPoint(rng);
+        if (target == null) return null;
 
-        if (ChecksumHook.LastRestoreFidelityOk)
-        {
-            Log.Write($"[Fuzz] combat={combatIndex} restore -> id={target.ChecksumId} ({target.Context}): OK");
-            return target;
-        }
+        outcome.ActionsSinceLastDeterministicRestore = 0;
+        return RestoreAndRecord(combatIndex, target, outcome);
+    }
 
-        outcome.RestoresFailed++;
-        string repro = $"REPRO: baseSeed={outcome.BaseSeed} combatIndex={combatIndex} combatSeed={outcome.Seed} "
-            + $"encounter={outcome.EncounterId} anchorChecksumId={target.ChecksumId} anchorContext=\"{target.Context}\"";
-        outcome.FailureRepros.Add(repro);
-        Log.Write($"[Fuzz] combat={combatIndex} RESTORE FIDELITY FAILURE — {repro}");
-        Log.Write("[Fuzz] (full line-diff logged immediately above by ChecksumHook.RestoreTo/VerifyRestoreFidelity)");
-        // A restore DID happen even though fidelity failed — the driver must still be able to act
-        // afterward; that's a distinct concern from fidelity (requirement A), so still return target.
-        return target;
+    /// <summary>
+    /// Dispatches to whichever restore policy is active for the CURRENTLY RUNNING path — see
+    /// _useDeterministicRestorePolicy's own doc comment for how/where that gets switched on and why
+    /// it can never leak between paths. DriveCombatAsync's own call site is untouched by Defect 3: it
+    /// still calls exactly one function, at exactly the same point in its loop, with the same three
+    /// arguments — only the name changed, from TryAttemptRestore directly to this dispatcher.
+    /// </summary>
+    private static SyncPoint? AttemptRestore(int combatIndex, Random rng, CombatOutcome outcome)
+    {
+        return _useDeterministicRestorePolicy
+            ? TryAttemptDeterministicRestore(combatIndex, rng, outcome)
+            : TryAttemptRestore(combatIndex, rng, outcome);
     }
 
     // ==================================================================================
@@ -1783,5 +2080,473 @@ internal static class UndoFuzz
             .Select(g => $"{g.Key}={g.Count()}");
         Log.Write($"[Fuzz] encounter pool: {pool.Count} total, by room type: {{{string.Join(", ", byRoomType)}}}");
         return pool;
+    }
+
+    // ==================================================================================
+    // UI-mode entry path (--undosync-uitest)
+    // ==================================================================================
+
+    /// <summary>
+    /// Waits for game startup (same wait point as RunWhenReadyAsync — see its doc comment, NGame.cs:481),
+    /// then hands off to RunUiTestCombatsAsync. Kept as its own method (rather than generalizing
+    /// RunWhenReadyAsync to take a delegate) because the two paths' entire subsequent call graphs never
+    /// share a call site anyway — see RunOneUiTestCombatAsync's own doc comment for why the two paths
+    /// never call into each other's setup/teardown.
+    /// </summary>
+    private static async Task RunUiTestWhenReadyAsync(int count, string seed)
+    {
+        try
+        {
+            var game = NGame.Instance;
+            if (game == null)
+            {
+                Log.Write("[Fuzz][uitest] NGame.Instance was null at mod-init time — cannot wait for startup, aborting.");
+                return;
+            }
+            await game.GameStartupComplete;
+            await RunUiTestCombatsAsync(count, seed);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[Fuzz][uitest] RunUiTestWhenReadyAsync ERROR: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Second entry path into this file's drive loop, alongside RunAllCombatsAsync. Where the headless
+    /// --undosync-fuzz path boots a throwaway TestMode.IsOn run (RunOneCombatAsync, via
+    /// RunState.CreateForTest + RunManager.SetUpTest), this path boots a real, non-TestMode singleplayer
+    /// run the same way NSceneBootstrapper.StartNewRun does (NSceneBootstrapper.cs:83-131) — see
+    /// RunOneUiTestCombatAsync for the exact sequence, verified step-by-step against that source.
+    ///
+    /// WHY THIS EXISTS: NCreature.Create returns null whenever TestMode.IsOn (NCreature.cs:450-455). No
+    /// NCreature means no NOrbManager, and every call site into it is null-conditional
+    /// (`...?.OrbManager?.EvokeOrbAnim(orb)`, OrbCmd.cs:140) — so the entire node layer is silently
+    /// skipped under --undosync-fuzz, no matter how many combats it runs. That made a real, run-killing
+    /// bug invisible: a desynced NOrbManager throws inside PlayCardAction, the card and energy are
+    /// spent, and the effect never lands. UiRefresh.SyncOrbNodes exists to fix that, and can only be
+    /// verified against a REAL NOrbManager — which requires a real, non-TestMode run. That's this path.
+    ///
+    /// ONE combat per process launch, not --undosync-uitest-count: see RunOneUiTestCombatAsync's own
+    /// doc comment for the investigation and the reasoning. In short — RunManager.CleanUp() correctly
+    /// resets State to null (RunManager.cs:1546-1592) and NSceneContainer.SetCurrentScene correctly
+    /// frees the previous NRun scene before installing a new one (NSceneContainer.cs:73-83), so nothing
+    /// in the source rules out chaining a second SetUpNewSingleplayer/EnterRoomDebug cycle in the same
+    /// process — but SetCurrentScene's child removal is QueueFreeSafely (deferred to end of frame, not
+    /// synchronous), and this task's own constraints forbid actually running the game to confirm a
+    /// second cycle behaves cleanly against real Godot node/signal lifetimes. Correctness of the ONE
+    /// thing this harness exists to prove beats combat count here, so it stops after one and says so
+    /// below rather than gambling on an unverified assumption.
+    /// </summary>
+    private static async Task RunUiTestCombatsAsync(int requestedCombatCount, string seed)
+    {
+        Log.Write($"[Fuzz][uitest] ==================== starting: requested {requestedCombatCount} combat(s), seed=\"{seed}\" ====================");
+        if (requestedCombatCount != 1)
+            Log.Write($"[Fuzz][uitest] NOTE: --{UiTestCountArg}={requestedCombatCount} was requested, but this path always runs exactly 1 combat per process launch — see this method's own doc comment for why.");
+
+        var pool = ResolveUiTestEncounterPool();
+        if (pool.Count == 0)
+        {
+            Log.Write("[Fuzz][uitest] ABORT: no Monster-room encounters resolved from the harness's act (ModelDb.Acts.FirstOrDefault()) — nothing to fight.");
+            return;
+        }
+
+        // Same reproducibility reasoning as RunAllCombatsAsync's pickRng: an independent RNG seeded off
+        // (seed, combatIndex) only, never the game's own Rng/RunRngSet streams.
+        var pickRng = new Random(DeterministicSeed($"{seed}-0"));
+        var encounterPrototype = pool[pickRng.Next(pool.Count)];
+
+        CombatOutcome outcome;
+        try
+        {
+            outcome = await RunOneUiTestCombatAsync(0, seed, encounterPrototype, pickRng);
+        }
+        catch (Exception ex)
+        {
+            // RunOneUiTestCombatAsync already guards its own body; this is a last-resort net, same
+            // reasoning as RunAllCombatsAsync's own outer try/catch around RunOneCombatAsync.
+            Log.Write($"[Fuzz][uitest] combat=0 UNCAUGHT ERROR: {ex}");
+            outcome = new CombatOutcome { CombatIndex = 0, BaseSeed = seed, Seed = $"{seed}-0", DriveError = ex.Message };
+        }
+
+        Log.Write("[Fuzz][uitest] ==================== summary ====================");
+        Log.Write($"[Fuzz][uitest] seed={outcome.Seed} encounter={outcome.EncounterId} character={outcome.CharacterId} "
+            + $"roomType={outcome.RoomTypeName} completed={outcome.Completed} turnsPlayed={outcome.TurnsPlayed} "
+            + $"cardsPlayed={outcome.CardsPlayed} restoresAttempted={outcome.RestoresAttempted} restoresFailed={outcome.RestoresFailed}"
+            + (outcome.BudgetExhausted ? " budgetExhausted=true" : "")
+            + (outcome.StuckAfterRestore ? $" stuckAfterRestore=\"{outcome.StuckAfterRestoreDetail}\"" : "")
+            + (outcome.SectionFailures > 0 ? $" sectionFailures={outcome.SectionFailures} (\"{outcome.SectionFailureDetail}\")" : "")
+            + (outcome.SawGameError ? " sawGameError=true" : "")
+            + (outcome.TurnLoopDied ? " turnLoopDied=true" : "")
+            + (outcome.DriveError != null ? $" driveError=\"{outcome.DriveError}\"" : ""));
+
+        // Same finding this fuzzer exists to catch — see RunAllCombatsAsync's summary for the identical
+        // reasoning on why this is the list that matters most.
+        Log.Write(outcome.FailureRepros.Count == 0
+            ? "[Fuzz][uitest] no restore-fidelity failures."
+            : $"[Fuzz][uitest] RESTORE FIDELITY FAILURE(S): {string.Join(" | ", outcome.FailureRepros)}");
+
+        // THE single most important guard against a false PASS on this path — Defect 2. A "no
+        // restore-fidelity failures" line above means nothing if UiRefresh.SyncOrbNodes never actually
+        // ran, and OrbManagerObserved=true ALONE is not proof of that: SyncOrbNodes only ever runs
+        // from inside StateSnapshot.Restore -> UiRefresh.RefreshAll, i.e. only on an actual restore —
+        // so a combat that observed a real NOrbManager but never restored (restoresAttempted=0, which
+        // is exactly what the first real run measured) still proves nothing. The claim below is
+        // therefore built from facts, not the single OrbManagerObserved sample: it requires BOTH a
+        // restore to have actually been attempted AND UiRefresh.SyncOrbNodesRebuiltCount to have
+        // actually moved during this combat (see CombatOutcome.SyncOrbNodesRebuiltDelta) before
+        // printing anything resembling a PASS.
+        bool provenSyncOrbNodesRan = outcome.RestoresAttempted > 0 && outcome.SyncOrbNodesRebuiltDelta > 0;
+        if (provenSyncOrbNodesRan)
+        {
+            Log.Write($"[Fuzz][uitest] PROVEN: UiRefresh.SyncOrbNodes was actually exercised against real nodes — "
+                + $"restoresAttempted={outcome.RestoresAttempted}, SyncOrbNodesRebuiltCount delta={outcome.SyncOrbNodesRebuiltDelta}, "
+                + $"orbManagerObserved={outcome.OrbManagerObserved}.");
+        }
+        else
+        {
+            var missingProof = new List<string>();
+            if (outcome.RestoresAttempted == 0)
+                missingProof.Add("no restore was attempted (restoresAttempted=0)");
+            if (outcome.SyncOrbNodesRebuiltDelta == 0)
+                missingProof.Add("UiRefresh.SyncOrbNodesRebuiltCount never increased (delta=0)");
+            Log.Write($"[Fuzz][uitest] NOT PROVEN — this run did NOT prove UiRefresh.SyncOrbNodes was exercised against real "
+                + $"nodes: {string.Join(" AND ", missingProof)} (orbManagerObserved={outcome.OrbManagerObserved}). "
+                + "Do not treat this run as a PASS for that code path; investigate why NCreature.Create/NOrbManager.Create "
+                + "did not run for real (NCreature.cs:450-474) if orbManagerObserved is also false, or why no restore fired "
+                + "otherwise.");
+        }
+
+        Log.Write("[Fuzz][uitest] ==================== done ====================");
+
+        // Same reasoning as RunAllCombatsAsync's own quit step — Godot's own shutdown (not a kill) so
+        // logs flush. A dedicated flag rather than reusing --undosync-fuzz-noquit — see UiTestNoQuitArg's
+        // own doc comment.
+        if (!CommandLineHelper.HasArg(UiTestNoQuitArg))
+        {
+            Log.Write($"[Fuzz][uitest] quitting the game (pass --{UiTestNoQuitArg} to stay open)");
+            NGame.Instance?.GetTree()?.Quit();
+        }
+    }
+
+    /// <summary>
+    /// Pool of encounters for the UI-mode path, act 0 only (RunOneUiTestCombatAsync always calls
+    /// RunManager.Instance.SetActInternal(0) — same reasoning as ResolveEncounterPool's own doc comment).
+    ///
+    /// Deliberately Monster-room-only (act.AllRegularEncounters + act.AllWeakEncounters, ActModel.cs:
+    /// 149-157 — both are already filtered to `e.RoomType == RoomType.Monster`), NOT the full
+    /// Monster/Elite/Boss pool ResolveEncounterPool builds for the headless path. This is a correctness
+    /// requirement, not a scope trim: RunOneUiTestCombatAsync's EnterRoomDebug call passes
+    /// MapPointType.Monster as a literal (per this path's design), and RunManager.EnterRoomDebug only
+    /// auto-derives `pointType` from `roomType` when the caller passes MapPointType.Unassigned
+    /// (RunManager.cs:1104-1105) — a literal, non-Unassigned pointType is used exactly as given, with no
+    /// override. Pairing a literal MapPointType.Monster with an Elite/Boss encounter would feed
+    /// State.AppendToMapPointHistory and NRun's own RoomIcon.DebugSetMapPointTypeOverride a
+    /// room-type/point-type pair no real run can ever produce (RunManager.cs:1120-1124) — exactly the
+    /// class of harness-manufactured, game-cannot-produce state this file's design otherwise goes out of
+    /// its way to eliminate (see ResolveEncounterPool's own doc comment). Restricting this pool to
+    /// Monster-only keeps the literal EnterRoomDebug call exactly correct for every possible pick,
+    /// instead of only for some of them.
+    /// </summary>
+    private static List<EncounterModel> ResolveUiTestEncounterPool()
+    {
+        var act = ModelDb.Acts.FirstOrDefault();
+        if (act == null)
+        {
+            Log.Write("[Fuzz][uitest] encounter pool: ModelDb.Acts returned no acts.");
+            return new List<EncounterModel>();
+        }
+
+        var pool = act.AllRegularEncounters
+            .Concat(act.AllWeakEncounters)
+            .Distinct()
+            .OrderBy(e => e.Id.Entry, StringComparer.Ordinal)
+            .ToList();
+
+        Log.Write($"[Fuzz][uitest] encounter pool: {pool.Count} Monster-room encounter(s).");
+        return pool;
+    }
+
+    /// <summary>
+    /// Sets up ONE real, non-TestMode singleplayer run — mirroring NSceneBootstrapper.StartNewRun
+    /// (NSceneBootstrapper.cs:83-131) step-for-step, verified against that source rather than
+    /// reconstructed from memory — drives one combat with DriveCombatAsync (the SAME driver the headless
+    /// path uses, completely unmodified), and tears the run back down. Never throws: any failure becomes
+    /// outcome.DriveError instead, same contract as RunOneCombatAsync.
+    ///
+    /// Deliberately does NOT call TestMode.TurnOnInternal() anywhere — that is the entire point of this
+    /// path (see RunUiTestCombatsAsync's "WHY THIS EXISTS"). Two consequences verified against source,
+    /// each load-bearing enough to call out here too, not only in the class-level doc comment:
+    ///
+    /// 1. ChecksumTracker.IsEnabled is NOT set by hand here (contrast RunOneCombatAsync, which must set
+    ///    it after SetUpTest). RunManager.InitializeShared sets `ChecksumTracker.IsEnabled = !TestMode.
+    ///    IsOn` unconditionally, for every run type (RunManager.cs:473), and TestMode.IsOn is false for
+    ///    this entire path — so it is already true by the time SetUpNewSingleplayer returns. Setting it
+    ///    again here would be redundant at best.
+    ///
+    /// 2. GenerateMissingPostActionChecksum is NOT subscribed here (contrast RunOneCombatAsync's
+    ///    `ActionExecutor.AfterActionExecuted += GenerateMissingPostActionChecksum`). That subscription
+    ///    exists ONLY because NonInteractiveMode.IsActive is `TestMode.IsOn || AutoSlayerCheck()`
+    ///    (NonInteractiveMode.cs), which is true under TestMode, which makes ActionExecutor take its
+    ///    non-interactive branch (ActionExecutor.cs:140-145) — the branch that never subscribes
+    ///    `readyAction.JustBeforeFinished` (contrast the interactive branch, ActionExecutor.cs:146-158,
+    ///    :149) — and `JustBeforeFinished` is the only thing that ever raises ActionExecutor.
+    ///    JustBeforeActionFinishedExecuting (ActionExecutor.cs:54, :199-208), which RunManager.
+    ///    SendPostActionChecksum is subscribed to UNCONDITIONALLY, for every run, inside InitializeShared
+    ///    itself (RunManager.cs:489, method body at :568) — headless or not. This path never sets
+    ///    TestMode.IsOn, so NonInteractiveMode.IsActive is false here (assuming --autoslay isn't ALSO
+    ///    passed), ActionExecutor takes its INTERACTIVE branch, that branch DOES subscribe
+    ///    JustBeforeFinished, and SendPostActionChecksum therefore fires natively, at production timing,
+    ///    with zero code from this file. Post-action checksums are strictly more trustworthy here than
+    ///    on the headless path's hand-rolled substitute — this is the main reason this harness exists,
+    ///    not a side effect of it.
+    ///
+    /// Guard against double-subscription: this method never calls RunOneCombatAsync and never touches
+    /// GenerateMissingPostActionChecksum or the TraceChecksums probes (those live entirely inside
+    /// RunOneCombatAsync) — so there is no path by which this method's combat could pick up either.
+    ///
+    /// TEARDOWN ORDER, and why it differs from RunOneCombatAsync's: `selectorScope` is disposed BEFORE
+    /// RunManager.Instance.CleanUp() here, the opposite order from the headless path. CleanUp() calls
+    /// CardSelectCmd.Reset() internally (RunManager.cs:1558), which only force-clears the selector stack
+    /// (logging a "leaked selector" Log.Warn) when `!TestMode.IsOn` (CardSelectCmd.cs:162-164). The
+    /// headless path relies on TestMode.IsOn STILL being true at that point in its own teardown to make
+    /// Reset() a no-op while it disposes its own scope immediately afterward (see RunOneCombatAsync's own
+    /// teardown comment). This path never sets TestMode.IsOn AT ALL, so `!TestMode.IsOn` is
+    /// unconditionally true here — disposing our own scope first empties the stack ourselves, so Reset()
+    /// finds nothing to warn about.
+    ///
+    /// ONE combat per process, investigated and decided in RunUiTestCombatsAsync's doc comment: this
+    /// method's own CleanUp() call is what SetUpNewSingleplayer's `if (State != null) throw` check
+    /// (RunManager.cs:297-300) needs satisfied before a second call could even be attempted, and it IS
+    /// satisfied (CleanUp() sets `State = null` unconditionally in its own finally block, RunManager.cs:
+    /// 1590) — but this path still only calls SetUpNewSingleplayer once per process, per that decision.
+    /// </summary>
+    private static async Task<CombatOutcome> RunOneUiTestCombatAsync(int combatIndex, string baseSeed, EncounterModel encounterPrototype, Random rng)
+    {
+        string combatSeed = $"{baseSeed}-{combatIndex}";
+        var outcome = new CombatOutcome { CombatIndex = combatIndex, BaseSeed = baseSeed, Seed = combatSeed, EncounterId = encounterPrototype.Id.Entry };
+
+        // Same reasoning as RunOneCombatAsync's identical clears: an error/turn-loop-death captured
+        // during a previous combat must never be attributed to this one. This method only ever runs
+        // once per process by design (see this method's own top doc comment) and MaybeStart makes the
+        // two entry paths mutually exclusive within one process — kept here anyway so this method's
+        // contract doesn't silently depend on either of those facts staying true.
+        _gameErrors.Clear();
+        _gameTurnLoopDied = false;
+
+        IDisposable? selectorScope = null;
+        try
+        {
+            // NGame.Instance is nullable (NGame.cs:438); RunUiTestWhenReadyAsync already confirmed it
+            // non-null before awaiting GameStartupComplete, but that guarantee doesn't flow across the
+            // method boundary — captured locally and null-checked here too, same defensive pattern as
+            // the `me == null` check below, rather than asserting it away with `!`.
+            var game = NGame.Instance;
+            if (game == null)
+            {
+                outcome.DriveError = "NGame.Instance was null";
+                Log.Write($"[Fuzz][uitest] combat={combatIndex} {outcome.DriveError}");
+                return outcome;
+            }
+
+            // Forced, never randomized — orbs are the point of this whole harness.
+            var character = ModelDb.Character<Defect>();
+            outcome.CharacterId = character.Id.Entry;
+
+            // --- NSceneBootstrapper.StartNewRun, step-for-step (NSceneBootstrapper.cs:83-131) --------
+            var player = Player.CreateForNewRun(character, SaveManager.Instance.GenerateUnlockStateFromProgress(), 1uL);
+            var acts = ActModel.GetDefaultList().Select(a => a.ToMutable()).ToList();
+            var runState = RunState.CreateForNewRun(
+                players: new List<Player> { player },
+                acts: acts,
+                modifiers: Array.Empty<ModifierModel>(),
+                gameMode: GameMode.Standard,
+                // Fixed at 10, same reasoning and same value as RunOneCombatAsync's ascensionLevel — see
+                // its own comment: widens the explored state space without adding a reproduction
+                // dimension to a failing seed.
+                ascensionLevel: 10,
+                seed: combatSeed);
+
+            RunManager.Instance.SetUpNewSingleplayer(runState, shouldSave: false);
+            // Deliberately NO ChecksumTracker.IsEnabled write and NO GenerateMissingPostActionChecksum
+            // subscription here — see this method's own top-of-file doc comment, points 1 and 2.
+
+            await PreloadManager.LoadRunAssets(new List<CharacterModel> { character });
+            RunManager.Instance.Launch();
+            game.RootSceneContainer.SetCurrentScene(NRun.Create(runState));
+
+            await RunManager.Instance.SetActInternal(0);
+            RecordVisitedMapCoordForEncounter(runState, encounterPrototype.RoomType, $"[Fuzz][uitest] combat={combatIndex}");
+            RunManager.Instance.RunLocationTargetedBuffer.OnLocationChanged(runState.RunLocation);
+            RunManager.Instance.MapSelectionSynchronizer.OnLocationChanged(runState.MapLocation);
+            // --- end NSceneBootstrapper.StartNewRun mirror -------------------------------------------
+
+            // Same defensive reasoning as RunOneCombatAsync's own selectorScope install: this is a real,
+            // non-TestMode run with no human to answer a card-selection prompt if one ever fires, so a
+            // selector must be installed before anything that could trigger one. Driven off `rng` (this
+            // combat's own harness Random), never the game's own Rng — see FuzzCardSelector's own doc
+            // comment for why.
+            selectorScope = CardSelectCmd.UseSelector(new FuzzCardSelector(rng));
+
+            var mutableEncounter = encounterPrototype.ToMutable();
+            // RoomType.Monster / MapPointType.Monster are literal here, not derived from
+            // mutableEncounter — safe ONLY because ResolveUiTestEncounterPool restricts its pool to
+            // RoomType.Monster encounters exclusively; see that method's own doc comment for why a
+            // literal MapPointType.Monster would be WRONG paired with an Elite/Boss encounter.
+            await RunManager.Instance.EnterRoomDebug(RoomType.Monster, MapPointType.Monster, mutableEncounter, showTransition: false);
+            outcome.EncounterId = mutableEncounter.Id.Entry;
+            outcome.RoomTypeName = mutableEncounter.RoomType.ToString();
+
+            var me = LocalContext.GetMe(runState);
+            if (me == null)
+            {
+                outcome.DriveError = "LocalContext.GetMe(runState) returned null after Launch";
+                Log.Write($"[Fuzz][uitest] combat={combatIndex} {outcome.DriveError}");
+                return outcome;
+            }
+
+            // Requirement: observe whether a real NOrbManager exists at all — the single most important
+            // guard against a false PASS on this path (see RunUiTestCombatsAsync's summary). Checked here
+            // (combat just entered, before StormPower/DriveCombatAsync touch anything) AND again after
+            // DriveCombatAsync returns below — "observed at least once" doesn't require the FIRST check
+            // to catch it, only that one of them does.
+            if (ObserveOrbManagerPresence(me))
+                outcome.OrbManagerObserved = true;
+
+            // See ApplyStormPowerForUiTest's own doc comment for the full "why StormPower" reasoning and
+            // the exact ApplyPowerConsoleCmd call this mirrors.
+            await ApplyStormPowerForUiTest(me, combatIndex);
+
+            // Defects 1 & 3: flip the shared drive loop's per-path static selectors to their UI-mode
+            // values BEFORE calling DriveCombatAsync, never after. Each field defaults to the headless
+            // path's own value/behaviour (see _activeIdleWaitTimeout/_activeCombatWallClockTimeout/
+            // _useDeterministicRestorePolicy's own doc comments for why that default makes leaking
+            // into the headless path structurally impossible) — this is the ONLY place in the file
+            // that ever overwrites any of them.
+            _activeIdleWaitTimeout = UiTestIdleWaitTimeout;
+            _activeCombatWallClockTimeout = UiTestCombatWallClockTimeout;
+            _useDeterministicRestorePolicy = true;
+
+            // Defect 2: snapshot immediately before DriveCombatAsync, not before ApplyStormPowerForUiTest
+            // above — UiRefresh.SyncOrbNodes only ever runs from inside StateSnapshot.Restore (i.e. only
+            // on an actual restore), and every restore this combat can attempt happens inside
+            // DriveCombatAsync. See RunUiTestCombatsAsync's summary for why this delta, not
+            // OrbManagerObserved alone, is what proves SyncOrbNodes actually ran.
+            int syncOrbNodesRebuiltBefore = UiRefresh.SyncOrbNodesRebuiltCount;
+
+            // The SAME driver the headless path uses — see this file's top-of-file doc comment ("Both
+            // paths reuse the exact same drive loop"). Its own SOURCE is unmodified by Defects 1/3;
+            // its BEHAVIOUR differs here only through the static per-path selectors set immediately
+            // above.
+            await DriveCombatAsync(combatIndex, me, rng, outcome);
+
+            outcome.SyncOrbNodesRebuiltDelta = UiRefresh.SyncOrbNodesRebuiltCount - syncOrbNodesRebuiltBefore;
+
+            if (ObserveOrbManagerPresence(me))
+                outcome.OrbManagerObserved = true;
+
+            // See CombatOutcome.SawGameError's doc comment: the game's own errors, not an UndoSync
+            // finding — checked here, right after the drive loop returns, against whatever
+            // OnGameLogError appended to _gameErrors (cleared at the top of this method) during this
+            // combat specifically.
+            if (_gameErrors.Count > 0)
+                outcome.SawGameError = true;
+        }
+        catch (Exception ex)
+        {
+            outcome.DriveError = ex.Message;
+            Log.Write($"[Fuzz][uitest] combat={combatIndex} seed={combatSeed} encounter={outcome.EncounterId} SETUP/DRIVE ERROR: {ex}");
+        }
+        finally
+        {
+            // Disposed BEFORE CleanUp() — see this method's own top doc comment's "TEARDOWN ORDER"
+            // paragraph for why this is the opposite order from RunOneCombatAsync's teardown.
+            try
+            {
+                selectorScope?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"[Fuzz][uitest] combat={combatIndex} selector scope Dispose ERROR: {ex}");
+            }
+            try
+            {
+                // CleanUp() no-ops when State is already null (RunManager.cs:1548-1551), so this is safe
+                // to call unconditionally regardless of how far setup got.
+                RunManager.Instance.CleanUp();
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"[Fuzz][uitest] combat={combatIndex} CleanUp ERROR: {ex}");
+            }
+            // No TestMode.IsOn reset here, unlike RunOneCombatAsync's teardown — this path never turns
+            // it on in the first place, so there is nothing to turn back off.
+        }
+        return outcome;
+    }
+
+    /// <summary>
+    /// Applies one stack of StormPower (MegaCrit.Sts2.Core.Models.Powers.StormPower) to the local
+    /// player's own creature, via the exact call the game's own dev-console `power` command makes:
+    /// ApplyPowerConsoleCmd.Process (ApplyPowerConsoleCmd.cs:64-70) resolves
+    /// `powerModel = creature.Powers.FirstOrDefault(...)` (always null on a freshly-entered combat, since
+    /// the player owns no StormPower yet) and therefore always takes its `PowerCmd.Apply(choiceContext,
+    /// power.ToMutable(), creature, amount, null, null)` branch, never `PowerCmd.ModifyAmount`.
+    /// Reproduced verbatim here, with `power` resolved via the typed `ModelDb.Power&lt;StormPower&gt;()`
+    /// (ModelDb.cs:634) instead of ApplyPowerConsoleCmd's own reflection-driven `AllPowers` lookup (that
+    /// method resolves an arbitrary power BY NAME off a console argument; this call site already knows
+    /// the type at compile time, so the typed accessor is the same kind of call this file already makes
+    /// for every other hardcoded model, e.g. ModelDb.Character&lt;Defect&gt;() above).
+    ///
+    /// WHY StormPower, specifically — verified against StormPower.cs:38-49/51-61: BeforeCardPlayed
+    /// records base.Amount for every Power-TYPE card this player plays (not literally every card played —
+    /// the `cardPlay.Card.Type != CardType.Power` guard at StormPower.cs rules out everything else), and
+    /// AfterCardPlayed then channels that many Lightning orbs via
+    /// `OrbCmd.Channel&lt;LightningOrb&gt;(choiceContext, base.Owner.Player)`. Orb channeling is exactly
+    /// the orb-node code path (Hook.AfterCardPlayed's own downstream, per this file's top-of-file "Why
+    /// this exists" doc comment) that needs to run against a REAL NOrbManager for this harness to prove
+    /// anything — which is also exactly why NCreature/NOrbManager have to be real, non-null nodes here
+    /// (NCreature.cs:450-455 nulls them out under TestMode.IsOn).
+    ///
+    /// amount=1 (a decimal literal, matching PowerCmd.Apply's own `decimal amount` parameter) — matches
+    /// StormPower's own vanilla per-stack orb count; any amount &gt; 0 exercises the same code path, 1 is
+    /// simply the smallest one that does.
+    ///
+    /// Wrapped in try/catch, log-and-continue rather than aborting the combat: a failed injection must
+    /// not cost this run its failure-path-(A) coverage (plain card plays through a real, non-desynced
+    /// OrbManager) — see this file's design doc comment on the power-injection step for the two named
+    /// failure paths (A) and (B).
+    /// </summary>
+    private static async Task ApplyStormPowerForUiTest(Player me, int combatIndex)
+    {
+        try
+        {
+            var power = ModelDb.Power<StormPower>();
+            var choiceContext = new BlockingPlayerChoiceContext();
+            await PowerCmd.Apply(choiceContext, power.ToMutable(), me.Creature, 1m, null, null);
+            Log.Write($"[Fuzz][uitest] combat={combatIndex} applied StormPower (amount=1) to the local player's creature.");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[Fuzz][uitest] combat={combatIndex} WARNING: failed to apply StormPower, continuing without it (this combat will only cover failure path (A) if so): {ex}");
+        }
+    }
+
+    /// <summary>
+    /// The single most important guard against a false PASS on the UI-mode path — see
+    /// RunUiTestCombatsAsync's "WHY THIS EXISTS" paragraph. NCreature.Create returns null whenever
+    /// TestMode.IsOn (NCreature.cs:450-455), which is exactly the condition the headless path runs
+    /// under and exactly why UiRefresh.SyncOrbNodes was never exercised against a real node there. This
+    /// path never sets TestMode.IsOn, so NCreature.Create (and therefore NOrbManager.Create,
+    /// NCreature.cs:474) SHOULD always run for real here — but "should" is exactly the assumption this
+    /// check exists to verify rather than trust.
+    ///
+    /// NCombatRoom.Instance is `NRun.Instance?.CombatRoom` (NCombatRoom.cs:268); GetCreatureNode(Creature?)
+    /// is a public lookup (NCombatRoom.cs:689); NCreature.OrbManager is a public `NOrbManager?` getter
+    /// (NCreature.cs:419). All three verified public against decompiled/ before use.
+    /// </summary>
+    private static bool ObserveOrbManagerPresence(Player player)
+    {
+        return NCombatRoom.Instance?.GetCreatureNode(player.Creature)?.OrbManager != null;
     }
 }
