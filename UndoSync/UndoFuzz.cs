@@ -284,6 +284,42 @@ internal static class UndoFuzz
     /// </summary>
     internal static bool RestoresAllowed = true;
 
+    /// <summary>
+    /// MpFuzz (step 3, Part B) only. Delegate MpFuzz.DriveOurCombatAsync installs, as a closure over
+    /// its own role/outcome/rng, immediately before its own DriveCombatAsync call — same "only the
+    /// currently-active path's own setup writes it" discipline as RestoresAllowed/
+    /// _useMultiplayerIdleGate above. AttemptRestore below invokes this (see its own call site
+    /// comment) whenever it is non-null.
+    ///
+    /// MEASURED DEFECT THIS FIXES: proposing used to happen from MpFuzz's own independent
+    /// WatchAndProposeLoopAsync — a background Task.Delay(PollInterval) poll running concurrently
+    /// with, but not synchronized to, the drive loop. A clean two-instance run that completed a real
+    /// multiplayer combat on both peers (combatCompleted=True, host 4 turns/15 cards, client 5
+    /// turns/14 cards, 46s, 29 sync points stored) still reported restoresProposed=0 —
+    /// ActionsSinceLastProposal was being incremented correctly by DriveCombatAsync, but in
+    /// multiplayer the two players act concurrently, so each peer's own ActionQueueSet.IsEmpty (part
+    /// of UndoSyncMod.CanUndoRedo()) is only briefly true, between one action landing and the next
+    /// being issued — an independently-scheduled poll has no reason to land inside that narrow window
+    /// and kept missing it entirely.
+    ///
+    /// THE FIX: propose from INSIDE the driver's own idle window instead, where CanUndoRedo() is
+    /// already known to be true. AttemptRestore is called by DriveCombatAsync at exactly the point it
+    /// has just received IdleWait.Ready from WaitForIdleOurTurnAsync — i.e. PlayerCombatState.Phase
+    /// == Play and CanUndoRedo() both hold, for THIS peer, right now (WaitForIdleOurTurnAsync's own
+    /// Ready branch, above). Invoking the hook from there, rather than from a separately-scheduled
+    /// poll, makes missing the window structurally impossible instead of merely unlikely.
+    ///
+    /// Only MpFuzz.DriveOurCombatAsync ever assigns this field, and only the MpFuzz call graph
+    /// (RunAsync -> DriveOurCombatAsync -> DriveCombatAsync -> AttemptRestore) ever reaches the
+    /// invocation site below — the headless (--undosync-fuzz) and UI-mode (--undosync-uitest) call
+    /// graphs (RunAllCombatsAsync/RunOneCombatAsync/DriveCombatAsync and
+    /// RunUiTestCombatsAsync/RunOneUiTestCombatAsync/DriveCombatAsync respectively) never touch this
+    /// field, so it stays null — and AttemptRestore's `?.Invoke()` a no-op — for both, exactly like
+    /// every other MpFuzz-only selector in this file (_useMultiplayerIdleGate, RestoresAllowed,
+    /// _activeIdleWaitTimeout/_activeCombatWallClockTimeout).
+    /// </summary>
+    internal static Action? MpProposeRestoreHook;
+
     // --- MpFuzz-only idle gate (busy-spin fix) --------------------------------------------------
     // Measured on a live two-instance run (--undosync-mpfuzz): both peers hit
     // driveError="action budget exhausted (800 ...)" — host in 21s with turnsPlayed=797,
@@ -430,6 +466,59 @@ internal static class UndoFuzz
         /// restores off RestoreProbability/MinTurnsBetweenRestores/LastRestoreTurnMark above instead.
         /// See TryAttemptDeterministicRestore's own doc comment for the full cadence design.</summary>
         public int ActionsSinceLastDeterministicRestore;
+
+        /// <summary>MpFuzz path only (step 3, Part B). Host-only: count of successful driver actions
+        /// issued since the last UndoProtocol.ProposeTarget call MpFuzz's own proposal hook made,
+        /// reset to 0 every time one fires — same increment site and "dead, harmless data on the
+        /// other paths" shape as ActionsSinceLastDeterministicRestore above, kept as its own
+        /// dedicated field rather than reused because a "proposal" and a "deterministic restore" are
+        /// different events (the former is async and may or may not ever commit) even though both
+        /// count the identical underlying thing. See MpFuzz.ProposeRestoreIfDue's own doc comment
+        /// (the body of MpProposeRestoreHook above) for the cadence this paces.</summary>
+        public int ActionsSinceLastProposal;
+
+        /// <summary>MpFuzz path only (step 3, Part B/D). Host-only: count of UndoProtocol.
+        /// ProposeTarget calls MpFuzz's own proposal hook (MpFuzz.ProposeRestoreIfDue) actually
+        /// issued this combat.</summary>
+        public int RestoresProposed;
+
+        /// <summary>MpFuzz path only (step 3, Part B). Host-only. Counts of why MpFuzz.
+        /// ProposeRestoreIfDue declined to propose on a given hook invocation, broken out by reason —
+        /// see that method's own doc comment for exactly what each one counts and the order they're
+        /// checked in. Logged as a one-line breakdown at the end of every combat in MpFuzz.RunAsync's
+        /// step-10 summary, so a run that reports restoresProposed=0 is never left unexplained the
+        /// way the measured defect this whole mechanism replaced was (see MpProposeRestoreHook's own
+        /// doc comment).</summary>
+        public int ProposeSkippedCap;
+        public int ProposeSkippedCadence;
+        public int ProposeSkippedCanUndoRedoFalse;
+        public int ProposeSkippedNoTarget;
+
+        /// <summary>MpFuzz path only (step 3, Part C/D). Both host and client: count of restores
+        /// actually committed on THIS peer via the real multiplayer vote/commit path (UndoProtocol.
+        /// CommitAsync -&gt; ChecksumHook.RestoreTo), observed by MpFuzz's own commit-watch loop off
+        /// UndoProtocol.CommitCount. MpFuzz's SUCCESS verdict requires this to be &gt; 0 — a run that
+        /// proposed nothing, or whose proposals never committed, proved nothing about cross-peer
+        /// restore fidelity, which is the entire point of step 3.</summary>
+        public int RestoresCommitted;
+
+        /// <summary>MpFuzz path only (step 3, Part C/D). Count of committed restores on THIS peer
+        /// whose ChecksumHook.LastRestoreFidelityOk read false immediately after — this peer's OWN
+        /// byte-exact restore fidelity check failed. Distinct from DivergencesAfterRestore below:
+        /// fidelity compares this peer's restored state against ITS OWN pre-restore snapshot, not
+        /// against the other peer.</summary>
+        public int FidelityFailures;
+
+        /// <summary>MpFuzz path only (step 3, Part C/D). Count of committed restores after which
+        /// MpFuzz's own cross-peer checksum-divergence counter was observed to have grown within
+        /// MpFuzz.DivergenceWatchAfterCommit of the commit landing — i.e. the two peers disagreed
+        /// immediately following THIS specific restore. THE headline finding this entire harness was
+        /// built to catch (see MpFuzz.cs's own top-of-file "WHY DIVERGENCE DETECTION IS THE POINT"
+        /// paragraph) — MpFuzz's SUCCESS verdict requires this to stay zero (implied by the existing
+        /// divergenceCount==0 check, since this is a strict subset of it; kept as its own field purely
+        /// so a divergence can be logged tagged with the restore that preceded it, not just as an
+        /// unattributed line elsewhere in the log).</summary>
+        public int DivergencesAfterRestore;
 
         /// <summary>UI path only — the delta in UiRefresh.SyncOrbNodesRebuiltCount across this
         /// combat's DriveCombatAsync call, snapshotted by RunOneUiTestCombatAsync immediately before
@@ -2137,6 +2226,10 @@ internal static class UndoFuzz
                 // path, which paces restores off RestoreProbability/MinTurnsBetweenRestores instead
                 // and never reads this field — see CombatOutcome.ActionsSinceLastDeterministicRestore.
                 outcome.ActionsSinceLastDeterministicRestore++;
+                // MpFuzz path only (step 3, Part B): same increment, toward MpFuzz's own proposal
+                // cadence — see CombatOutcome.ActionsSinceLastProposal's own doc comment. Harmless
+                // dead data on the headless/UI paths, which never read it.
+                outcome.ActionsSinceLastProposal++;
                 // MpFuzz path only: snapshot ChecksumTracker.NextId (ChecksumTracker.cs:57) now that
                 // an action was just issued above (TryManualPlay success or EndTurn) — the next
                 // WaitForIdleOurTurnAsync call requires this to have advanced before returning Ready
@@ -2214,8 +2307,14 @@ internal static class UndoFuzz
     ///
     /// Returns null when there is no candidate besides "now" — restoring to the current state tests
     /// nothing.
+    ///
+    /// Was `private`; now `internal` so MpFuzz.cs (step 3, Part B) can call this directly from its
+    /// own host-only proposal hook (MpFuzz.ProposeRestoreIfDue) — reusing the exact same selection
+    /// helper UndoFuzz's own UI-mode deterministic-cadence policy already uses, rather than writing a
+    /// second one, per that task's own instruction. No selection logic changed, only this method's
+    /// own visibility.
     /// </summary>
-    private static SyncPoint? PickRandomOlderSyncPoint(Random rng)
+    internal static SyncPoint? PickRandomOlderSyncPoint(Random rng)
     {
         var stored = ChecksumHook.SyncPointsNewestFirst();
         if (ChecksumHook.TryGetCombatStart(out var startPoint) && stored.All(sp => sp.ChecksumId != startPoint.ChecksumId))
@@ -2339,11 +2438,63 @@ internal static class UndoFuzz
     /// </summary>
     private static SyncPoint? AttemptRestore(int combatIndex, Random rng, CombatOutcome outcome)
     {
+        // MpFuzz path only (step 3, Part C requirement 3: "driver can still act afterwards").
+        // Checked FIRST, even before RestoresAllowed: this queue reports a restore that ALREADY
+        // happened, via the real multiplayer vote/commit path (UndoProtocol.CommitAsync ->
+        // ChecksumHook.RestoreTo), entirely outside either policy below — RestoresAllowed=false is
+        // what keeps those two policies from ever PERFORMING a restore themselves on this path (see
+        // that field's own doc comment), and does not apply here since nothing is being performed,
+        // only reported. Returning the dequeued SyncPoint makes DriveCombatAsync's own preexisting
+        // "watchingRestore" bookkeeping (see that method's own doc comment) arm for this
+        // externally-triggered restore exactly as it would for one this method had performed itself —
+        // the SAME mechanism the headless/UI paths already prove "driver can still act after a
+        // restore" with, not a second one. See NotifyExternalRestore's own doc comment for the only
+        // caller (MpFuzz.WatchCommitsLoopAsync).
+        if (_externalRestoreQueue.Count > 0)
+        {
+            var restored = _externalRestoreQueue.Dequeue();
+            Log.Write($"[Fuzz] combat={combatIndex} external (multiplayer) restore observed -> "
+                + $"id={restored.ChecksumId} ({restored.Context}) — arming stuck-after-restore watch.");
+            return restored;
+        }
+
+        // MpFuzz path only (step 3, Part B, moved here from an independent poll loop — see
+        // MpProposeRestoreHook's own doc comment for the measured defect that fix closes). Invoked
+        // right here, not gated behind RestoresAllowed below: RestoresAllowed only turns off the two
+        // LOCAL restore-PERFORMING policies further down (TryAttemptRestore/
+        // TryAttemptDeterministicRestore) — MpFuzz always sets it false because this path performs no
+        // restore of its own, but proposing is a different thing entirely (it only asks the other
+        // peer to vote; if the vote succeeds, the actual restore arrives later via the real
+        // commit path and is picked up above through _externalRestoreQueue), so it must still run.
+        // Null, and therefore a no-op, on every other path — see the field's own doc comment.
+        MpProposeRestoreHook?.Invoke();
+
         if (!RestoresAllowed) return null;
         return _useDeterministicRestorePolicy
             ? TryAttemptDeterministicRestore(combatIndex, rng, outcome)
             : TryAttemptRestore(combatIndex, rng, outcome);
     }
+
+    /// <summary>
+    /// MpFuzz path only (step 3, Part C). Queue of SyncPoints MpFuzz's own commit-watch loop
+    /// (MpFuzz.WatchCommitsLoopAsync) has observed being restored via the real multiplayer
+    /// vote/commit path — see AttemptRestore's own doc comment for how the queue gets drained and
+    /// why. A queue rather than a single nullable slot: MpFuzz's proposal cadence and UndoProtocol's
+    /// own _pendingTargetId guard (only one proposal in flight at a time) make more than one pending
+    /// entry here effectively impossible in practice, but a queue costs nothing extra and can never
+    /// silently drop a notification if that assumption is ever wrong. Always empty on the
+    /// headless/UI-mode paths, since nothing but MpFuzz ever calls NotifyExternalRestore — the same
+    /// "only the currently-active path's own setup can ever make this observable" discipline every
+    /// other MpFuzz-only selector in this file already follows, expressed here as an always-empty
+    /// collection instead of an always-false bool.
+    /// </summary>
+    private static readonly Queue<SyncPoint> _externalRestoreQueue = new();
+
+    /// <summary>MpFuzz path only (step 3, Part C). Called by MpFuzz.WatchCommitsLoopAsync the
+    /// moment it observes UndoProtocol.CommitCount advance on this peer — i.e. a restore just landed
+    /// via the real vote/commit path. See _externalRestoreQueue's own doc comment for what happens to
+    /// <paramref name="restored"/> next.</summary>
+    internal static void NotifyExternalRestore(SyncPoint restored) => _externalRestoreQueue.Enqueue(restored);
 
     // ==================================================================================
     // Encounter pool

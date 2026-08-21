@@ -89,16 +89,55 @@ injected-loadout coverage in both arms.
 
 ### Synchronizer bookkeeping rolled back on restore
 
-Beyond the snapshotted game state, the shared ordering counters are rewound
-together (reusing the public replay-bootstrap APIs):
+Beyond the snapshotted game state, per-restore bookkeeping is normalized too
+— but not every counter here is actually shared across peers, and treating
+them as if they all were caused a real bug (below). Only one is genuinely
+peer-common:
 
-- `ActionQueueSet.FastForwardNextActionId`
-- `ActionQueueSynchronizer.FastForwardHookId`
-- `PlayerChoiceSynchronizer.FastForwardChoiceIds`
-- `ChecksumTracker.NextId` (reflection) + its internal
-  `_checksums`/`_queuedRemoteChecksums` lists
+- **`ChecksumTracker.NextId`** (reflection) — rewound, and it's the only
+  counter in this list that has to be. It's the peers' shared logical clock:
+  `ChecksumTracker.GenerateChecksum`'s own doc comment states the contract
+  directly — "This should be called the exact same amount of times for every
+  peer" — so `NextId` is *required* to march in lockstep across peers for the
+  game's own divergence detection to mean anything. "Restore to checksum id
+  N" refers to the same game moment on every peer only because this counter
+  is guaranteed to agree. Its internal `_checksums`/`_queuedRemoteChecksums`
+  lists are cleared alongside it.
+
+The rest of the sync point's counters are per-connection or per-player
+bookkeeping, not a shared clock:
+
+- **`ActionQueueSet.FastForwardNextActionId` is NOT called anymore.**
+  `ActionQueueSet._nextId` looked like a peer-common ordering counter —
+  `FastForwardNextActionId`'s own doc comment says only "Used in replays"
+  without saying more — but it's incremented purely locally, once per local
+  enqueue and once per local resume-after-choice, and host and client do not
+  make that same number of calls between any two checksum ids. A live
+  two-instance run measured the consequence of rewinding it anyway: both
+  peers restored to checksum id 6, both passed the byte-exact fidelity
+  self-check, and their recorded `NextActionId` for that same checksum id
+  were **9 on the host and 12 on the client**. Rewinding to those different
+  peer-local values sent each peer's next actions out under different ids,
+  and the peers diverged at the very next checksum, id 7. The sync point
+  still *records* `NextActionId` and still logs it — that's exactly the data
+  that exposed this bug — it's just no longer applied. Action ids only need
+  to be unique and increasing *within* a peer, and leaving the counter to
+  keep climbing across a restore satisfies that without needing cross-peer
+  agreement.
+- `ActionQueueSynchronizer.FastForwardHookId` — still rewound, unchanged.
+  `_nextHookId` has the exact same local-increment shape as the action id
+  above, which is reason for suspicion, but **it is untested, not verified**:
+  every sync point logged by both peers across the run that exposed the
+  action-id bug recorded `hookId=0` throughout, so this path was never
+  actually exercised. `RequestEnqueueHookAction`'s Host-gated send path
+  suggests hook actions are host-driven and therefore peer-common the same
+  way `ChecksumTracker.NextId` is — but that's a reading of the source, not a
+  measurement, and it needs the same kind of instrumented multiplayer check
+  before it can be trusted.
+- `PlayerChoiceSynchronizer.FastForwardChoiceIds` — still rewound, unchanged;
+  out of scope for this fix.
 - `ActionQueueSet._wasReset` (reflection), forced `false` so a restored play
-  phase never inherits a "queue was reset" flag from the discarded timeline
+  phase never inherits a "queue was reset" flag from the discarded timeline.
 
 `CombatManager`'s per-combat turn coordination (`_turnState`, internal type
 `CombatTurnState`) is normalized the same way, in
@@ -323,12 +362,18 @@ instances share the user-data directory).
   `PlayerChoiceSynchronizer._receivedChoices`: handled. `RestoreTo` now clears
   both unconditionally. A restore only ever runs with every action queue
   empty, so neither list can have a live waiter at that moment — any
-  surviving entry is orphan garbage, and leaving it behind is actively
-  dangerous (a stale `_actionsWaitingForResumption` entry can collide with an
-  action id `RestoreTo` reuses after rewinding `NextActionId`). See
-  `ChecksumHook.RestoreTo`'s Change B comment and `snapshot-coverage.json`.
-  A non-zero count at restore is logged loudly, since it would mean this
-  invariant broke.
+  surviving entry is orphan garbage. The two are no longer equally dangerous
+  to leave behind, though: since `RestoreTo` stopped rewinding
+  `ActionQueueSet.NextActionId` (see "Synchronizer bookkeeping rolled back on
+  restore" above), a stale `_actionsWaitingForResumption` entry can never
+  again collide with a real action id — action ids only ever climb, so
+  clearing it is now pure hygiene against unbounded growth across repeated
+  restores. `_receivedChoices` still guards a real hazard:
+  `PlayerChoiceSynchronizer`'s choice ids are still rewound on restore, so a
+  stale entry there genuinely can collide with a legitimately-reserved future
+  choice reusing the same id. See `ChecksumHook.RestoreTo`'s Change B comment
+  and `snapshot-coverage.json`. A non-zero count at restore is logged loudly,
+  since it would mean this invariant broke.
 - The fuzzer (`UndoFuzz.cs`) has no per-action checksums to compare on the
   headless path by design: `NonInteractiveMode.IsActive` makes
   `ActionExecutor` take a branch that never subscribes `JustBeforeFinished`,

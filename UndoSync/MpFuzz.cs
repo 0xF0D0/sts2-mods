@@ -22,27 +22,42 @@ using MegaCrit.Sts2.Core.Runs;
 namespace UndoSync;
 
 /// <summary>
-/// STEPS 1 AND 2 of a multiplayer fuzz harness: get two real game instances into the same combat
+/// STEPS 1, 2 AND 3 of a multiplayer fuzz harness: get two real game instances into the same combat
 /// together, with no UI clicking, drive each instance's own local player through that combat via
-/// UndoFuzz's existing single-process driver, and detect and report any checksum divergence between
-/// the two peers. Does NOT restore/undo anything yet — ChecksumHook.RestoreTo, UndoPicker, and the
-/// undo vote are step 3 and are deliberately absent from this file; see
-/// <see cref="DriveOurCombatAsync"/>'s own doc comment for the exact mechanism
-/// (UndoFuzz.RestoresAllowed) that keeps that true even though the shared drive loop this file reuses
-/// is otherwise fully capable of restoring.
+/// UndoFuzz's existing single-process driver, propose synchronized undos from the host on a cadence,
+/// auto-accept them on the client, and detect and report any checksum divergence between the two
+/// peers — including, above all, a divergence that follows a committed restore. Steps 1-2 (get both
+/// peers into the same combat and drive it to completion with zero divergences) are unchanged from
+/// before; step 3 adds real cross-peer undo on top, going through the SAME vote protocol a human
+/// player uses (UndoProtocol.ProposeTarget / OnProposalReceived / CommitAsync) rather than calling
+/// ChecksumHook.RestoreTo directly — see <see cref="DriveOurCombatAsync"/>'s own doc comment for how
+/// this file's proposing and commit-watching run alongside UndoFuzz's shared drive loop (whose own
+/// UndoFuzz.RestoresAllowed=false keeps that shared loop's TWO OWN restore policies from ever firing
+/// here, so every restore this run performs went through the real multiplayer vote). Proposing itself
+/// (<see cref="ProposeRestoreIfDue"/>) is NOT a separate loop — it runs as a hook
+/// (UndoFuzz.MpProposeRestoreHook) invoked from INSIDE UndoFuzz.DriveCombatAsync's own idle window,
+/// a fix for a measured defect where an earlier, independent proposal-poll loop kept missing the
+/// brief window a concurrently-acting multiplayer peer is actually idle; see that hook's own doc
+/// comment for the full diagnosis. Only commit-watching (<see cref="WatchCommitsLoopAsync"/>) is
+/// still a background poll loop, since nothing about watching an already-committed restore needs to
+/// run inside the drive loop's own idle window.
 ///
-/// WHY DIVERGENCE DETECTION IS THE POINT: every check this mod has today (the checksum fidelity
-/// checks in ChecksumHook, the node/model invariants in UiRefresh) passes when all peers are wrong in
-/// the SAME way — that is how both the orb-node bug and the UnsettlingLamp relic bug stayed hidden
-/// from every prior fuzzer, singleplayer or headless. Real multiplayer gives the one oracle
-/// singleplayer structurally cannot: RunManager.Instance.ChecksumTracker compares a checksum of the
-/// FULL combat state (NetFullCombatState.FromRun) across peers after every action, and the two peers
-/// each computed that checksum from their own INDEPENDENTLY maintained copy of the game state.
-/// Detecting that comparison failing — not merely reaching combat, not merely completing it — is the
-/// entire reason this harness exists; see <see cref="InstallDivergenceObserverPatch"/> /
+/// WHY DIVERGENCE DETECTION IS THE POINT, AND WHY STEP 3 IS THE REASON THIS HARNESS EXISTS AT ALL:
+/// every check this mod has today (the checksum fidelity checks in ChecksumHook, the node/model
+/// invariants in UiRefresh) passes when all peers are wrong in the SAME way — that is how both the
+/// orb-node bug and the UnsettlingLamp relic bug stayed hidden from every prior fuzzer, singleplayer
+/// or headless. Both of those checks are local: they compare a peer against its own snapshot or its
+/// own local model, so they are structurally blind to an ASYMMETRIC bug — a restore that leaves the
+/// two peers in DIFFERENT states. Real multiplayer gives the one oracle singleplayer structurally
+/// cannot: RunManager.Instance.ChecksumTracker compares a checksum of the FULL combat state
+/// (NetFullCombatState.FromRun) across peers after every action, and the two peers each computed that
+/// checksum from their own INDEPENDENTLY maintained copy of the game state. Detecting that comparison
+/// failing — not merely reaching combat, not merely completing it, not merely restoring at all — is
+/// the entire reason this harness exists; see <see cref="InstallDivergenceObserverPatch"/> /
 /// <see cref="OnStateDivergenceObserved"/> for the passive Harmony observer that makes a divergence
-/// impossible to miss, and RunAsync's own final summary (step 10) for why the pass/fail line is gated
-/// on divergenceCount == 0 and nothing else.
+/// impossible to miss, <see cref="WatchForDivergenceAfterCommitAsync"/> for the check that ties a
+/// divergence to the specific restore that preceded it, and RunAsync's own final summary (step 10)
+/// for the full list of what the pass/fail line is now gated on.
 ///
 /// It still DOES cast exactly one map-coord vote per instance (step 6, unchanged from step 1), purely
 /// as the minimum needed to move the party off the map screen and into a combat room; see
@@ -126,20 +141,35 @@ namespace UndoSync;
 ///      labeled "SUCCESS" any more — that label is now reserved for step 10's final verdict, which
 ///      additionally requires zero checksum divergences, an actually-completed combat, and real
 ///      progress (see step 10's own list item below).
-///   9. STEP 2: resolve our own Player again (LocalContext.GetMe) and drive it through the combat via
-///      <see cref="DriveOurCombatAsync"/>, which delegates to UndoFuzz.DriveCombatAsync — see that
-///      method's own doc comment for the multiplayer-specific setup (generous timeouts, restores
-///      forced off) and for why reusing UndoFuzz's existing driver, rather than writing a second one,
-///      was the whole point of exposing it. Divergence detection (Part A) is NOT part of this step's
-///      own code path — it runs passively, throughout, off the Harmony patch MaybeStart installs
-///      before any of this; see InstallDivergenceObserverPatch/OnStateDivergenceObserved.
+///   9. STEP 2 (+ STEP 3): resolve our own Player again (LocalContext.GetMe) and drive it through the
+///      combat via <see cref="DriveOurCombatAsync"/>, which delegates to UndoFuzz.DriveCombatAsync —
+///      see that method's own doc comment for the multiplayer-specific setup (generous timeouts,
+///      UndoFuzz's own two restore policies forced off) and for why reusing UndoFuzz's existing
+///      driver, rather than writing a second one, was the whole point of exposing it.
+///      DriveOurCombatAsync ALSO installs <see cref="ProposeRestoreIfDue"/> as UndoFuzz.
+///      MpProposeRestoreHook — host-only restore proposals on a cadence (Part B), invoked from
+///      inside UndoFuzz.DriveCombatAsync's own idle window rather than run as a separate loop, see
+///      ProposeRestoreIfDue's own doc comment for why — and starts
+///      <see cref="WatchCommitsLoopAsync"/> (Part C) concurrently: both-peer commit-watching
+///      (fidelity, the stuck-after-restore watch, and the divergence-after-restore check) — see that
+///      method's own doc comment for the full design. Divergence detection itself (Part A) is NOT
+///      part of either step's own code path — it runs passively, throughout, off the Harmony patch
+///      MaybeStart installs before any of this; see InstallDivergenceObserverPatch/
+///      OnStateDivergenceObserved.
 ///  10. Log the final summary and pass/fail verdict — see RunAsync's own step-10 comment block for
 ///      the full field list and why the pass line requires ALL of: divergenceCount == 0, the combat
-///      actually completing (outcome.Completed with no outcome.DriveError), and real progress
-///      (outcome.TurnsPlayed &gt; 0 AND outcome.CardsPlayed &gt; 0) — not divergenceCount == 0 alone,
-///      which a run that never drove any combat would trivially also satisfy (measured: a run with
-///      combatCompleted=False and a driveError still printed SUCCESS before this fix, because zero
-///      divergences is meaningless when nothing happened for the two peers to possibly diverge over).
+///      actually completing (outcome.Completed with no outcome.DriveError), real progress
+///      (outcome.TurnsPlayed &gt; 0 AND outcome.CardsPlayed &gt; 0), at least one restore actually
+///      COMMITTED (outcome.RestoresCommitted &gt; 0 — step 3's whole point, added this step; a run
+///      that proposed nothing or whose proposals never committed proves nothing about cross-peer
+///      restore fidelity), zero restore fidelity failures, zero orb invariant violations, and zero
+///      card-selection-pending violations. Not divergenceCount == 0 alone, which a run that never
+///      drove any combat would trivially also satisfy (measured: a run with combatCompleted=False and
+///      a driveError still printed SUCCESS before that was fixed, because zero divergences is
+///      meaningless when nothing happened for the two peers to possibly diverge over) — and, as of
+///      step 3, not "combat completed with zero divergences" alone either, since that would also
+///      trivially pass a run that never actually exercised the one restore path this harness exists
+///      to fuzz.
 ///  11. Quit unless --undosync-mpfuzz-noquit, matching UndoFuzz's existing harness flag. Done from
 ///      a try/finally (unlike UndoFuzz's sequential end-of-loop quit) because this is a single
 ///      one-shot attempt, not a combat loop with its own per-iteration failure bucket — any step
@@ -262,6 +292,44 @@ internal static class MpFuzz
     /// responsiveness.</summary>
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(200);
 
+    // --- Step 3 (Part B) restore-proposal cadence -------------------------------------------------
+    // Consulted from ProposeRestoreIfDue (the body of UndoFuzz.MpProposeRestoreHook, invoked from
+    // inside UndoFuzz.DriveCombatAsync's own idle window) — see that method's own doc comment for
+    // why Part B moved there from an earlier, independent poll loop.
+
+    /// <summary>Host-only cadence for step 3's restore proposals (Part B): a proposal fires after
+    /// every this-many successful driver actions (a TryManualPlay that returned true, or an EndTurn —
+    /// the same definition CombatOutcome.ActionsSinceLastProposal counts, incremented at the same
+    /// site as UndoFuzz's own ActionsSinceLastDeterministicRestore). Mirrors UndoFuzz.
+    /// UiTestActionsPerRestore's value (2) exactly: a real multiplayer combat driven by this harness
+    /// plays only a handful of turns total (the step-2 run measured turnsPlayed=5 per peer), the same
+    /// "a low cadence is needed for a short combat to produce ANY restores at all" reasoning
+    /// UiTestActionsPerRestore's own doc comment gives for UndoFuzz's UI-mode path.</summary>
+    private const int ActionsPerProposal = 2;
+
+    /// <summary>Host-only cap on proposals for step 3 (Part B) — deliberately SMALLER than UndoFuzz's
+    /// own UiTestMaxRestoresPerCombat (15). Unlike the UI/headless paths, where a "restore" is one
+    /// synchronous ChecksumHook.RestoreTo call, a step-3 proposal here is a full network round trip
+    /// (propose -&gt; auto-accept vote -&gt; host tally -&gt; broadcast commit -&gt; CommitAsync's own
+    /// idle-wait poll, up to 60s, on BOTH peers) — piling up 15 of those inside one real combat risks
+    /// spending most of MultiplayerCombatWallClockTimeout (20 minutes) on proposals alone, leaving
+    /// little of the budget for the driver to actually keep playing between them. 5 is enough to
+    /// exercise the cross-peer checksum oracle (this harness's whole point) repeatedly without
+    /// dominating the run.</summary>
+    private const int MaxProposalsPerCombat = 5;
+
+    /// <summary>Bounded wait (Part C item 2) used right after WatchCommitsLoopAsync observes a new
+    /// commit on this peer: a cross-peer divergence for that restore's own post-restore checksum, if
+    /// any, arrives as a network message (ChecksumTracker.OnReceivedStateDivergenceMessage) that is
+    /// not guaranteed to have landed by the instant UndoProtocol.CommitCount itself ticked locally —
+    /// so _divergenceCount is snapshotted, this is waited out, and it is re-checked, rather than read
+    /// inline. Kept short relative to the minutes-scale waits elsewhere in this file: a divergence
+    /// report rides the SAME post-action checksum round trip every ordinary action already uses
+    /// (ChecksumTracker.CompareChecksums, run host-side on every ChecksumDataMessage it receives), not
+    /// a slow/best-effort path, so it is expected to resolve in well under this bound if it is going
+    /// to happen at all.</summary>
+    private static readonly TimeSpan DivergenceWatchAfterCommit = TimeSpan.FromSeconds(5);
+
     // --- Reflection handles onto NMultiplayerTest's PRIVATE members -----------------------------
     // Every one of these is in the design note's own "verified members" list; SurfaceCheck's
     // Check 1 re-verifies each string against the shipped assembly at build time.
@@ -335,6 +403,17 @@ internal static class MpFuzz
             // fires on BOTH host and client, so both roles need this to observe a divergence on their
             // own side rather than relying on the other peer's log.
             InstallDivergenceObserverPatch();
+
+            // Step 3, Part A: fuzz-only auto-accept for the undo vote — see
+            // UndoProtocol.AutoAcceptForFuzz's own doc comment for why this exact flag/placement
+            // makes leaking into a normal game structurally impossible (only reachable once
+            // --undosync-mpfuzz's own gate, including the mutual-exclusivity check above it, has
+            // already passed — same discipline as InstallDivergenceObserverPatch immediately above).
+            // Set on BOTH roles unconditionally: only the CLIENT will ever actually receive an
+            // UndoProposalMessage in this file's own step-3 design (only the host proposes, see
+            // ProposeRestoreIfDue's own doc comment), but setting it on the host too costs
+            // nothing and keeps this call site simple.
+            UndoProtocol.AutoAcceptForFuzz = true;
 
             Log.Write($"[MpFuzz] --{MpFuzzArg} detected — role={role}"
                 + (isHost ? "" : $" clientId={clientId}")
@@ -497,6 +576,14 @@ internal static class MpFuzz
             _lastDivergenceDetail = $"checksumId={message.senderChecksum.id} remotePeerId={senderId} "
                 + $"remoteChecksum={message.senderChecksum.checksum} ourNetId={myNetId}";
             Log.Write($"[MpFuzz][divergence] #{_divergenceCount} {_lastDivergenceDetail}");
+
+            // Fuzz-only full diagnostic dump — see ChecksumHook.DumpDivergenceDiagnostics's own doc
+            // comment for exactly what this writes (the "[MpFuzz][diag] SUMMARY"/"STATE" lines) and
+            // why: the line above only carries the remote peer's checksum HASH, never this peer's own
+            // payload for the same id, which is what's actually needed to diagnose (not just detect) a
+            // divergence. Internally gated on the same --undosync-mpfuzz flag this whole file's own
+            // MaybeStart entry gate already checked, so this call is always safe/cheap either way.
+            ChecksumHook.DumpDivergenceDiagnostics(message.senderChecksum.id, senderId, message.senderChecksum.checksum);
         }
         catch (Exception ex)
         {
@@ -651,9 +738,11 @@ internal static class MpFuzz
             Log.Write($"[MpFuzz] combat entered: role={role} netId={myNetId} playersInCombat={players?.Count.ToString() ?? "null"} "
                 + $"players=[{playersDesc}] checksumTrackerEnabled={checksumEnabled}");
 
-            // Step 9: STEP 2 proper — drive OUR OWN local player through the combat. Resolve `me`
-            // again (the map-vote step's own `me`, inside VoteForNextMapCoordAsync, is out of scope
-            // here) via the same LocalContext.GetMe(runState) idiom used throughout this mod.
+            // Step 9: STEP 2 + STEP 3 — drive OUR OWN local player through the combat, and (via
+            // DriveOurCombatAsync's own ProposeRestoreIfDue hook + WatchCommitsLoopAsync)
+            // propose/watch synchronized undos alongside it. Resolve `me` again (the map-vote step's
+            // own `me`, inside VoteForNextMapCoordAsync, is out of scope here) via the same
+            // LocalContext.GetMe(runState) idiom used throughout this mod.
             var runStateForCombat = RunManager.Instance?.DebugOnlyGetState();
             var me = runStateForCombat != null ? LocalContext.GetMe(runStateForCombat) : null;
             if (me == null)
@@ -696,22 +785,59 @@ internal static class MpFuzz
             bool zeroDivergences = _divergenceCount == 0;
             bool combatActuallyCompleted = outcome.Completed && outcome.DriveError == null;
             bool madeRealProgress = outcome.TurnsPlayed > 0 && outcome.CardsPlayed > 0;
+            // Step 3 additions (Part D) — SUCCESS now ALSO requires all of these. A run that
+            // committed no restores must never pass: that is the entire point of step 3 (see this
+            // file's own top-of-file "WHY DIVERGENCE DETECTION IS THE POINT" paragraph — divergence
+            // detection is worthless if nothing ever restored for the two peers to possibly disagree
+            // about the RESULT of).
+            bool restoresActuallyCommitted = outcome.RestoresCommitted > 0;
+            bool zeroFidelityFailures = outcome.FidelityFailures == 0;
+            bool zeroOrbInvariantViolations = orbInvariantViolationDelta == 0;
+            bool zeroSelectionViolations = UndoProtocol.SelectionPendingViolations == 0;
+
+            // Both peers dump their whole ring so the same ids can be diffed side by side.
+
+            ChecksumHook.DumpDivergenceRing(role);
 
             Log.Write($"[MpFuzz] ==================== summary: role={role} ====================");
             Log.Write($"[MpFuzz] role={role} netId={myNetId} combatCompleted={outcome.Completed} "
                 + $"turnsPlayed={outcome.TurnsPlayed} cardsPlayed={outcome.CardsPlayed} "
                 + $"divergenceCount={_divergenceCount} "
+                + $"restoresProposed={outcome.RestoresProposed} "
+                + $"restoresCommitted={outcome.RestoresCommitted} "
+                + $"fidelityFailures={outcome.FidelityFailures} "
+                + $"divergencesAfterRestore={outcome.DivergencesAfterRestore} "
+                + $"selectionViolations={UndoProtocol.SelectionPendingViolations} "
+                + $"stuckAfterRestoreCount={(outcome.StuckAfterRestore ? 1 : 0)} "
                 + $"restoreSectionFailureDelta={restoreSectionFailureDelta} "
                 + $"uiRefreshFailureDelta={uiRefreshFailureDelta} "
                 + $"orbInvariantViolationDelta={orbInvariantViolationDelta}"
                 + (outcome.DriveError != null ? $" driveError=\"{outcome.DriveError}\"" : "")
                 + (outcome.StuckAfterRestore ? $" stuckAfterRestore=\"{outcome.StuckAfterRestoreDetail}\"" : ""));
 
-            if (zeroDivergences && combatActuallyCompleted && madeRealProgress)
+            // Proposal-failure visibility: a run that reports restoresProposed=0 must explain itself
+            // rather than leave the reader to guess (this is exactly the shape the measured defect
+            // ProposeRestoreIfDue's own doc comment describes took — see UndoFuzz.MpProposeRestoreHook
+            // for the full diagnosis). Host-only, same as the counters themselves: ProposeRestoreIfDue
+            // returns immediately on the client (role != "host") without touching any of these, so a
+            // client's own breakdown would only ever read all-zero and add nothing.
+            if (role == "host")
             {
-                Log.Write($"[MpFuzz] SUCCESS role={role} netId={myNetId} — combat driven with zero "
-                    + "checksum divergences observed. See the summary line above for turn/card counts "
-                    + "and section-failure deltas.");
+                Log.Write($"[MpFuzz] role={role} propose skip breakdown (of {outcome.RestoresProposed} "
+                    + $"proposal(s) actually made, cap={MaxProposalsPerCombat}): "
+                    + $"skippedForCadence={outcome.ProposeSkippedCadence} "
+                    + $"skippedForCap={outcome.ProposeSkippedCap} "
+                    + $"skippedForNoOlderSyncPoint={outcome.ProposeSkippedNoTarget} "
+                    + $"skippedForCanUndoRedoFalse={outcome.ProposeSkippedCanUndoRedoFalse}.");
+            }
+
+            if (zeroDivergences && combatActuallyCompleted && madeRealProgress && restoresActuallyCommitted
+                && zeroFidelityFailures && zeroOrbInvariantViolations && zeroSelectionViolations)
+            {
+                Log.Write($"[MpFuzz] SUCCESS role={role} netId={myNetId} — combat driven with "
+                    + $"{outcome.RestoresCommitted} restore(s) committed, zero checksum divergences, "
+                    + "zero fidelity failures, zero orb invariant violations, and zero selection "
+                    + "violations. See the summary line above for the full counts.");
             }
             else
             {
@@ -724,14 +850,40 @@ internal static class MpFuzz
                 }
                 if (!combatActuallyCompleted)
                 {
-                    reasons.Add(outcome.DriveError != null
-                        ? $"combat did not complete: driveError=\"{outcome.DriveError}\""
-                        : "combat did not complete (Completed=false with no driveError recorded)");
+                    if (outcome.StuckAfterRestore)
+                        reasons.Add("driver got stuck after a committed restore "
+                            + $"(detail=\"{outcome.StuckAfterRestoreDetail}\") — the exact shape an "
+                            + "action-id-reuse bug in ChecksumHook.RestoreTo would take");
+                    else if (outcome.DriveError != null)
+                        reasons.Add($"combat did not complete: driveError=\"{outcome.DriveError}\"");
+                    else
+                        reasons.Add("combat did not complete (Completed=false with no driveError recorded)");
                 }
                 if (!madeRealProgress)
                 {
                     reasons.Add("no real progress was made "
                         + $"(turnsPlayed={outcome.TurnsPlayed}, cardsPlayed={outcome.CardsPlayed})");
+                }
+                if (!restoresActuallyCommitted)
+                {
+                    reasons.Add($"NO RESTORES WERE COMMITTED (restoresProposed={outcome.RestoresProposed}, "
+                        + "restoresCommitted=0) — step 3 exists to prove cross-peer restore fidelity, "
+                        + "which a run that never actually restored cannot do");
+                }
+                if (!zeroFidelityFailures)
+                {
+                    reasons.Add($"{outcome.FidelityFailures} restore fidelity failure(s) on this peer "
+                        + "— see the ChecksumHook RESTORE FIDELITY line(s) above");
+                }
+                if (!zeroOrbInvariantViolations)
+                {
+                    reasons.Add($"{orbInvariantViolationDelta} orb invariant violation(s) "
+                        + "(UiRefresh.OrbInvariantViolationCount)");
+                }
+                if (!zeroSelectionViolations)
+                {
+                    reasons.Add($"{UndoProtocol.SelectionPendingViolations} card-selection-pending "
+                        + "violation(s) — see the \"[UndoProtocol] SELECTION VIOLATION\" line(s) above");
                 }
                 Log.Write($"[MpFuzz] FAILURE role={role} netId={myNetId} — THIS IS NOT A PASS — "
                     + string.Join("; ", reasons) + ".");
@@ -819,13 +971,233 @@ internal static class MpFuzz
 
         var outcome = new UndoFuzz.CombatOutcome { CombatIndex = 0, BaseSeed = $"mpfuzz-{role}", Seed = $"mpfuzz-{role}" };
         var rng = new Random();
+        var proposeRng = new Random();
 
         Log.Write($"[MpFuzz] role={role} driving combat "
             + $"(idleWaitTimeout={UndoFuzz.MultiplayerIdleWaitTimeout.TotalMinutes}m, "
             + $"combatWallClockTimeout={UndoFuzz.MultiplayerCombatWallClockTimeout.TotalMinutes}m, "
             + "restoresAllowed=false, multiplayerIdleGate=true).");
+
+        // Step 3, Part B — MEASURED FIX: install the propose hook, invoked by UndoFuzz.AttemptRestore
+        // from INSIDE UndoFuzz.DriveCombatAsync's own idle window, instead of running it as a
+        // separately-scheduled poll loop — see ProposeRestoreIfDue's own doc comment and
+        // UndoFuzz.MpProposeRestoreHook's own doc comment for the measured defect this closes (a
+        // clean two-instance run that completed a real combat on both peers still reported
+        // restoresProposed=0, because the old independent poll kept missing the brief window
+        // UndoSyncMod.CanUndoRedo() is true for a concurrently-acting multiplayer peer). Same "only
+        // the currently-active path's own setup writes it, immediately before its own
+        // DriveCombatAsync call" discipline as every other MpFuzz-only selector above.
+        UndoFuzz.MpProposeRestoreHook = () => ProposeRestoreIfDue(role, outcome, proposeRng);
+
+        // Step 3, Part C only now: concurrent background loop that just watches for restores landing
+        // via the real commit path — started alongside (not instead of) UndoFuzz.DriveCombatAsync
+        // below. See WatchCommitsLoopAsync's own doc comment for the full design and for why running
+        // it concurrently via a fire-and-forget Task is safe under this file's own single-threaded,
+        // cooperative-interleaving-via-await model (same assumption every other polling loop in this
+        // mod already relies on — see e.g. UndoFuzz's own "_gameErrors" doc comment).
+        _ = WatchCommitsLoopAsync(role, outcome);
+
         await UndoFuzz.DriveCombatAsync(0, me, rng, outcome);
         return outcome;
+    }
+
+    // ==================================================================================
+    // Restore proposal (step 3, Part B) + commit watch (step 3, Part C)
+    // ==================================================================================
+
+    /// <summary>
+    /// Step 3, Part B — the body of UndoFuzz.MpProposeRestoreHook, installed by DriveOurCombatAsync
+    /// above and invoked by UndoFuzz.AttemptRestore. Proposes a restore to a uniformly random older
+    /// stored sync point on a fixed cadence.
+    ///
+    /// MEASURED DEFECT THIS REPLACES: this logic used to live inline in what was then
+    /// WatchAndProposeLoopAsync, an independent Task.Delay(PollInterval) background loop running
+    /// concurrently with, but not synchronized to, the drive loop. A clean two-instance run that
+    /// completed a real multiplayer combat on both peers (combatCompleted=True, host 4 turns/15
+    /// cards, client 5 turns/14 cards, 46s, 29 sync points stored) still reported
+    /// "restoresProposed=0 restoresCommitted=0 FAILURE — NO RESTORES WERE COMMITTED" —
+    /// outcome.ActionsSinceLastProposal was being incremented correctly by
+    /// UndoFuzz.DriveCombatAsync, but in multiplayer the two players act concurrently, so each peer's
+    /// own ActionQueueSet.IsEmpty (part of UndoSyncMod.CanUndoRedo()) is only briefly true, between
+    /// one action landing and the next being issued. A poll on its own independent schedule had no
+    /// reason to land inside that narrow window and kept missing it entirely.
+    ///
+    /// THE FIX: propose from INSIDE the driver's own idle window instead, where CanUndoRedo() is
+    /// already known to hold. UndoFuzz.AttemptRestore invokes UndoFuzz.MpProposeRestoreHook (this
+    /// method, via the closure DriveOurCombatAsync installs) at exactly the point
+    /// UndoFuzz.DriveCombatAsync has just received IdleWait.Ready from
+    /// UndoFuzz.WaitForIdleOurTurnAsync — i.e. PlayerCombatState.Phase == Play and CanUndoRedo() both
+    /// hold, for THIS peer, right now. That makes missing the window structurally impossible instead
+    /// of merely unlikely.
+    ///
+    /// Only the host proposes: the README notes simultaneous proposals from two peers just wait out
+    /// UndoProtocol's own 30s vote timeout against each other (TimeoutFrames, UndoProtocol.cs)
+    /// instead of ever committing, which would waste run time on a scenario this harness has no
+    /// interest in reproducing.
+    ///
+    /// Gates, in the same order the old loop checked them (cheapest/most-deterministic first):
+    ///   1. MaxProposalsPerCombat — a hard cap on proposals this combat.
+    ///   2. ActionsPerProposal — the fixed cadence (see that constant's own doc comment for why).
+    ///   3. UndoSyncMod.CanUndoRedo() — the same idle/safety gate UndoProtocol.ProposeTarget
+    ///      re-checks internally regardless, so this is a cheap skip, not the load-bearing guard —
+    ///      the load-bearing guarantee is now the call site itself (see this method's own "THE FIX"
+    ///      paragraph above). Kept anyway as a cheap assertion, and logged LOUDLY rather than merely
+    ///      skipped if it ever reads false: that would mean the idle-window invariant this whole fix
+    ///      relies on broke, which is worth knowing about immediately, not silently re-hiding behind
+    ///      another skip.
+    ///   4. UndoFuzz.PickRandomOlderSyncPoint returning null — nothing older than "now" stored yet
+    ///      (reused rather than duplicated; that method's own visibility went private -&gt; internal
+    ///      for exactly this call site).
+    /// Each skip increments its own counter on <paramref name="outcome"/> (CombatOutcome.
+    /// ProposeSkipped*, see their own doc comments in UndoFuzz.cs) so a zero-proposal run can explain
+    /// itself in RunAsync's step-10 summary instead of reporting restoresProposed=0 with no further
+    /// clue — see the summary block's new "propose skip breakdown" line.
+    /// </summary>
+    private static void ProposeRestoreIfDue(string role, UndoFuzz.CombatOutcome outcome, Random rng)
+    {
+        if (role != "host") return; // only the host ever proposes — see this method's own doc comment
+
+        if (outcome.RestoresProposed >= MaxProposalsPerCombat)
+        {
+            outcome.ProposeSkippedCap++;
+            return;
+        }
+        if (outcome.ActionsSinceLastProposal < ActionsPerProposal)
+        {
+            outcome.ProposeSkippedCadence++;
+            return;
+        }
+        if (!UndoSyncMod.CanUndoRedo())
+        {
+            // Should be structurally impossible — see this method's own "THE FIX" paragraph: the
+            // only caller, UndoFuzz.AttemptRestore, is only reached after
+            // UndoFuzz.WaitForIdleOurTurnAsync has already confirmed CanUndoRedo()==true for this
+            // same peer, on this same synchronous call chain, with nothing awaited in between. A
+            // false read here means that invariant did not hold — log it loudly rather than let it
+            // silently re-create the exact "why did nothing propose" mystery this fix exists to
+            // eliminate.
+            outcome.ProposeSkippedCanUndoRedoFalse++;
+            Log.Write($"[MpFuzz] role={role} WARNING: ProposeRestoreIfDue ran with CanUndoRedo()==false "
+                + "— this should be impossible from this call site (see the method's own doc comment). "
+                + "The idle-window invariant this fix relies on did not hold; investigate before "
+                + "trusting proposal cadence again.");
+            return;
+        }
+
+        var target = UndoFuzz.PickRandomOlderSyncPoint(rng);
+        if (target == null)
+        {
+            outcome.ProposeSkippedNoTarget++;
+            return; // nothing older than "now" stored yet — try again once more sync points exist
+        }
+
+        outcome.ActionsSinceLastProposal = 0;
+        outcome.RestoresProposed++;
+        Log.Write($"[MpFuzz] role={role} PROPOSING restore -> id={target.ChecksumId} "
+            + $"({target.Context}) (proposal {outcome.RestoresProposed}/{MaxProposalsPerCombat}).");
+        UndoProtocol.ProposeTarget(target.ChecksumId);
+    }
+
+    /// <summary>
+    /// Step 3, Part C only — Part B (proposing) moved into <see cref="ProposeRestoreIfDue"/> above,
+    /// see that method's own doc comment for the measured defect that fix closes. This loop keeps
+    /// its commit-watching half unchanged: started concurrently with UndoFuzz.DriveCombatAsync from
+    /// DriveOurCombatAsync above and running for as long as CombatManager.Instance.IsInProgress, it
+    /// watches UndoProtocol.CommitCount every PollInterval tick for restores that landed on THIS peer
+    /// via the real vote/commit path, and for each newly observed commit:
+    ///   1. Records ChecksumHook.LastRestoreFidelityOk into outcome.FidelityFailures if false.
+    ///   2. Looks the committed SyncPoint back up (ChecksumHook.TryGetSyncPoint) and hands it to
+    ///      UndoFuzz.NotifyExternalRestore, which arms DriveCombatAsync's own preexisting
+    ///      stuck-after-restore watch for it — see that method's own doc comment for why this is
+    ///      the SAME mechanism the headless/UI paths already use, not a second one (requirement 3:
+    ///      "the driver can still act afterwards").
+    ///   3. Starts WatchForDivergenceAfterCommitAsync to check, a few seconds later, whether
+    ///      MpFuzz's own cross-peer divergence counter grew — the headline finding this whole
+    ///      harness exists to catch, logged unmissably and tagged with the checksum id if so.
+    ///   4. Increments outcome.RestoresCommitted.
+    ///
+    /// Wrapped in try/catch, same as every other fire-and-forget task in this mod (e.g.
+    /// TimeoutWatchdog in UndoProtocol.cs): an unhandled exception in a fire-and-forget Task would
+    /// otherwise fail silently.
+    /// </summary>
+    private static async Task WatchCommitsLoopAsync(string role, UndoFuzz.CombatOutcome outcome)
+    {
+        try
+        {
+            int lastObservedCommitCount = UndoProtocol.CommitCount;
+            while (CombatManager.Instance is { IsInProgress: true })
+            {
+                await Task.Delay(PollInterval);
+
+                int commitCountNow = UndoProtocol.CommitCount;
+                if (commitCountNow != lastObservedCommitCount)
+                {
+                    lastObservedCommitCount = commitCountNow;
+                    uint committedId = UndoProtocol.LastCommittedChecksumId;
+                    outcome.RestoresCommitted++;
+
+                    bool fidelityOk = ChecksumHook.LastRestoreFidelityOk;
+                    if (!fidelityOk)
+                    {
+                        outcome.FidelityFailures++;
+                        Log.Write($"[MpFuzz] role={role} RESTORE FIDELITY FAILURE — committed "
+                            + $"id={committedId} (restore #{outcome.RestoresCommitted} this combat). "
+                            + "See the ChecksumHook RESTORE FIDELITY line(s) above for the byte-level diff.");
+                    }
+                    Log.Write($"[MpFuzz] role={role} restore committed -> id={committedId} "
+                        + $"(commitCount={commitCountNow}, fidelityOk={fidelityOk}).");
+
+                    if (ChecksumHook.TryGetSyncPoint(committedId, out var sp))
+                        UndoFuzz.NotifyExternalRestore(sp);
+                    else
+                        Log.Write($"[MpFuzz] role={role} committed id={committedId} but its sync point "
+                            + "is no longer resolvable — cannot arm the stuck-after-restore watch for it.");
+
+                    _ = WatchForDivergenceAfterCommitAsync(role, committedId, outcome);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz] WatchCommitsLoopAsync ERROR: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Part C item 2: called (fire-and-forget) by WatchCommitsLoopAsync right after it observes a
+    /// new commit on this peer. Snapshots MpFuzz's own _divergenceCount, waits up to
+    /// DivergenceWatchAfterCommit, and re-checks — see that constant's own doc comment for why a
+    /// bounded wait (rather than an inline check) is needed. If the count grew, this is exactly the
+    /// asymmetric-restore bug this entire harness was built to catch (see this file's own top-of-file
+    /// "WHY DIVERGENCE DETECTION IS THE POINT" paragraph): logged with heavy emphasis and tagged with
+    /// the checksum id that was committed, and recorded into outcome.DivergencesAfterRestore.
+    /// </summary>
+    private static async Task WatchForDivergenceAfterCommitAsync(string role, uint committedChecksumId, UndoFuzz.CombatOutcome outcome)
+    {
+        try
+        {
+            int before = _divergenceCount;
+            var sw = Stopwatch.StartNew();
+            while (sw.Elapsed < DivergenceWatchAfterCommit)
+            {
+                if (_divergenceCount != before)
+                {
+                    outcome.DivergencesAfterRestore++;
+                    Log.Write("[MpFuzz][divergence] ################################################################");
+                    Log.Write($"[MpFuzz][divergence] DIVERGENCE AFTER RESTORE — role={role} "
+                        + $"committedChecksumId={committedChecksumId} — the two peers disagreed "
+                        + "immediately after a committed undo. THIS IS THE HEADLINE FINDING THIS "
+                        + $"HARNESS WAS BUILT TO CATCH. detail={_lastDivergenceDetail}");
+                    Log.Write("[MpFuzz][divergence] ################################################################");
+                    return;
+                }
+                await Task.Delay(PollInterval);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz] WatchForDivergenceAfterCommitAsync ERROR: {ex.Message}");
+        }
     }
 
     // ==================================================================================

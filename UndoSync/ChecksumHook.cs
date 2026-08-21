@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Nodes;
@@ -20,6 +21,16 @@ internal sealed class SyncPoint
     public uint ChecksumId;
     public string Context = "";
     public StateSnapshot Snapshot = null!;
+
+    /// <summary>
+    /// ActionQueueSet.NextActionId (ActionQueueSet.cs:77) at capture time. RestoreTo no
+    /// longer applies this — see the comment above its (removed) FastForwardNextActionId
+    /// call for why: ActionQueueSet._nextId is peer-local, not peer-common, so rewinding it
+    /// breaks cross-peer agreement instead of preserving it. Still captured and still logged
+    /// here purely for diagnosis — comparing this value across peers' logs at the same
+    /// ChecksumId is exactly what exposed the bug (host recorded 9, client recorded 12, at
+    /// the same checksum id; the two diverged at the very next checksum).
+    /// </summary>
     public uint NextActionId;
     public uint NextHookId;
     public List<uint> ChoiceIds = new();
@@ -78,6 +89,56 @@ internal static class ChecksumHook
         AccessTools.Field(typeof(ActionQueueSet), "_actionsWaitingForResumption");
     private static readonly System.Reflection.FieldInfo? PlayerChoiceSynchronizerReceivedChoicesField =
         AccessTools.Field(typeof(PlayerChoiceSynchronizer), "_receivedChoices");
+
+    // ---- Fuzz-only divergence diagnostics (--undosync-mpfuzz) --------------------------------
+    // See MpFuzz.cs's own top-of-file doc comment for the harness this instruments, and
+    // MpFuzz.OnStateDivergenceObserved for where a divergence is first detected. That detection path
+    // only ever learns THAT a checksum id diverged and the remote peer's checksum HASH
+    // (StateDivergenceMessage.senderChecksum, ChecksumTracker.cs:136/209-214) — never what THIS
+    // peer's own state at that id actually contained, and never anything to diff against the other
+    // peer's own log. Everything below exists to answer "what did MY side's state at id N look like"
+    // on demand, so the same question can be answered on both peers and the two logs diffed by hand.
+    // Gated on MpFuzzInstrumentationEnabled everywhere it does any work — see each member's own doc
+    // comment for exactly where — so a normal game (no --undosync-mpfuzz) never allocates
+    // DivergenceRing, never pays for AppendDivergenceRingEntry's extra SerializeCurrentState() call,
+    // and never emits a "[MpFuzz][diag]" line.
+
+    /// <summary>
+    /// True only when --undosync-mpfuzz was passed on the command line. Computed once at type-init
+    /// time straight off CommandLineHelper.HasArg — safe this early, since CommandLineHelper's own
+    /// static constructor reads Godot's OS.GetCmdlineArgs() eagerly (CommandLineHelper.cs), independent
+    /// of any game/mod init ordering. Every member in this section checks this before doing anything.
+    /// </summary>
+    private static readonly bool MpFuzzInstrumentationEnabled = CommandLineHelper.HasArg("undosync-mpfuzz");
+
+    /// <summary>Bound on <see cref="DivergenceRing"/> — see AppendDivergenceRingEntry's own doc
+    /// comment for why every checksum id (not just TryStoreSyncPoint's sync-point-eligible subset)
+    /// needs covering, and why 30 is enough trailing context for that without growing the ring
+    /// unbounded across a long fuzz combat.</summary>
+    private const int MaxDivergenceRingEntries = 30;
+
+    /// <summary>
+    /// Fuzz-only ring of the last <see cref="MaxDivergenceRingEntries"/> checksum ids ChecksumTracker
+    /// generated on THIS peer. Sorted ascending by id, trimmed the same RemoveAt(0)-once-over-bound
+    /// way <see cref="SyncPoints"/> is. Populated by AppendDivergenceRingEntry, read by
+    /// DumpDivergenceDiagnostics.
+    /// </summary>
+    private static readonly SortedList<uint, ChecksumSnapshot> DivergenceRing = new();
+
+    /// <summary>
+    /// One ChecksumTracker.ChecksumGenerated (ChecksumTracker.cs:63) firing, captured into
+    /// <see cref="DivergenceRing"/>. StateDump is just the fullState object the event already handed
+    /// us (cheap — no recompute). ByteLength/ByteHash instead reuse SerializeCurrentState (below) —
+    /// the SAME serialization VerifyRestoreFidelity already relies on for its own byte-exact
+    /// comparison — rather than a second serializer.
+    /// </summary>
+    private sealed class ChecksumSnapshot
+    {
+        public string Context = "";
+        public string StateDump = "";
+        public int ByteLength;
+        public uint ByteHash;
+    }
 
     internal static void EnsureSubscribed()
     {
@@ -141,6 +202,15 @@ internal static class ChecksumHook
             // tell "the game never generated this checksum" from "we saw it and dropped it".
             if (UndoFuzz.TraceChecksums)
                 Log.Write($"[Fuzz][trace] checksum id={data.id} context='{context}'");
+
+            // Fuzz-only (MpFuzzInstrumentationEnabled): capture EVERY checksum id into the
+            // diagnostic ring, before any of the sync-point eligibility filters below run — a
+            // divergence can land on an id TryStoreSyncPoint itself would have skipped (the
+            // A0/A1/A2 gates inside it, a non-player-decision context, a non-PlayPhase moment,
+            // etc.), and DivergenceRing exists specifically so THAT id can still be dumped if a
+            // divergence is later reported for it. See DumpDivergenceDiagnostics.
+            if (MpFuzzInstrumentationEnabled)
+                AppendDivergenceRingEntry(data.id, context, fullState);
 
             var cs = UndoSyncMod.GetCombatState();
             if (cs == null || cs.CurrentSide != CombatSide.Player) return;
@@ -372,6 +442,150 @@ internal static class ChecksumHook
     }
 
     /// <summary>
+    /// Fuzz-only (MpFuzzInstrumentationEnabled — checked by the caller, OnChecksumGenerated, before
+    /// this is even invoked): records one ChecksumTracker.ChecksumGenerated firing into
+    /// DivergenceRing, keyed by checksum id. ByteLength/ByteHash reuse SerializeCurrentState rather
+    /// than a second serializer — see ChecksumSnapshot's own doc comment for why that matters.
+    /// </summary>
+    /// <summary>
+    /// Dumps every entry currently in <see cref="DivergenceRing"/>. Called at combat end under
+    /// --undosync-mpfuzz so BOTH peers' state dumps exist for the same ids, which is what actually
+    /// locates a divergence: the per-peer stream hashes say WHICH id first disagrees, and only a
+    /// line-by-line diff of the two peers' dumps at that id says WHAT disagrees. Dumping only on
+    /// the divergence notification is not enough — the host is frequently the peer that detects,
+    /// and it never receives a notification about itself, so one side's dump would be missing.
+    /// </summary>
+    internal static void DumpDivergenceRing(string role)
+    {
+        if (!MpFuzzInstrumentationEnabled) return;
+        try
+        {
+            foreach (var kv in DivergenceRing)
+            {
+                Log.Write($"[MpFuzz][ring] role={role} id={kv.Key} hash={kv.Value.ByteHash} "
+                    + $"len={kv.Value.ByteLength} context='{kv.Value.Context}'");
+                var lines = (kv.Value.StateDump ?? "").Split('\n');
+                for (int i = 0; i < lines.Length; i++)
+                    Log.Write($"[MpFuzz][ring] role={role} id={kv.Key} line={i}: {lines[i].TrimEnd()}");
+            }
+            Log.Write($"[MpFuzz][ring] role={role} END ({DivergenceRing.Count} id(s))");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz][ring] role={role} DumpDivergenceRing ERROR: {ex.Message}");
+        }
+    }
+
+    private static void AppendDivergenceRingEntry(uint id, string context, NetFullCombatState fullState)
+    {
+        try
+        {
+            var bytes = SerializeCurrentState();
+            var entry = new ChecksumSnapshot
+            {
+                Context = context,
+                StateDump = fullState.ToString() ?? "",
+                ByteLength = bytes?.Length ?? 0,
+                ByteHash = bytes != null ? HashBytesFnv1a(bytes) : 0,
+            };
+            DivergenceRing[id] = entry;
+            while (DivergenceRing.Count > MaxDivergenceRingEntries)
+                DivergenceRing.RemoveAt(0);
+
+            // One greppable line per RAW checksum, before any sync-point filtering, so the two
+            // peers' streams can be diffed directly. This is what tells the two candidate causes of
+            // a divergence apart, which log lines from our own filtered sync points cannot:
+            //   - same id, DIFFERENT context  => the peers attached the id to different actions,
+            //     i.e. a protocol/ordering problem after the restore.
+            //   - same id, SAME context, different hash => the peers restored to states that are
+            //     not byte-identical to EACH OTHER, even though each matched its own snapshot —
+            //     the local fidelity check compares a peer against itself and is blind to this.
+            Log.Write($"[MpFuzz][stream] id={id} hash={entry.ByteHash} len={entry.ByteLength} context='{context}'");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz][diag] AppendDivergenceRingEntry ERROR (id={id}): {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Fuzz-only: stable 32-bit fingerprint of a byte payload, for cheap cross-peer/cross-log
+    /// comparison — NOT the game's own checksum algorithm (ChecksumTracker.GenerateChecksum uses
+    /// XxHash32 from the System.IO.Hashing package, which this project does not reference; see
+    /// UndoSync.csproj's Reference list). FNV-1a, same algorithm and "stable across processes,
+    /// machines and runtimes" reasoning as UndoFuzz.DeterministicSeed (UndoFuzz.cs) already uses for
+    /// its own seed derivation — applied here to raw bytes instead of a string's UTF-16 code units.
+    /// </summary>
+    private static uint HashBytesFnv1a(byte[] bytes)
+    {
+        unchecked
+        {
+            uint hash = 2166136261u;
+            foreach (byte b in bytes)
+            {
+                hash ^= b;
+                hash *= 16777619u;
+            }
+            return hash;
+        }
+    }
+
+    /// <summary>
+    /// Fuzz-only (MpFuzzInstrumentationEnabled — checked first thing, so this is always a safe cheap
+    /// no-op to call from a normal game): full diagnostic dump for one checksum divergence, called by
+    /// MpFuzz.OnStateDivergenceObserved the moment ChecksumTracker.OnReceivedStateDivergenceMessage
+    /// fires on this peer (ChecksumTracker.cs:136). That handshake alone only tells this peer THAT a
+    /// checksum id diverged and the remote peer's checksum HASH (StateDivergenceMessage.senderChecksum
+    /// — see ChecksumTracker.cs:209-214 for how it's populated on the sending side); it says nothing
+    /// about what THIS peer's own state at that id contained. This looks that up in DivergenceRing and
+    /// writes it all out.
+    ///
+    /// Log line prefixes, for mechanical extraction:
+    ///   "[MpFuzz][diag] SUMMARY id=..."           — one line: role/netId, the diverging id, the
+    ///                                                remote checksum, this peer's local payload byte
+    ///                                                length + hash, and the three counters below.
+    ///   "[MpFuzz][diag] STATE id=... line=N: ..." — one line per line of this peer's full local
+    ///                                                NetFullCombatState.ToString() dump for id N.
+    ///   "[MpFuzz][diag] STATE id=... END (...)"   — closes the STATE block (line count, for a
+    ///                                                mechanical "did I get all of them" check).
+    /// </summary>
+    internal static void DumpDivergenceDiagnostics(uint checksumId, ulong remotePeerId, uint remoteChecksum)
+    {
+        if (!MpFuzzInstrumentationEnabled) return;
+        try
+        {
+            var rm = RunManager.Instance;
+            ulong myNetId = rm?.NetService?.NetId ?? 0;
+            uint localNextActionId = rm?.ActionQueueSet?.NextActionId ?? 0;
+            uint localNextHookId = rm?.ActionQueueSynchronizer?.NextHookId ?? 0;
+            uint trackerNextId = rm?.ChecksumTracker?.NextId ?? 0;
+
+            if (!DivergenceRing.TryGetValue(checksumId, out var snap))
+            {
+                Log.Write($"[MpFuzz][diag] SUMMARY id={checksumId} role={rm?.NetService?.Type} netId={myNetId} "
+                    + $"remotePeerId={remotePeerId} remoteChecksum={remoteChecksum} "
+                    + "localPayload=UNAVAILABLE (id fell out of the diagnostic ring, or was never captured) "
+                    + $"localNextActionId={localNextActionId} localNextHookId={localNextHookId} trackerNextId={trackerNextId}");
+                return;
+            }
+
+            Log.Write($"[MpFuzz][diag] SUMMARY id={checksumId} role={rm?.NetService?.Type} netId={myNetId} "
+                + $"remotePeerId={remotePeerId} remoteChecksum={remoteChecksum} "
+                + $"localByteLength={snap.ByteLength} localByteHash={snap.ByteHash} localContext='{snap.Context}' "
+                + $"localNextActionId={localNextActionId} localNextHookId={localNextHookId} trackerNextId={trackerNextId}");
+
+            var lines = snap.StateDump.Replace("\r", "").Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+                Log.Write($"[MpFuzz][diag] STATE id={checksumId} line={i}: {lines[i]}");
+            Log.Write($"[MpFuzz][diag] STATE id={checksumId} END ({lines.Length} lines)");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz][diag] DumpDivergenceDiagnostics ERROR (id={checksumId}): {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Why this needs two comparisons: NetFullCombatState.ToString() (NetFullCombatState.cs:537-640)
     /// prints only COUNTS for piles/potions/relics/orbs and nothing at all for rngSet/relicGrabBag,
     /// while the multiplayer checksum hashes the full Serialize() output. So a self-check built only
@@ -481,6 +695,9 @@ internal static class ChecksumHook
         _pendingTurnStartId = null;
         _pendingTurnStartContext = "";
         _combatStartPoint = null;
+        // Fuzz-only ring (see its own doc comment) — always safe to clear even when
+        // MpFuzzInstrumentationEnabled is false, since it's then always already empty.
+        DivergenceRing.Clear();
     }
 
     /// <summary>
@@ -565,10 +782,64 @@ internal static class ChecksumHook
             // 1. Game state
             sp.Snapshot.Restore();
 
-            // 2. Synchronizer counters — roll the shared logical clocks back so the
-            //    next action/hook/choice/checksum gets the same id on every peer.
+            // 2. Synchronizer counters. ChecksumTracker.NextId (step 3, below) is the one we
+            //    know for certain is peer-common — see its own comment there for why. Of the
+            //    three counters recorded on the sync point: ChoiceIds is rewound unchanged by
+            //    this fix; NextHookId is still rewound too, but see the caveat on that call
+            //    below; NextActionId is deliberately no longer rewound — see the comment above
+            //    the line where that call used to be, just below.
             var rm = RunManager.Instance!;
-            rm.ActionQueueSet.FastForwardNextActionId(sp.NextActionId);
+
+            // Fuzz-only (MpFuzzInstrumentationEnabled): log the counters this sync point recorded
+            // for this checksum id, so the two peers' own "[MpFuzz][diag] RESTORE-TARGET" lines
+            // for the SAME sp.ChecksumId can be diffed directly against each other — this is the
+            // "sync-point counter comparison aid" this instrumentation was added for. nextActionId
+            // is diagnostic-only now (see the comment on the line below where it used to be
+            // applied) and is logged here anyway, unchanged, because a live two-instance run is
+            // exactly how this field's host/client values were caught disagreeing (host
+            // nextActionId=9 vs client nextActionId=12 at the same checksumId=6, diverging at the
+            // very next checksum) — the discovery that led to no longer applying it. nextHookId is
+            // still the value actually applied a few lines down.
+            if (MpFuzzInstrumentationEnabled)
+                Log.Write($"[MpFuzz][diag] RESTORE-TARGET checksumId={sp.ChecksumId} -> "
+                    + $"nextActionId={sp.NextActionId} nextHookId={sp.NextHookId} nextChecksumId={sp.ChecksumId + 1}");
+
+            // sp.NextActionId is deliberately NOT applied (no more FastForwardNextActionId call
+            // here). ActionQueueSet._nextId (ActionQueueSet.cs:54) is not a peer-common counter —
+            // it's incremented purely locally, once per local call to GetAndIncrementActionId:
+            // once from EnqueueWithoutSynchronizing (:113) and once from
+            // ResumeActionWithoutSynchronizing (:502) — and host and client do not make that same
+            // number of calls between any two checksum ids, since each peer's own enqueue/resume
+            // timing drives it independently. FastForwardNextActionId's own doc comment (:608-612
+            // — "Used in replays") already scopes it to a single-process replay of a recorded
+            // sequence, where no cross-peer agreement is implied; nothing in the game's own code
+            // claims this counter is shared. A live two-instance run measured the consequence of
+            // rewinding it anyway: restoring both peers to checksum id 6 and rewinding
+            // NextActionId to each peer's own captured value left host resuming from
+            // nextActionId=9 and client from nextActionId=12 — same checksum id, different
+            // peer-local action-id origins — and the two peers diverged at the very next checksum,
+            // id 7. Action ids only need to be unique and strictly increasing WITHIN a peer for the
+            // queues to behave correctly; letting ActionQueueSet._nextId keep climbing across a
+            // restore satisfies that, while rewinding it to a peer-local snapshot value actively
+            // breaks cross-peer agreement. sp.NextActionId itself is still captured
+            // (TryStoreSyncPoint) and still logged above and in "Stored sync point" / "RESTORE
+            // complete" — kept for diagnosis only, since it is exactly what made this bug visible.
+
+            // sp.NextHookId IS still applied, as-is, for now — but this is a reading of the code,
+            // not a measurement, and it needs the same kind of instrumented multiplayer check
+            // before anyone should trust it. ActionQueueSynchronizer._nextHookId
+            // (ActionQueueSynchronizer.cs:30, incremented at :177 inside GenerateHookAction) has
+            // the exact same LOCAL-increment shape as the action id above. What's different is
+            // that every sync point logged by both peers, across the whole run that exposed the
+            // action-id bug, recorded hookId=0 — hook actions were never exercised, so there is no
+            // evidence either way from that run. RequestEnqueueHookAction, the caller path that
+            // actually sends a hook action out to peers, switches on NetGameType.Host
+            // (ActionQueueSynchronizer.cs:190-211, Host case at :207-209) before enqueueing — the
+            // same host-authoritative pattern RequestEnqueue uses for ordinary actions (:154-171)
+            // — which suggests hook actions are host-driven and therefore peer-common the way
+            // ChecksumTracker.NextId is (see step 3, below), unlike the action id. But that is a
+            // reading of the source, not something observed running, so it stays rewound
+            // unchanged until it gets the same kind of measurement the action id just got.
             rm.ActionQueueSynchronizer.FastForwardHookId(sp.NextHookId);
             rm.PlayerChoiceSynchronizer.FastForwardChoiceIds(new List<uint>(sp.ChoiceIds));
 
@@ -585,16 +856,29 @@ internal static class ChecksumHook
             //    action with an unconsumed entry is therefore still occupying its queue's front
             //    slot, which would keep IsEmpty false — so any entry surviving to an idle
             //    restore belongs to an action already gone from every queue: orphan garbage,
-            //    not a live pending resume. Leaving it behind is actively dangerous rather than
-            //    merely inert — FastForwardNextActionId above rewinds _nextId, so the orphan's
-            //    stored newId will be handed out again to an unrelated future action.
+            //    not a live pending resume. Now that RestoreTo no longer rewinds
+            //    ActionQueueSet._nextId (see the comment above the removed FastForwardNextActionId
+            //    call, step 2 above), that orphan's oldId can never be reissued to a future action
+            //    — _nextId only ever climbs, so every action created after this restore gets a
+            //    strictly higher id than anything that ever existed before it, including this
+            //    entry's oldId. So there is no collision left to guard against here; clearing this
+            //    is pure hygiene now — without it, an entry like this would sit in the list
+            //    forever (nothing else ever removes it once its target action is gone),
+            //    accumulating one dead, permanently-unmatchable tuple per restore that interrupted
+            //    a pending resume.
             //  - PlayerChoiceSynchronizer._receivedChoices (PlayerChoiceSynchronizer.cs:38):
             //    entries come from WaitForRemoteChoice (:114-147, awaits the entry's
             //    TaskCompletionSource from inside an executing action — ruled out at an idle
             //    restore by the same queue-occupancy argument above) or OnReceivePlayerChoice
             //    (:168-190, inserts an already-completed entry — SetResult already called —
             //    when a choice result arrives before anyone is waiting). Only the latter kind
-            //    can survive to an idle restore, and it has no waiter to strand.
+            //    can survive to an idle restore, and it has no waiter to strand. Unlike the action
+            //    id above, this one keeps a real reuse hazard: PlayerChoiceSynchronizer's choice
+            //    ids ARE still rewound by FastForwardChoiceIds below (unaffected by this fix), and
+            //    _receivedChoices is keyed by (choiceId, senderId) (PlayerChoiceSynchronizer.cs:
+            //    27-34, matched at :124 and :171) — so a stale entry here genuinely can collide
+            //    with a legitimately-reserved future choice that reuses the same id after the
+            //    rewind. Clearing this one is still load-bearing correctness, not just hygiene.
             // Cleared via reflection (both are List<T>, i.e. IList) since neither type exposes a
             // public Clear. A non-zero count means the "idle queue at restore" invariant this
             // reasoning rests on didn't hold — evidence worth logging loudly, not silence.
@@ -623,8 +907,48 @@ internal static class ChecksumHook
             // 3. Checksum tracker: next checksum reuses id ChecksumId+1, and stale
             //    tracked entries must go or the host would compare a reused id against
             //    a pre-restore state. (Queued remotes too — safe while idle.)
+            //    Unlike ActionQueueSet's action id (step 2, above), ChecksumTracker.NextId
+            //    (ChecksumTracker.cs:57, incremented once per ObtainAndTrackChecksum call at
+            //    :167) genuinely IS the peers' shared logical clock — it's the key this whole
+            //    design uses to mean "the same moment on every peer" (SyncPoint's own doc
+            //    comment above). That's not incidental: GenerateChecksum's own doc comment
+            //    (ChecksumTracker.cs:83-84) states it as the class's contract — "This should be
+            //    called the exact same amount of times for every peer, otherwise false positive
+            //    mismatches will be generated" — i.e. NextId is REQUIRED to march in lockstep
+            //    across peers for the game's own divergence detection to work at all. The action
+            //    id has no such contract; it only needs to be locally monotonic within a peer.
+            //    So this counter — categorically unlike the action id — must stay rewound.
+            //    MEASURED CORRECTION: NextId is deliberately NOT rewound any more.
+            //
+            //    Rewinding it made a restore REUSE checksum ids, and the game's own tracker
+            //    matches an incoming remote checksum with
+            //    `_checksums.FindIndex(c => c.data.id == remoteChecksumData.id)`
+            //    (ChecksumTracker.cs:115 and :139) — the FIRST entry with that id. Reuse puts two
+            //    entries with the same id in that list, so the host can compare a peer's
+            //    POST-restore checksum against its own PRE-restore entry and report a divergence
+            //    for states that actually agree.
+            //
+            //    That is not a theory. With both peers logging their raw checksum stream, the two
+            //    streams came out identical — same ids, same contexts, same payload hashes,
+            //    including the reused ids — and the client was still sent 5 StateDivergenceMessages.
+            //    Identical streams plus reported divergence can only mean the comparison matched
+            //    the wrong entries.
+            //
+            //    Clearing the local lists (below) is not enough on its own, because the two peers
+            //    do not restore at the same instant — 726ms apart in one measured run — and in that
+            //    window a peer that has already resumed can send a checksum under a reused id to a
+            //    peer that has not cleared yet.
+            //
+            //    GenerateChecksum's contract (ChecksumTracker.cs:83-84) — "called the exact same
+            //    amount of times for every peer" — is satisfied either way: both peers were at the
+            //    same NextId before the restore, so both simply carrying on from it keeps them in
+            //    lockstep. The contract is about the peers AGREEING, not about the number going
+            //    backwards.
+            //
+            //    Nothing is lost from the design's self-check either. The restore is still verified
+            //    across peers: the next action after it is checksummed and compared as usual, just
+            //    under a fresh id, so an asymmetric restore still shows up immediately.
             var tracker = rm.ChecksumTracker;
-            TrackerNextIdProp?.SetValue(tracker, sp.ChecksumId + 1);
             (TrackerChecksumsField?.GetValue(tracker) as System.Collections.IList)?.Clear();
             (TrackerQueuedRemoteField?.GetValue(tracker) as System.Collections.IList)?.Clear();
 
@@ -644,7 +968,11 @@ internal static class ChecksumHook
             if (cs != null)
                 UiRefresh.RefreshAll(cs);
 
-            Log.Write($">>> [ChecksumHook] RESTORE complete. nextChecksumId={sp.ChecksumId + 1} nextActionId={sp.NextActionId} nextHookId={sp.NextHookId} clearedResumptions={clearedResumptions} clearedChoices={clearedChoices} | remaining sync points={SyncPoints.Count}");
+            // recordedNextActionId is sp.NextActionId as captured at the sync point — diagnostic
+            // only, no longer applied (see step 2 above). actualNextActionId is
+            // ActionQueueSet.NextActionId's real current value, unchanged by this restore; logging
+            // both side by side is what makes a host/client divergence in this counter visible.
+            Log.Write($">>> [ChecksumHook] RESTORE complete. nextChecksumId={sp.ChecksumId + 1} recordedNextActionId={sp.NextActionId} actualNextActionId={rm.ActionQueueSet.NextActionId} nextHookId={sp.NextHookId} clearedResumptions={clearedResumptions} clearedChoices={clearedChoices} | remaining sync points={SyncPoints.Count}");
         }
         catch (Exception ex)
         {
