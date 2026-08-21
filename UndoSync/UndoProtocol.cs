@@ -67,6 +67,38 @@ public record struct UndoVoteMessage : INetMessage
     }
 }
 
+/// <summary>
+/// targetChecksumId alone is not enough to stop peers restoring at different points on the shared
+/// logical clock. ChecksumTracker.NextId (ChecksumTracker.cs:57, public getter/private setter) IS
+/// that clock: GenerateChecksum's own doc comment (ChecksumTracker.cs:83-84) requires it be "called
+/// the exact same amount of times for every peer, otherwise false positive mismatches will be
+/// generated". Arming CombatManager.PlayerActionsDisabled (see "── Cross-peer restore barrier ──"
+/// below) only blocks NEW player input — it cannot undo work already enqueued before the barrier
+/// armed, and a live two-instance run measured exactly that: every hash matched up to id=7, then the
+/// client alone kept draining its own pre-barrier queue and emitted ids 8 and 9 (same payload hash as
+/// its own id 7 — state unchanged, but two more GenerateChecksum calls) that the host never emitted,
+/// permanently desynchronising every id after the restore.
+///
+/// hostNextChecksumId is the fix: the host's own ChecksumTracker.NextId, sampled in
+/// CheckAllAccepted at the exact moment it decides to commit (before this message is even
+/// constructed), broadcast alongside the restore target. Every peer — including the host itself,
+/// through the same CommitAsync path; see that method's own doc comment for why it is not
+/// special-cased — waits until its own NextId has caught up to this value before restoring, in
+/// addition to (not instead of) the existing idle wait. NextId only ever increases (RestoreTo
+/// deliberately does not rewind it — see that method's own step-3 comment) and is the peers'
+/// globally-ordered sequence of checksummed moments, so once every peer's own NextId reaches the
+/// same value, they are all, by construction, at the same logical point in that sequence at the
+/// instant the restore actually happens.
+///
+/// CheckAllAccepted samples this AFTER the host's own barrier (CombatManager.PlayerActionsDisabled)
+/// has already been armed since PROPOSAL time (ArmBarrierForProposal, called from
+/// ProposeTarget/OnProposalReceived — see the "── Cross-peer restore barrier ──" section header for
+/// why arming moved that early), not armed by this call the way an earlier design armed it here.
+/// The sample and the barrier no longer race each other. If a peer's own NextId is still measured
+/// AHEAD of this sample once it goes idle, that is now a signal worth investigating — something
+/// executed while this peer was supposed to be barriered — not an expected, silently-absorbed
+/// overshoot; CommitAsync's own AHEAD log line exists precisely to surface that rather than hide it.
+/// </summary>
 public record struct UndoCommitMessage : INetMessage
 {
     public bool ShouldBroadcast => true;
@@ -75,10 +107,19 @@ public record struct UndoCommitMessage : INetMessage
     public bool ShouldBuffer => true;
 
     public uint targetChecksumId;
+    public uint hostNextChecksumId;
 
-    public void Serialize(PacketWriter writer) => writer.WriteUInt(targetChecksumId);
+    public void Serialize(PacketWriter writer)
+    {
+        writer.WriteUInt(targetChecksumId);
+        writer.WriteUInt(hostNextChecksumId);
+    }
 
-    public void Deserialize(PacketReader reader) => targetChecksumId = reader.ReadUInt();
+    public void Deserialize(PacketReader reader)
+    {
+        targetChecksumId = reader.ReadUInt();
+        hostNextChecksumId = reader.ReadUInt();
+    }
 }
 
 public record struct UndoCancelMessage : INetMessage
@@ -164,19 +205,38 @@ public record struct UndoResumeMessage : INetMessage
 //   multiplayer:  broadcast UndoProposal, every peer shows an accept/reject popup.
 //                 The HOST tallies votes (proposer counts as accepted). All accepted
 //                 → host broadcasts UndoCommit and everyone restores the same sync
-//                 point after their action queue drains. Any reject → UndoCancel.
+//                 point after their action queue drains AND the shared checksum clock
+//                 catches up (see below). Any reject → UndoCancel.
 //
-// UndoCommit used to just start each peer's own restore independently, with nothing stopping a
-// peer that finished first from continuing to play while a slower peer was still mid-restore — a
-// real two-instance run measured the two peers restoring 726ms apart, long enough for an ordinary
-// card play to execute on the faster peer and never reach the slower one before it, too, restored
-// (see this file's git history for the measurement). So UndoCommit now ALSO raises a barrier
-// (CombatManager.PlayerActionsDisabled, reached via reflection — see PlayerActionsDisabledProp's
-// own doc comment for why) the INSTANT it is received, before CommitAsync's idle wait even starts:
-// every peer still restores only once it is itself idle (the existing CanUndoRedo-style gate inside
-// CommitAsync, unchanged), then sends UndoRestoreAck. The HOST tallies acks the same way it tallies
-// votes and, once every player has acked, broadcasts UndoResume — which is what actually lowers the
-// barrier on every peer. See "── Cross-peer restore barrier ──" further down for the full mechanism.
+// This went through three iterations, each closing a divergence a live two-instance run actually
+// measured:
+//
+//   1. Original: each peer restored independently once idle, with nothing stopping a peer that
+//      finished first from continuing to play while a slower peer was still mid-restore — measured
+//      726ms apart, long enough for an ordinary card play to execute on the faster peer and never
+//      reach the slower one before it, too, restored (see this file's git history). Fix: a barrier
+//      (CombatManager.PlayerActionsDisabled, reached via reflection — see PlayerActionsDisabledProp's
+//      own doc comment for why) that blocks new player input until every peer has restored and
+//      acked (UndoRestoreAckMessage) and the host has broadcast UndoResume.
+//
+//   2. The barrier alone still wasn't enough: it blocks NEW player input but cannot undo work
+//      already enqueued before it armed, and a run measured a peer draining that pre-barrier work
+//      into two EXTRA checksums after everyone else had stopped — a different COUNT of
+//      GenerateChecksum calls, which desynchronises ChecksumTracker.NextId (the peers' shared
+//      logical clock) for good. Fix: CommitAsync's idle wait ALSO waits for this peer's own NextId
+//      to reach a target the host samples — see UndoCommitMessage.hostNextChecksumId's own doc
+//      comment for the full mechanism.
+//
+//   3. Arming the barrier on UndoCommitMessage receipt was STILL too late: nothing held any peer
+//      through the propose→vote→tally round trip that precedes the commit, so a run measured both
+//      peers' NextId already past the host's commit-time sample — by a DIFFERENT amount each —
+//      before the commit even arrived. Fix: the barrier now arms at PROPOSAL time (ProposeTarget for
+//      the proposer's own barrier, OnProposalReceived for every other peer), before the vote even
+//      starts. This also matches the real user expectation: once a player proposes an undo,
+//      everyone's input is held until it resolves, not just once the vote finishes.
+//
+// See "── Cross-peer restore barrier ──" further down for the full arm/release mechanism, including
+// every path that can end a proposal without a commit (rejected vote, proposer cancel, timeout).
 internal static class UndoProtocol
 {
     private static INetGameService? _registeredService;
@@ -285,17 +345,27 @@ internal static class UndoProtocol
     private const int CommitIdleWaitFrames = 60 * 60; // ~60s at 60fps — mirrors CommitAsync's own bound
 
     /// <summary>
-    /// Bound for BarrierTimeoutWatchdog (see its own doc comment), reusing TimeoutFrames — the
-    /// proposal flow's own budget — per the task's "reuse the timeout mechanism the proposal flow
-    /// already has", rather than inventing a second timeout constant. It is added ON TOP of
-    /// CommitIdleWaitFrames rather than used alone: CommitAsync's own idle-wait loop can legitimately
-    /// run for that entire ~60s before either restoring or aborting, and the barrier must stay armed
-    /// for all of it — a shorter bound could release the barrier while a peer is still legitimately
-    /// waiting for an idle moment to restore, recreating exactly the race this barrier exists to
-    /// close. TimeoutFrames on top of that is margin for the ack/resume round trip once every peer
-    /// that needed to restore actually has (~90s total from the moment a barrier arms).
+    /// Bound for BarrierTimeoutWatchdog (see its own doc comment) — the ABSOLUTE last resort if
+    /// every other release path (normal resume, a rejected vote, a proposer cancel, or the
+    /// proposal's own TimeoutWatchdog — see the "── Cross-peer restore barrier ──" section header
+    /// for the full list) somehow never fires for this peer.
+    ///
+    /// The barrier now arms at PROPOSAL time (ProposeTarget/OnProposalReceived), not commit time, so
+    /// this bound has to cover three phases end to end, not two:
+    ///   1. TimeoutFrames — the vote/proposal phase itself (this proposal's own TimeoutWatchdog
+    ///      bound), which now runs entirely INSIDE the barrier's armed window instead of before it.
+    ///   2. CommitIdleWaitFrames — CommitAsync's own idle+clock-catch-up wait, unchanged: it can
+    ///      legitimately run for its full ~60s before either restoring or aborting, and the barrier
+    ///      must stay armed for all of it — a shorter bound could release the barrier while a peer
+    ///      is still legitimately mid-wait, recreating exactly the race this barrier exists to close.
+    ///   3. TimeoutFrames again — margin for the ack/resume round trip once every peer that needed to
+    ///      restore actually has, the same margin the original (commit-time-arm) design already
+    ///      reserved for this phase alone.
+    /// (~120s total from the moment a barrier arms, vs. the ~90s an earlier, commit-time-arm design
+    /// needed — the extra TimeoutFrames is exactly the vote phase that now happens INSIDE the armed
+    /// window instead of before it.)
     /// </summary>
-    private const int BarrierTimeoutFrames = CommitIdleWaitFrames + TimeoutFrames;
+    private const int BarrierTimeoutFrames = TimeoutFrames + CommitIdleWaitFrames + TimeoutFrames;
 
     internal static void EnsureHandlersRegistered()
     {
@@ -388,7 +458,7 @@ internal static class UndoProtocol
         }
         if (BarrierArmed)
         {
-            // A previous commit's barrier (see "── Cross-peer restore barrier ──" below) hasn't
+            // A previous undo's barrier (see "── Cross-peer restore barrier ──" below) hasn't
             // released on this peer yet — nobody may act, including proposing another restore,
             // until every peer has finished the one already in flight.
             Log.Write($"[UndoProtocol] RequestUndo ignored: restore barrier still armed for id={_barrierTargetId}");
@@ -414,7 +484,9 @@ internal static class UndoProtocol
         {
             // Defense in depth alongside RequestUndo's own check above: covers the narrow window
             // between RequestUndo opening the picker and the picker calling back in here, during
-            // which a commit could have arrived and armed the barrier.
+            // which a DIFFERENT peer's proposal could have arrived and armed the barrier (the
+            // barrier now arms on the proposal itself, not on a later commit — see
+            // ArmBarrierForProposal's own doc comment).
             Log.Write($"[UndoProtocol] ProposeTarget ignored: restore barrier still armed for id={_barrierTargetId}");
             return;
         }
@@ -444,6 +516,14 @@ internal static class UndoProtocol
         _pendingTargetId = target.ChecksumId;
         _accepted.Clear();
         _accepted.Add(MyNetId);
+        // Arm THIS peer's own barrier now — before the proposal is even sent, not later at commit
+        // time. See the "── Cross-peer restore barrier ──" section header for why commit-time
+        // arming was measured too late: nothing was holding either peer through the
+        // propose→vote→tally round trip, so both peers' ChecksumTracker.NextId had already blown
+        // past the host's commit-time sample, by a different amount each, before the commit even
+        // arrived. CanUndoRedo() a few lines up already required this peer's own queue to be empty,
+        // so there is nothing in flight here that this arm call needs to race against.
+        ArmBarrierForProposal(target.ChecksumId);
         svc.SendMessage(new UndoProposalMessage
         {
             targetChecksumId = target.ChecksumId,
@@ -482,14 +562,28 @@ internal static class UndoProtocol
         if (BarrierArmed)
         {
             // This peer's own restore barrier (see "── Cross-peer restore barrier ──" below) from a
-            // PREVIOUS commit hasn't released yet — it is still mid its own idle-wait/restore, or
-            // still waiting on the host's UndoResume. Auto-reject exactly like the missing-sync-point
-            // case below: the proposer's own "Waiting" popup needs a real UndoVoteMessage(accept:
-            // false) to resolve into an UndoCancelMessage, not silence.
+            // PREVIOUS undo attempt hasn't released yet — it may still be mid its own vote, mid its
+            // own idle-wait/restore, or still waiting on the host's UndoResume (arming now happens at
+            // PROPOSAL time, so "still armed" covers the whole lifecycle, not just the restore tail).
+            // Auto-reject exactly like the missing-sync-point case below: the proposer's own
+            // "Waiting" popup needs a real UndoVoteMessage(accept: false) to resolve into an
+            // UndoCancelMessage, not silence. This peer's OWN barrier is left untouched here — it
+            // belongs to the OLDER proposal and resolves through that proposal's own release path,
+            // not this new one.
             Log.Write($"[UndoProtocol] Proposal id={msg.targetChecksumId} received while this peer's own restore barrier (target={_barrierTargetId}) is still armed — auto-rejecting so nobody diverges.");
             SubmitLocalVote(accept: false);
             return;
         }
+
+        // Arm THIS peer's own barrier for the NEW proposal now, unconditionally — before deciding
+        // how to vote, not after. See ProposeTarget's own arm call and the section header for why:
+        // every peer's input must be held for the WHOLE propose→vote→commit window, not just from
+        // commit onward, or peers keep drifting apart during the vote round trip. Even a peer about
+        // to auto-reject just below (missing sync point) arms first: that reject still has to travel
+        // to the host and come back as an UndoCancelMessage before this peer is free again (see
+        // OnCancelReceived's own release call), and other peers may still be mid-vote in the
+        // meantime.
+        ArmBarrierForProposal(msg.targetChecksumId);
 
         if (!ChecksumHook.HasSyncPoint(msg.targetChecksumId))
         {
@@ -525,13 +619,18 @@ internal static class UndoProtocol
 
     private static void OnCommitReceived(UndoCommitMessage msg, ulong senderId)
     {
-        Log.Write($"[UndoProtocol] Commit received for id={msg.targetChecksumId}");
-        // The barrier goes up FIRST — before ClosePopup, before CommitAsync's idle wait even starts
-        // — so no new player action can slip in on THIS peer during the window before every peer
-        // has restored. See ArmBarrierForCommit/ArmActionBarrier's own doc comments.
-        ArmBarrierForCommit(msg.targetChecksumId);
+        Log.Write($"[UndoProtocol] Commit received for id={msg.targetChecksumId} hostNextChecksumId={msg.hostNextChecksumId}");
+        // The barrier is already up by now — armed back in OnProposalReceived when this peer first
+        // saw the proposal for this same target, not here (arming on commit receipt was measured
+        // too late — see the "── Cross-peer restore barrier ──" section header). Defensive check
+        // only: a mismatch would mean the barrier lifecycle broke upstream — log loudly rather than
+        // silently re-arming over it, which would also stomp _barrierPreviousActionsDisabled with
+        // the barrier's OWN forced value instead of whatever it truly was before arming (see
+        // CheckAllAccepted's identical check for the same reasoning).
+        if (_barrierTargetId != msg.targetChecksumId)
+            Log.Write($"[UndoProtocol] OnCommitReceived: barrier target mismatch — armed for {(_barrierTargetId?.ToString() ?? "none")}, commit says {msg.targetChecksumId}. This should be impossible now that the barrier arms at proposal time; investigate if seen.");
         ClosePopup();
-        _ = CommitAsync(msg.targetChecksumId);
+        _ = CommitAsync(msg.targetChecksumId, msg.hostNextChecksumId);
         ResetPending();
     }
 
@@ -540,6 +639,12 @@ internal static class UndoProtocol
         Log.Write($"[UndoProtocol] Cancelled by {msg.byNetId} (target id={msg.targetChecksumId})");
         ClosePopup();
         ResetPending();
+        // Release THIS peer's own barrier for the cancelled target — armed back in
+        // OnProposalReceived/ProposeTarget when the (now-cancelled) proposal first arrived here.
+        // ReleaseBarrierForTarget already no-ops on a mismatched/stale target, so this is harmless
+        // even for a peer whose barrier already resolved some other way (e.g. its own
+        // TimeoutWatchdog firing first).
+        ReleaseBarrierForTarget(msg.targetChecksumId);
     }
 
     /// <summary>Host-only: tally one peer's restore ack, same shape as OnVoteReceived above.</summary>
@@ -580,7 +685,9 @@ internal static class UndoProtocol
             RegisterVote(MyNetId, accept); // host's own vote never loops back as a message
     }
 
-    /// <summary>Host-only: tally a vote, then commit or cancel.</summary>
+    /// <summary>Host-only: tally a vote, then commit or cancel. A reject releases the barrier too —
+    /// see the "── Cross-peer restore barrier ──" section header for the full list of release paths
+    /// this joins.</summary>
     private static void RegisterVote(ulong voter, bool accept)
     {
         if (_pendingTargetId == null) return;
@@ -590,6 +697,11 @@ internal static class UndoProtocol
             Log.Write($"[UndoProtocol] {voter} rejected — cancelling");
             _registeredService?.SendMessage(new UndoCancelMessage { targetChecksumId = target, byNetId = voter });
             ClosePopup();
+            // Host's own release: the broadcast above never loops back to its own sender — same
+            // reason ArmBarrierForProposal is called directly in ProposeTarget/OnProposalReceived
+            // rather than relying on a self-sent message looping back. Every OTHER peer releases via
+            // OnCancelReceived once this broadcast reaches it.
+            ReleaseBarrierForTarget(target);
             ResetPending();
             return;
         }
@@ -604,15 +716,27 @@ internal static class UndoProtocol
         var all = AllPlayerIds().ToList();
         if (all.Count == 0 || !all.All(id => _accepted.Contains(id)))
             return;
-        Log.Write($"[UndoProtocol] All {all.Count} players accepted — committing id={target}");
-        _registeredService?.SendMessage(new UndoCommitMessage { targetChecksumId = target });
-        // Host's own barrier: the broadcast above never loops back to its own sender (same reason
-        // RegisterVote(MyNetId, accept) is called directly a few lines up instead of relying on
-        // OnVoteReceived firing locally) — so arm it here explicitly, exactly like OnCommitReceived
-        // does for every OTHER peer that receives the broadcast.
-        ArmBarrierForCommit(target);
+        // The host's OWN barrier for `target` is already armed by now — from ProposeTarget if the
+        // host itself is the proposer, or from OnProposalReceived if it received the proposal from
+        // someone else — never from here (arming on commit was measured too late; see the
+        // "── Cross-peer restore barrier ──" section header). A mismatch would mean the barrier
+        // lifecycle broke upstream; log it loudly rather than silently re-arming over it, which
+        // would also stomp _barrierPreviousActionsDisabled with the barrier's OWN forced value
+        // instead of whatever it truly was before arming.
+        if (_barrierTargetId != target)
+            Log.Write($"[UndoProtocol] CheckAllAccepted: barrier target mismatch at commit time — armed for {(_barrierTargetId?.ToString() ?? "none")}, committing {target}. This should be impossible now that the barrier arms at proposal time; investigate if seen.");
+        // Sampled HERE, AFTER the barrier above has been armed since PROPOSAL time (not armed by
+        // this call) — so, unlike the earlier commit-time-arm design, nothing between the proposal
+        // and this tally can legitimately move this peer's own NextId out from under the sample.
+        // Reused for both the broadcast message and the host's own CommitAsync call below, so the
+        // host's own wait (see CommitAsync's clock-catch-up doc comment) is trivially satisfied by
+        // construction: NextId only ever increases, so by the time this same value is checked again
+        // a few lines down it can only be >= this sample, never less.
+        uint clockAtCommit = RunManager.Instance?.ChecksumTracker?.NextId ?? 0;
+        Log.Write($"[UndoProtocol] All {all.Count} players accepted — committing id={target} clockAtCommit={clockAtCommit}");
+        _registeredService?.SendMessage(new UndoCommitMessage { targetChecksumId = target, hostNextChecksumId = clockAtCommit });
         ClosePopup();
-        _ = CommitAsync(target);
+        _ = CommitAsync(target, clockAtCommit);
         ResetPending();
     }
 
@@ -648,8 +772,8 @@ internal static class UndoProtocol
         Log.Write($"[UndoProtocol] All {all.Count} players acked restore id={target} — releasing barrier.");
         _registeredService?.SendMessage(new UndoResumeMessage { targetChecksumId = target });
         // Host's own release: the broadcast above never loops back to its own sender — same reason
-        // ArmBarrierForCommit is called directly in CheckAllAccepted instead of relying on
-        // OnCommitReceived firing locally.
+        // ArmBarrierForProposal is called directly in ProposeTarget/OnProposalReceived instead of
+        // relying on a self-sent message looping back.
         ReleaseBarrierForTarget(target);
     }
 
@@ -698,9 +822,52 @@ internal static class UndoProtocol
             + "action) is pending.");
     }
 
-    // ── Commit: wait for the local action queue to drain, then restore ──
+    // ── Commit: wait for the local action queue to drain AND the shared clock, then restore ──
 
-    private static async Task CommitAsync(uint targetId)
+    /// <summary>
+    /// Bound on how long CommitAsync will wait, once THIS peer is already locally idle (the
+    /// pre-existing idle-wait immediately below has already succeeded for this frame), for its own
+    /// ChecksumTracker.NextId to catch up to <c>clockTarget</c> (UndoCommitMessage.
+    /// hostNextChecksumId — see that field's own doc comment for the full mechanism) before giving
+    /// up on this restore attempt. Reuses TimeoutFrames — the proposal flow's own budget — rather
+    /// than inventing a third timeout constant, the same reasoning BarrierTimeoutFrames already
+    /// applies to itself.
+    ///
+    /// Measured from the frame this peer FIRST went idle (CommitAsync's own `idleSinceFrame`), not
+    /// from CommitAsync's start, and it rides inside the existing CommitIdleWaitFrames loop rather
+    /// than extending it — so the total time CommitAsync can ever run stays capped at
+    /// CommitIdleWaitFrames, exactly what BarrierTimeoutFrames's own "~90s total" margin already
+    /// assumes for it. The one consequence of not extending the outer bound: if a peer happens to
+    /// first go idle so late that fewer than ClockCatchUpFrames remain in the outer loop, the OUTER
+    /// bound fires first — CommitAsync's own post-loop fallback below still attributes that
+    /// correctly to a clock timeout (not the generic "never went idle" message) by checking whether
+    /// `idleSinceFrame` was ever set.
+    /// </summary>
+    private const int ClockCatchUpFrames = TimeoutFrames; // ~30s at 60fps
+
+    /// <summary>
+    /// Runs on EVERY peer that receives (or, on the host, decides) a commit — OnCommitReceived and
+    /// CheckAllAccepted both call this the same way, host included, with no special-casing: a single
+    /// path is easier to reason about than a host-only shortcut, and the host's own wait is
+    /// trivially satisfied anyway, since <paramref name="clockTarget"/> is exactly what the host's
+    /// own ChecksumTracker.NextId already was at the instant it was sampled (CheckAllAccepted), and
+    /// NextId only ever increases.
+    ///
+    /// Two gates must BOTH hold, in the same frame, before this peer restores:
+    ///   1. LOCAL IDLE — the pre-existing queue-drain gate below, unchanged.
+    ///   2. SHARED CLOCK — this peer's own ChecksumTracker.NextId has caught up to
+    ///      <paramref name="clockTarget"/>, added ON TOP of (not instead of) gate 1. Gate 1 alone
+    ///      is a LOCAL condition — a peer can have its own queue empty while still behind the
+    ///      shared clock, because already-enqueued, pre-barrier work can keep draining (and
+    ///      generating checksums) after the barrier arms and after this peer's OWN queue looks
+    ///      empty, if that work is still arriving over the network from another peer. See
+    ///      UndoCommitMessage.hostNextChecksumId's own doc comment for the measured divergence this
+    ///      closes — this is the fix for it.
+    /// Checking both together in the same frame (rather than waiting for gate 1 once, then gate 2
+    /// separately) is what guarantees RestoreTo is only ever called at an instant where the local
+    /// queue is ACTUALLY still empty — not just was empty a few frames ago.
+    /// </summary>
+    private static async Task CommitAsync(uint targetId, uint clockTarget)
     {
         try
         {
@@ -715,6 +882,13 @@ internal static class UndoProtocol
             // restored state. All peers evaluate the same synchronized state, so they
             // proceed (or abort) together.
             var tree = NGame.Instance?.GetTree();
+            // See ClockCatchUpFrames's own doc comment for why this is tracked from the first idle
+            // frame instead of CommitAsync's start, and reset to null whenever idle is lost again
+            // (a late-arriving, pre-barrier action from another peer can make the local queue
+            // non-empty again for a frame or two before this peer's clock has caught up).
+            int? idleSinceFrame = null;
+            uint lastKnownNextId = 0;
+            bool loggedClockAhead = false;
             for (int i = 0; i < CommitIdleWaitFrames; i++) // up to ~60s at 60fps
             {
                 var cm = CombatManager.Instance;
@@ -732,24 +906,69 @@ internal static class UndoProtocol
                     && NGame.Instance?.Transition?.InTransition != true;
                 if (idle)
                 {
-                    // Part C (step 3) proof — see AssertQueueEmptyOrRecordViolation's own doc
-                    // comment; `idle` above already required aq.IsEmpty, so this can only ever
-                    // record zero, but it stays as an explicit, independently-logged assertion.
-                    AssertQueueEmptyOrRecordViolation("CommitAsync");
-                    ChecksumHook.RestoreTo(sp);
-                    CommitCount++;
-                    LastCommittedChecksumId = sp.ChecksumId;
-                    // Tell the host this peer is done — see "── Cross-peer restore barrier ──"
-                    // below. Sent even if this peer's own barrier failed to arm (reflection
-                    // missing/threw): the ack means "I finished restoring", independent of whether
-                    // the barrier itself is enforcing that on this peer.
-                    SendRestoreAck(sp.ChecksumId);
-                    return;
+                    uint localNextId = RunManager.Instance?.ChecksumTracker?.NextId ?? 0;
+                    lastKnownNextId = localNextId;
+                    if (localNextId > clockTarget && !loggedClockAhead)
+                    {
+                        // Distinct from the "still behind" timeout below on purpose — the two are
+                        // different failures (this peer raced AHEAD of the host's own sample,
+                        // rather than lagging behind it) and conflating them would repeat a mistake
+                        // this project has already made once (see 98c94c7, "name their two
+                        // causes"). Nothing to wait FOR here — ChecksumTracker.NextId cannot be
+                        // rewound (ChecksumHook.RestoreTo's own step-3 comment) — so this peer just
+                        // proceeds; logged once (not every frame) so it doesn't spam.
+                        loggedClockAhead = true;
+                        Log.Write($"[UndoProtocol] Commit clock AHEAD for id={targetId}: local NextId={localNextId} already past target={clockTarget} — this peer raced ahead of the host's commit sample before the commit even arrived; proceeding without waiting.");
+                    }
+                    if (localNextId >= clockTarget)
+                    {
+                        // Part C (step 3) proof — see AssertQueueEmptyOrRecordViolation's own doc
+                        // comment; `idle` above already required aq.IsEmpty, so this can only ever
+                        // record zero, but it stays as an explicit, independently-logged assertion.
+                        AssertQueueEmptyOrRecordViolation("CommitAsync");
+                        ChecksumHook.RestoreTo(sp);
+                        CommitCount++;
+                        LastCommittedChecksumId = sp.ChecksumId;
+                        // Tell the host this peer is done — see "── Cross-peer restore barrier ──"
+                        // below. Sent even if this peer's own barrier failed to arm (reflection
+                        // missing/threw): the ack means "I finished restoring", independent of whether
+                        // the barrier itself is enforcing that on this peer.
+                        SendRestoreAck(sp.ChecksumId);
+                        return;
+                    }
+                    // Idle locally, but still BEHIND the shared clock: this peer is missing
+                    // actions the host had already executed by the time it decided to commit — a
+                    // real problem worth SEEING, not hiding, the same philosophy
+                    // BarrierTimeoutWatchdog's own doc comment states for its own unconditional
+                    // release. Bounded by ClockCatchUpFrames, measured from the first idle frame.
+                    idleSinceFrame ??= i;
+                    if (i - idleSinceFrame.Value >= ClockCatchUpFrames)
+                    {
+                        Log.Write($"[UndoProtocol] Commit clock TIMEOUT for id={targetId}: local NextId={localNextId} never reached target={clockTarget} within {ClockCatchUpFrames} frames (~{ClockCatchUpFrames / 60}s) of first going idle — skipping restore. This peer is missing actions the host had already executed by commit time; treat the next checksum mismatch, if any, as expected fallout of this gap, not a new bug.");
+                        return;
+                    }
+                }
+                else
+                {
+                    idleSinceFrame = null; // lost idle — the clock sub-wait restarts once it returns
                 }
                 if (tree == null) break;
                 await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
             }
-            Log.Write("[UndoProtocol] Commit aborted: never reached an idle play phase — skipping restore");
+            if (idleSinceFrame != null)
+            {
+                // The outer ~60s bound was hit WHILE this peer was already idle and waiting on the
+                // shared clock — only possible if idle was first reached late enough that
+                // ClockCatchUpFrames's own sub-bound didn't get a chance to fire first (see that
+                // constant's own doc comment). Attribute the failure correctly instead of the
+                // generic message below, which would otherwise wrongly suggest the queue itself
+                // never drained.
+                Log.Write($"[UndoProtocol] Commit clock TIMEOUT for id={targetId}: local NextId={lastKnownNextId} never reached target={clockTarget} before the overall commit wait ({CommitIdleWaitFrames} frames, ~{CommitIdleWaitFrames / 60}s) expired — skipping restore. This peer is missing actions the host had already executed by commit time; treat the next checksum mismatch, if any, as expected fallout of this gap, not a new bug.");
+            }
+            else
+            {
+                Log.Write("[UndoProtocol] Commit aborted: never reached an idle play phase — skipping restore");
+            }
             // No ack is sent — this peer never restored. If combat is still in progress, this
             // peer's own barrier stays armed and BarrierTimeoutWatchdog's bound (~90s, longer than
             // this loop's own ~60s) is what eventually frees it; if combat ended, ResetOnCombatEnd
@@ -765,24 +984,49 @@ internal static class UndoProtocol
 
     // ── Cross-peer restore barrier ──
     //
-    // Arms on commit RECEIPT (ArmBarrierForCommit, called from OnCommitReceived for every peer that
-    // receives the broadcast, and from CheckAllAccepted for the host itself, whose own broadcast
-    // never loops back) — i.e. before CommitAsync's idle wait even starts, per the task this was
-    // built for: "the moment a peer receives UndoCommitMessage ... it must stop allowing new player
-    // actions", not after it happens to go idle. Releases only once every player has acked
-    // (ReleaseBarrierForTarget, driven by CheckAllAcked on the host / OnResumeReceived on every other
-    // peer), or once BarrierTimeoutWatchdog's bound elapses, whichever comes first.
+    // Arms on PROPOSAL, not commit (ArmBarrierForProposal, called from ProposeTarget for the
+    // proposer's own barrier, and from OnProposalReceived for every other peer on receipt) — i.e.
+    // before the vote round trip even starts, not after it. Arming on commit receipt was the
+    // original design and it was measured insufficient: nothing held any peer through
+    // propose→vote→tally, so both peers kept executing actions during that whole window and each
+    // one's ChecksumTracker.NextId had already blown past the host's commit-time sample — by a
+    // DIFFERENT amount on each peer — before the commit even arrived (see UndoCommitMessage's own
+    // doc comment for the shared-clock mechanism this barrier protects). Arming this early is what
+    // actually holds everyone from the moment a restore becomes possible, matching the real user
+    // expectation too: once a player proposes an undo, everyone's input is held until it resolves,
+    // not just once the vote finishes.
+    //
+    // Every path that RESOLVES a proposal releases the barrier that arming call put up — normal
+    // completion is not the only one:
+    //   - ACCEPTED by everyone → CheckAllAccepted → CommitAsync restores, then SendRestoreAck →
+    //     the host's CheckAllAcked (once every player has acked) broadcasts UndoResume, which
+    //     ReleaseBarrierForTarget lowers on every peer (OnResumeReceived for clients, directly for
+    //     the host — a self-broadcast never loops back).
+    //   - REJECTED by any one vote → RegisterVote's reject branch sends UndoCancelMessage and
+    //     releases the host's own barrier directly (self-broadcast doesn't loop back); every other
+    //     peer releases via OnCancelReceived once that broadcast arrives.
+    //   - the PROPOSER cancels their own "waiting for votes" popup → HandleWaitingPopupResult sends
+    //     UndoCancelMessage and releases the proposer's own barrier directly (same self-broadcast
+    //     reason); every other peer again releases via OnCancelReceived.
+    //   - the proposal simply TIMES OUT (nobody voted in time) → TimeoutWatchdog (one instance per
+    //     peer, generation-guarded) releases THIS peer's own barrier unconditionally once its bound
+    //     elapses, regardless of host/client role — it does not wait for a network round trip that
+    //     may never arrive.
+    //   - none of the above ever fires → BarrierTimeoutWatchdog's own bound (BarrierTimeoutFrames,
+    //     now sized to cover the vote phase AND the commit phase — see that constant's own doc
+    //     comment) is the absolute last resort, releasing this peer's barrier unconditionally and
+    //     logging that the session may now be divergent.
     //
     // Singleplayer cannot deadlock on any of this: ProposeTarget's own `svc.Type ==
     // NetGameType.Singleplayer` branch (above) calls ChecksumHook.RestoreTo directly and returns
-    // BEFORE any UndoCommitMessage is ever sent, so ArmBarrierForCommit is never reached at all in
-    // singleplayer — there is no message for a deadlock to wait on because none of this code runs.
+    // BEFORE ArmBarrierForProposal is ever reached — there is no barrier for a deadlock to wait on
+    // because none of this code runs.
     //
     // A HOSTED game with only the host connected (NetGameType.Host, zero clients — different from
     // true Singleplayer above) also cannot deadlock, and resolves synchronously: AllPlayerIds()
-    // returns just [MyNetId], so CheckAllAccepted (already, unchanged) and CheckAllAcked (new, same
-    // shape) both tally with a single local Register*(MyNetId, ...) call — never a network round
-    // trip — which means the barrier arms and releases within the same CommitAsync continuation the
+    // returns just [MyNetId], so CheckAllAccepted and CheckAllAcked both tally with a single local
+    // Register*(MyNetId, ...) call — never a network round trip — which means the barrier arms (in
+    // ProposeTarget) and releases (in CheckAllAcked) within the same synchronous call chain the
     // moment this peer's own restore lands, exactly "the ack tally completes immediately and the
     // barrier is released in the same flow".
 
@@ -858,12 +1102,16 @@ internal static class UndoProtocol
         }
     }
 
-    /// <summary>Arms the barrier for a specific commit target: records the target/generation this
-    /// peer is now barriered for, resets the host-only ack tally, forces PlayerActionsDisabled true
+    /// <summary>Arms the barrier for a specific undo TARGET — the same checksum id that will later
+    /// flow through the vote and into UndoCommitMessage: records the target/generation this peer is
+    /// now barriered for, resets the host-only ack tally, forces PlayerActionsDisabled true
     /// (ArmActionBarrier), and starts this peer's own bounded fallback (BarrierTimeoutWatchdog).
-    /// Called from both OnCommitReceived and CheckAllAccepted — see the top-of-section comment for
-    /// why both call sites are needed.</summary>
-    private static void ArmBarrierForCommit(uint targetId)
+    /// Called from ProposeTarget (the proposer arming its own barrier the instant it decides to
+    /// propose, before the proposal is even sent) and OnProposalReceived (every other peer arming on
+    /// receipt of that proposal) — deliberately NOT from the commit path any more. See the
+    /// top-of-section comment for why arming this early, rather than on commit receipt, is what
+    /// actually closes the propose→vote→tally divergence a live run measured.</summary>
+    private static void ArmBarrierForProposal(uint targetId)
     {
         _barrierTargetId = targetId;
         _barrierGeneration++;
@@ -874,9 +1122,13 @@ internal static class UndoProtocol
 
     /// <summary>Releases the barrier for <paramref name="targetId"/> on THIS peer: restores
     /// PlayerActionsDisabled (ReleaseActionBarrier) and clears the barrier bookkeeping. Ignores a
-    /// mismatched target — a stale UndoResume for an already-resolved barrier, or one that arrives
-    /// after this peer's own BarrierTimeoutWatchdog already gave up — rather than releasing state
-    /// that no longer belongs to this call.</summary>
+    /// mismatched target — a stale UndoResume/UndoCancel for an already-resolved barrier, one of
+    /// TimeoutWatchdog's own releases racing a resume/cancel that got there first, or one that
+    /// arrives after this peer's own BarrierTimeoutWatchdog already gave up — rather than releasing
+    /// state that no longer belongs to this call. Called from every path that can end a proposal
+    /// (see the "── Cross-peer restore barrier ──" section header for the full list), which is
+    /// exactly why this no-op matters: most of those call sites call it unconditionally, without
+    /// first checking that this peer's barrier is definitely still the one they think it is.</summary>
     private static void ReleaseBarrierForTarget(uint targetId)
     {
         if (_barrierTargetId != targetId)
@@ -891,20 +1143,25 @@ internal static class UndoProtocol
     }
 
     /// <summary>
-    /// Bounded fallback for the restore barrier, mirroring TimeoutWatchdog's own generation-guarded
-    /// polling loop below (same reuse of TimeoutFrames — see BarrierTimeoutFrames's own doc comment
-    /// for why it is not used alone) but for the ack/resume phase instead of the vote/proposal phase.
-    /// Runs on EVERY peer that arms a barrier — the host (from CheckAllAccepted) and every client
-    /// (from OnCommitReceived) alike, not just the host — because either side of the wait can stall:
-    /// this peer's own restore might never reach an idle play phase (CommitAsync's own "never reached
-    /// an idle play phase" abort), another peer's might not, or the resume broadcast itself might
-    /// never arrive. Per the task requirement this implements ("a permanently frozen combat is worse
-    /// than a reported risk"), whichever peer is still barriered when the clock runs out releases
-    /// itself unconditionally and logs loudly that the session may now be divergent, rather than
-    /// waiting forever for a message that may never come. If THIS peer is the host, it additionally
-    /// broadcasts UndoResume for the same target so any peer still waiting normally is freed
-    /// immediately instead of also waiting out its own full budget — the same "the host's own
-    /// watchdog also notifies everyone else" shape TimeoutWatchdog already uses for UndoCancelMessage.
+    /// The ABSOLUTE last-resort bounded fallback for the restore barrier — see the "── Cross-peer
+    /// restore barrier ──" section header for the full list of release paths this backstops (normal
+    /// resume, a rejected vote, a proposer cancel, and the proposal's own TimeoutWatchdog all resolve
+    /// far sooner in the common case). Mirrors TimeoutWatchdog's own generation-guarded polling loop
+    /// below (same reuse of TimeoutFrames as part of BarrierTimeoutFrames — see that constant's own
+    /// doc comment for why it is not used alone), but bounds the WHOLE armed lifetime of the barrier
+    /// now — vote phase plus commit phase — since arming moved from commit receipt to proposal time.
+    /// Runs on EVERY peer that arms a barrier — the proposer (from ProposeTarget) and every other
+    /// peer (from OnProposalReceived) alike, not just the host — because any of the earlier release
+    /// paths can in principle fail to fire: this peer's own restore might never reach an idle play
+    /// phase (CommitAsync's own "never reached an idle play phase" abort), another peer's might not,
+    /// or a resume/cancel broadcast itself might never arrive. Per the task requirement this
+    /// implements ("a permanently frozen combat is worse than a reported risk"), whichever peer is
+    /// still barriered when the clock runs out releases itself unconditionally and logs loudly that
+    /// the session may now be divergent, rather than waiting forever for a message that may never
+    /// come. If THIS peer is the host, it additionally broadcasts UndoResume for the same target so
+    /// any peer still waiting normally is freed immediately instead of also waiting out its own full
+    /// budget — the same "the host's own watchdog also notifies everyone else" shape TimeoutWatchdog
+    /// already uses for UndoCancelMessage.
     /// </summary>
     private static async Task BarrierTimeoutWatchdog(int generation, uint targetId)
     {
@@ -981,6 +1238,12 @@ internal static class UndoProtocol
     /// Auto-cancels a proposal that nobody resolved within the timeout. Every peer
     /// runs one; the host additionally broadcasts the cancel so all popups close even
     /// if a peer's own watchdog drifted. Generation guard makes stale watchdogs no-ops.
+    /// Also releases THIS peer's own barrier unconditionally — proposer and every other peer alike,
+    /// not just the host. The barrier now arms at proposal time (ProposeTarget/OnProposalReceived),
+    /// so a vote that never resolves must free it right here rather than leaving it to the much
+    /// longer BarrierTimeoutWatchdog fallback; ReleaseBarrierForTarget's own mismatched-target no-op
+    /// keeps this safe even when this peer's barrier already resolved some other way in the meantime
+    /// (e.g. a resume/cancel that arrived in the same frame).
     /// </summary>
     private static async Task TimeoutWatchdog(int generation, uint targetId)
     {
@@ -1000,6 +1263,7 @@ internal static class UndoProtocol
             if (_registeredService?.Type == NetGameType.Host)
                 _registeredService.SendMessage(new UndoCancelMessage { targetChecksumId = targetId, byNetId = MyNetId });
             ClosePopup();
+            ReleaseBarrierForTarget(targetId);
             ResetPending();
         }
         catch (Exception ex)
@@ -1051,6 +1315,11 @@ internal static class UndoProtocol
         // Proposer pressed Cancel.
         Log.Write("[UndoProtocol] Proposer cancelled");
         _registeredService?.SendMessage(new UndoCancelMessage { targetChecksumId = targetId, byNetId = MyNetId });
+        // The proposer's own barrier — armed back in ProposeTarget the instant it decided to
+        // propose — never gets an UndoCancelMessage back for itself (the broadcast above doesn't
+        // loop back to its own sender), so release it directly here, the same pattern
+        // RegisterVote's reject branch already uses for the host's own barrier.
+        ReleaseBarrierForTarget(targetId);
         ResetPending();
     }
 

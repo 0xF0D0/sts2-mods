@@ -387,6 +387,23 @@ internal static class UndoFuzz
     /// </summary>
     private static readonly TimeSpan MultiplayerActionSettleTimeout = TimeSpan.FromSeconds(10);
 
+    /// <summary>
+    /// Delay the multiplayer driver waits after each action it issues, so the harness models a
+    /// session a human could actually produce.
+    ///
+    /// Without it this driver acts the instant its gate opens — measured at 15+ cards in 45s with an
+    /// undo proposed every 2 actions. A real session is nothing like that: a player takes seconds
+    /// between cards, and an undo proposal puts a popup in front of everyone before anyone clicks.
+    /// Those pauses are not cosmetic — they are when in-flight actions drain and the peers settle on
+    /// the same point of the shared clock. Compressing them to zero manufactures races no player can
+    /// cause, and this harness has already burned real time chasing one such artefact (an
+    /// enchantment the fuzzer applied to cards the game never applies it to).
+    ///
+    /// The bar for this number is only "slow enough to be reachable by a human", not "realistic":
+    /// it must not hide a genuine race, so it stays far below human reaction time.
+    /// </summary>
+    private static readonly TimeSpan MultiplayerActionPacing = TimeSpan.FromMilliseconds(400);
+
     /// <summary>Timeout for any single awaited step inside SetUpRandomLoadoutAsync (one relic Obtain,
     /// one potion TryToProcure, one CardPileCmd.Add). _activeCombatWallClockTimeout only wraps
     /// DriveCombatAsync, so without a timeout here a relic/potion/card whose resolution blocks headless
@@ -1873,6 +1890,28 @@ internal static class UndoFuzz
 
     private static bool IsMultiplayerIdleGateOpen(Player me, Stopwatch settleSw)
     {
+        // The driver must honour the cross-peer restore barrier, and nothing else makes it.
+        // UndoProtocol arms the barrier with CombatManager.PlayerActionsDisabled, which is what the
+        // GAME's input layer reads — NPlayerHand (NPlayerHand.cs:886, :1128) and NPotionPopup
+        // (:439). A human player is therefore held. This driver is not: it calls
+        // CardModel.TryManualPlay directly, and neither TryManualPlay nor CardModel.CanPlay reads
+        // that flag, so without this check the driver plays straight through a barrier a real
+        // player could not.
+        //
+        // MEASURED, and it is not cosmetic: while barriered, the client kept acting and emitted
+        // three extra checksums (ids 4,5,6, all with an unchanged payload hash) that the host never
+        // emitted. ChecksumTracker.NextId is the peers' shared clock — GenerateChecksum's own doc
+        // comment (ChecksumTracker.cs:83-84) requires it be "called the exact same amount of times
+        // for every peer" — so a different COUNT desynchronises every id after it, and the peers
+        // then hash different moments under the same number. That is the divergence, and it is an
+        // artefact of the harness doing something no player can do.
+        if (CombatManager.Instance is { } cmBarrier && cmBarrier.PlayerActionsDisabled)
+        {
+            _mpGateBlockReason = "CombatManager.PlayerActionsDisabled is true (restore barrier armed, "
+                + "or this player has ended their turn) — a real player's input would be blocked here too";
+            return false;
+        }
+
         var turnStateObj = FCmTurnState?.GetValue(CombatManager.Instance);
         if (turnStateObj != null && PTsPlayersReadyToEndTurn?.GetValue(turnStateObj) is HashSet<Player> readyEndSet
             && readyEndSet.Contains(me))
@@ -2230,6 +2269,11 @@ internal static class UndoFuzz
                 // cadence — see CombatOutcome.ActionsSinceLastProposal's own doc comment. Harmless
                 // dead data on the headless/UI paths, which never read it.
                 outcome.ActionsSinceLastProposal++;
+                // Multiplayer only: pace the driver (see MultiplayerActionPacing). The other two
+                // paths are single-process and have no peer to fall out of step with, so they keep
+                // running flat out.
+                if (_useMultiplayerIdleGate)
+                    await Task.Delay(MultiplayerActionPacing);
                 // MpFuzz path only: snapshot ChecksumTracker.NextId (ChecksumTracker.cs:57) now that
                 // an action was just issued above (TryManualPlay success or EndTurn) — the next
                 // WaitForIdleOurTurnAsync call requires this to have advanced before returning Ready
