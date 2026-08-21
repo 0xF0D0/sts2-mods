@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -13,6 +14,7 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
+using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Checksums;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Debug.Multiplayer;
 using MegaCrit.Sts2.Core.Runs;
@@ -20,18 +22,42 @@ using MegaCrit.Sts2.Core.Runs;
 namespace UndoSync;
 
 /// <summary>
-/// STEP 1 ONLY of a multiplayer fuzz harness: get two real game instances into the same combat
-/// together, with no UI clicking, and log enough to prove it worked. Does NOT drive cards, does
-/// NOT restore/undo anything — those are later steps and are deliberately absent from this file.
-/// It DOES cast exactly one map-coord vote per instance, purely as the minimum needed to move the
-/// party off the map screen and into a combat room; see <see cref="VoteForNextMapCoordAsync"/>'s
-/// doc comment for why that vote must go through the game's own replicated action-queue path
-/// rather than a shortcut.
+/// STEPS 1 AND 2 of a multiplayer fuzz harness: get two real game instances into the same combat
+/// together, with no UI clicking, drive each instance's own local player through that combat via
+/// UndoFuzz's existing single-process driver, and detect and report any checksum divergence between
+/// the two peers. Does NOT restore/undo anything yet — ChecksumHook.RestoreTo, UndoPicker, and the
+/// undo vote are step 3 and are deliberately absent from this file; see
+/// <see cref="DriveOurCombatAsync"/>'s own doc comment for the exact mechanism
+/// (UndoFuzz.RestoresAllowed) that keeps that true even though the shared drive loop this file reuses
+/// is otherwise fully capable of restoring.
+///
+/// WHY DIVERGENCE DETECTION IS THE POINT: every check this mod has today (the checksum fidelity
+/// checks in ChecksumHook, the node/model invariants in UiRefresh) passes when all peers are wrong in
+/// the SAME way — that is how both the orb-node bug and the UnsettlingLamp relic bug stayed hidden
+/// from every prior fuzzer, singleplayer or headless. Real multiplayer gives the one oracle
+/// singleplayer structurally cannot: RunManager.Instance.ChecksumTracker compares a checksum of the
+/// FULL combat state (NetFullCombatState.FromRun) across peers after every action, and the two peers
+/// each computed that checksum from their own INDEPENDENTLY maintained copy of the game state.
+/// Detecting that comparison failing — not merely reaching combat, not merely completing it — is the
+/// entire reason this harness exists; see <see cref="InstallDivergenceObserverPatch"/> /
+/// <see cref="OnStateDivergenceObserved"/> for the passive Harmony observer that makes a divergence
+/// impossible to miss, and RunAsync's own final summary (step 10) for why the pass/fail line is gated
+/// on divergenceCount == 0 and nothing else.
+///
+/// It still DOES cast exactly one map-coord vote per instance (step 6, unchanged from step 1), purely
+/// as the minimum needed to move the party off the map screen and into a combat room; see
+/// <see cref="VoteForNextMapCoordAsync"/>'s doc comment for why that vote must go through the game's
+/// own replicated action-queue path rather than a shortcut.
 ///
 /// COMPLETELY DORMANT IN NORMAL PLAY, same contract as UndoFuzz.cs: <see cref="MaybeStart"/> is
 /// the only entry point, called once from UndoSyncMod.Initialize(), and its very first line is a
 /// CommandLineHelper.HasArg check for "undosync-mpfuzz" — absent that flag, nothing else in this
-/// file ever executes or subscribes to anything.
+/// file ever executes or subscribes to anything. MaybeStart ALSO refuses to start (logged, not
+/// silent) if --undosync-fuzz or --undosync-uitest is present in the SAME process — see MaybeStart's
+/// own doc comment for why: step 9 below writes the same shared UndoFuzz static selectors
+/// (_activeIdleWaitTimeout/_activeCombatWallClockTimeout/RestoresAllowed) that UndoFuzz's own two
+/// paths write, and UndoFuzz.MaybeStart already keeps ITS two paths mutually exclusive for the
+/// identical reason.
 ///
 /// Usage (opt-in only, two processes, run one with each set of flags):
 ///   --undosync-mpfuzz --undosync-mpfuzz-role=host
@@ -91,23 +117,102 @@ namespace UndoSync;
 ///      lives entirely inside MapSelectionSynchronizer/ActionQueueSynchronizer, not here.
 ///   7. Wait for CombatManager.Instance.IsInProgress (CombatManager.cs:167), same generous
 ///      real-time timeout reasoning as step 5.
-///   8. On success, log one summary line: role, our own net id (RunManager.Instance.NetService
+///   8. Log the "combat entered" milestone: role, our own net id (RunManager.Instance.NetService
 ///      .NetId, INetGameService.cs:20 — already used the same way by ChecksumHook.EnsureSubscribed),
 ///      the number of players CombatState reports (UndoSyncMod.GetCombatState(), already used by
 ///      UndoFuzz.cs), each player's character id and net id (Player.Character / Player.NetId,
 ///      Player.cs:44/:48, plus the pre-existing model.Id.Entry idiom used throughout this mod), and
-///      whether RunManager.Instance.ChecksumTracker.IsEnabled (ChecksumTracker.cs:59) is true.
-///      On any timeout, log exactly which step it was and the observed state at that moment — a
-///      stall must never come out of this file as an unexplained hang.
-///   9. Quit unless --undosync-mpfuzz-noquit, matching UndoFuzz's existing harness flag. Done from
+///      whether RunManager.Instance.ChecksumTracker.IsEnabled (ChecksumTracker.cs:59) is true. NOT
+///      labeled "SUCCESS" any more — that label is now reserved for step 10's final verdict, which
+///      additionally requires zero checksum divergences, an actually-completed combat, and real
+///      progress (see step 10's own list item below).
+///   9. STEP 2: resolve our own Player again (LocalContext.GetMe) and drive it through the combat via
+///      <see cref="DriveOurCombatAsync"/>, which delegates to UndoFuzz.DriveCombatAsync — see that
+///      method's own doc comment for the multiplayer-specific setup (generous timeouts, restores
+///      forced off) and for why reusing UndoFuzz's existing driver, rather than writing a second one,
+///      was the whole point of exposing it. Divergence detection (Part A) is NOT part of this step's
+///      own code path — it runs passively, throughout, off the Harmony patch MaybeStart installs
+///      before any of this; see InstallDivergenceObserverPatch/OnStateDivergenceObserved.
+///  10. Log the final summary and pass/fail verdict — see RunAsync's own step-10 comment block for
+///      the full field list and why the pass line requires ALL of: divergenceCount == 0, the combat
+///      actually completing (outcome.Completed with no outcome.DriveError), and real progress
+///      (outcome.TurnsPlayed &gt; 0 AND outcome.CardsPlayed &gt; 0) — not divergenceCount == 0 alone,
+///      which a run that never drove any combat would trivially also satisfy (measured: a run with
+///      combatCompleted=False and a driveError still printed SUCCESS before this fix, because zero
+///      divergences is meaningless when nothing happened for the two peers to possibly diverge over).
+///  11. Quit unless --undosync-mpfuzz-noquit, matching UndoFuzz's existing harness flag. Done from
 ///      a try/finally (unlike UndoFuzz's sequential end-of-loop quit) because this is a single
 ///      one-shot attempt, not a combat loop with its own per-iteration failure bucket — any step
 ///      here can bail out early via `return`, and the process must still not be left stranded at
 ///      whatever screen it stopped on.
 ///
+/// On any timeout in steps 1-9, log exactly which step it was and the observed state at that moment
+/// — a stall must never come out of this file as an unexplained hang.
+///
+/// MULTIPLAYER IDLE-GATE FIX (formerly "KNOWN RISK, INSTRUMENTED RATHER THAN FIXED HERE" — a live
+/// two-instance run has since confirmed both predicted and unpredicted shapes of this bug, and it is
+/// now fixed, in UndoFuzz.cs, via a multiplayer-only gate — see
+/// UndoFuzz.IsMultiplayerIdleGateOpen/UndoFuzz._useMultiplayerIdleGate for the implementation and
+/// UndoFuzz.DriveCombatAsync's own doc comment for the same finding from that side):
+/// UndoFuzz.WaitForIdleOurTurnAsync used to gate "ready to act" on UndoSyncMod.CanUndoRedo() alone,
+/// which in turn requires CombatState.CurrentSide == Player and ActionQueueSynchronizer.CombatState
+/// == PlayPhase — both COMBAT-WIDE shared values, not per-player, and neither one answers "did the
+/// action I, this specific peer, just issued actually resolve". That gap took two different measured
+/// shapes on the two roles of a live run (--undosync-mpfuzz --undosync-mpfuzz-role=host/client, both
+/// hitting driveError="action budget exhausted (800 ...)"):
+///
+///   HOST (turnsPlayed=797, cardsPlayed=3, 21s) — the shape traced from source before the live run,
+///   confirmed by it. Verified against source (CombatManager.cs:932-1071, 1437-1473;
+///   PlayerCmd.cs:278-288; CardModel.cs's own CanPlay): when ONE player calls PlayerCmd.EndTurn while
+///   the OTHER hasn't yet, SetReadyToEndTurn only adds that player to
+///   CombatTurnState.PlayersReadyToEndTurn — it does NOT touch that player's own
+///   PlayerCombatState.Phase (stays Play) or the shared ActionQueueSynchronizer.CombatState (stays
+///   PlayPhase); only CombatManager.PlayerActionsDisabled flips, and nothing in the OLD
+///   CanUndoRedo/WaitForIdleOurTurnAsync chain — nor CardModel.CanPlay — read it. AllPlayersReadyToEndTurn
+///   only fires the actual phase transition once EVERY player has readied (CombatManager.cs:
+///   1055-1071). Net effect: the driver of the FASTER player saw WaitForIdleOurTurnAsync return Ready
+///   again immediately (no wait at all, since nothing it checked changed), found the same
+///   empty-of-playable-cards hand it just had, and called PlayerCmd.EndTurn again — a no-op once
+///   IsPlayerReadyToEndTurn is already true (PlayerCmd.EndTurn checks that FIRST and returns without
+///   enqueuing anything, PlayerCmd.cs:278-288), but DriveCombatAsync still counted it as a turn and
+///   burned one unit of ActionBudgetPerCombat every iteration, with NO Task.Delay between iterations.
+///
+///   CLIENT (turnsPlayed=0, cardsPlayed=800, 3s) — NOT predicted by the source trace above; only the
+///   live run exposed it. A client's action is *requested* from the host rather than enqueued locally
+///   (ActionQueueSynchronizer.RequestEnqueue, ActionQueueSynchronizer.cs:141-166), so the client's own
+///   local ActionQueueSet.IsEmpty (part of CanUndoRedo) can read true while that request is still in
+///   flight to the host and back — the OLD check let the driver play its next card before the
+///   previous one had actually landed anywhere, all the way through the 800-unit budget.
+///
+/// Both are a busy-spin/race, not a hang: each resolves on its own (the host's once the slower peer
+/// catches up; the client's once each request round-trips) rather than deadlocking — which is exactly
+/// why the run's own IdleWait.TimedOut/STALL STATE branch (DescribeStallState) never fired for
+/// either; both instead ended in an ordinary-looking "BUDGET EXHAUSTED" that would otherwise misread
+/// as "this combat just needed more turns". Two diagnostics were added specifically so this failure
+/// shape was distinguishable rather than silently misread, and both stay in place as a backstop now
+/// that the gate exists (a settle-wait falling through repeatedly would still look like this):
+///   (a) DescribeStallState's turn-coordination section also reflects
+///       CombatTurnState.PlayersReadyToEndTurn (UndoFuzz.cs), not just PlayersReadyToBeginEnemyTurn —
+///       "which players have ended their turn" is visible whenever this dump fires.
+///   (b) UndoFuzz.DriveCombatAsync's BUDGET EXHAUSTED branch also calls DescribeStallState(), not
+///       only the two TimedOut branches — because, per the busy-spin shape above, TimedOut was
+///       exactly the branch this failure mode could reach last, if at all.
+///
+/// THE FIX: UndoFuzz.WaitForIdleOurTurnAsync now ANDs two more conditions onto its Ready check,
+/// through UndoFuzz.IsMultiplayerIdleGateOpen, but ONLY when UndoFuzz._useMultiplayerIdleGate is set —
+/// a static selector written ONLY by this file's own DriveOurCombatAsync below, immediately before
+/// its own UndoFuzz.DriveCombatAsync call, following the exact same "only the currently-active path's
+/// own setup writes it" discipline as _activeIdleWaitTimeout/RestoresAllowed already do. The headless
+/// (--undosync-fuzz) and UI-mode (--undosync-uitest) call graphs never reach DriveOurCombatAsync, so
+/// they can never observe anything but that flag's default (false) — WaitForIdleOurTurnAsync's own
+/// short-circuiting `||` on the flag means IsMultiplayerIdleGateOpen is never even CALLED on those two
+/// paths. DriveCombatAsync's own shared logic is otherwise completely unchanged for every path — see
+/// IsMultiplayerIdleGateOpen's own doc comment for exactly which condition closes which shape above.
+///
 /// Logs to the existing UndoSync-&lt;pid&gt;.log (Log.cs) with a "[MpFuzz]" prefix, same reasoning
 /// as UndoFuzz's own "[Fuzz]" prefix: this never runs alongside anything else that cares about the
-/// log, so there is nothing to disentangle by splitting files.
+/// log, so there is nothing to disentangle by splitting files. Divergences additionally get their own
+/// "[MpFuzz][divergence]" tag — see InstallDivergenceObserverPatch.
 /// </summary>
 internal static class MpFuzz
 {
@@ -174,12 +279,30 @@ internal static class MpFuzz
     /// <summary>
     /// Called once from UndoSyncMod.Initialize(). The HasArg check below is the ONLY gate on this
     /// entire file running: everything else is unreachable unless --undosync-mpfuzz was passed.
+    ///
+    /// Also refuses to start (logged, not silent) if --undosync-fuzz or --undosync-uitest is present
+    /// in the SAME process — this file's own step 9 (DriveOurCombatAsync) now writes the same shared
+    /// UndoFuzz static selectors (_activeIdleWaitTimeout/_activeCombatWallClockTimeout/RestoresAllowed)
+    /// that UndoFuzz's own two paths write before their own DriveCombatAsync calls. UndoFuzz.MaybeStart
+    /// already keeps ITS two paths mutually exclusive within one process for the identical reason (see
+    /// its own doc comment: "running both concurrently would corrupt whichever one loses the race") —
+    /// this is the same guard, applied here rather than inside UndoFuzz.cs, so UndoFuzz's own entry
+    /// logic (and therefore its two existing paths' behaviour) stays completely untouched by this file.
     /// </summary>
     internal static void MaybeStart()
     {
         try
         {
             if (!CommandLineHelper.HasArg(MpFuzzArg)) return;
+
+            if (CommandLineHelper.HasArg("undosync-fuzz") || CommandLineHelper.HasArg("undosync-uitest"))
+            {
+                Log.Write($"[MpFuzz] --{MpFuzzArg} was passed alongside --undosync-fuzz/--undosync-uitest "
+                    + "— these all drive combat through the same shared UndoFuzz.DriveCombatAsync "
+                    + "selectors and cannot safely run in the same process (see MaybeStart's own doc "
+                    + "comment). Not starting.");
+                return;
+            }
 
             if (!CommandLineHelper.TryGetValue(RoleArg, out var roleArg) || string.IsNullOrEmpty(roleArg))
             {
@@ -206,6 +329,12 @@ internal static class MpFuzz
             if (!isHost && CommandLineHelper.TryGetValue(ClientIdArg, out var clientIdArg)
                 && !string.IsNullOrEmpty(clientIdArg) && ulong.TryParse(clientIdArg, out var parsedClientId))
                 clientId = parsedClientId;
+
+            // Part A: installed here, unconditionally, regardless of role — see
+            // InstallDivergenceObserverPatch's own doc comment for why OnReceivedStateDivergenceMessage
+            // fires on BOTH host and client, so both roles need this to observe a divergence on their
+            // own side rather than relying on the other peer's log.
+            InstallDivergenceObserverPatch();
 
             Log.Write($"[MpFuzz] --{MpFuzzArg} detected — role={role}"
                 + (isHost ? "" : $" clientId={clientId}")
@@ -243,6 +372,135 @@ internal static class MpFuzz
         catch (Exception ex)
         {
             Log.Write($"[MpFuzz] RunWhenReadyAsync ERROR: {ex}");
+        }
+    }
+
+    // ==================================================================================
+    // Divergence detection (Part A) — see this file's own top-of-file "WHY DIVERGENCE DETECTION
+    // IS THE POINT" paragraph.
+    // ==================================================================================
+
+    /// <summary>Total number of checksum divergences observed by <see cref="OnStateDivergenceObserved"/>
+    /// this process. Read by RunAsync's final summary (step 10) — the success line requires this to be
+    /// zero; see that block for why. Single-threaded, same reasoning as UndoFuzz's own _gameErrors
+    /// field: every message-handler call in this codebase (including
+    /// ChecksumTracker.OnReceivedStateDivergenceMessage) is driven from INetGameService.Update, whose
+    /// own doc comment says plainly "Messages... will not be processed unless this is called" — i.e.
+    /// dispatched from the game's own per-frame update pump, the same single thread as everything else
+    /// in this file. No lock needed.</summary>
+    private static int _divergenceCount;
+
+    /// <summary>Human-readable detail of the MOST RECENT divergence observed — repeated in step 10's
+    /// summary so a divergence is visible in both the immediate per-occurrence "[MpFuzz][divergence]"
+    /// line and the run's final verdict, without needing to scroll back.</summary>
+    private static string _lastDivergenceDetail = "";
+
+    /// <summary>
+    /// Installs a Harmony POSTFIX on
+    /// ChecksumTracker.OnReceivedStateDivergenceMessage(StateDivergenceMessage message, ulong senderId)
+    /// (ChecksumTracker.cs:136), so this file finds out about every checksum divergence the moment the
+    /// game itself does, on both sides of the connection.
+    ///
+    /// WHY THIS ONE OF THE THREE METHODS NAMED IN THE DESIGN NOTE (ChecksumTracker.cs:136/218/241):
+    ///   - OnReceivedStateDivergenceMessage(StateDivergenceMessage message, ulong senderId) (:136) —
+    ///     the one patched here. Verified call graph: CompareChecksums (host-only, run when a client's
+    ///     ChecksumDataMessage doesn't match the host's own tracked checksum) sends a
+    ///     StateDivergenceMessage to that one client (ChecksumTracker.cs:214); the client's
+    ///     OnReceivedStateDivergenceMessage receives it, logs/reports via LogStateDivergence, and —
+    ///     because LogStateDivergence checks `_netService.Type == NetGameType.Client`
+    ///     (ChecksumTracker.cs:229) — sends its OWN StateDivergenceMessage back to the host with no
+    ///     explicit recipient (i.e. to the host, the client's only peer); the host's OWN
+    ///     OnReceivedStateDivergenceMessage then receives THAT message too. So this handler genuinely
+    ///     fires on BOTH peers for the same divergence, confirming the method's own doc comment ("Also
+    ///     called on the host when the client receives the host's message, so that the host knows what
+    ///     state the client was in and can log both.") — the other two candidates below do not have
+    ///     this guarantee on their own.
+    ///   - LogStateDivergence(TrackedChecksum, StateDivergenceMessage, ulong, int) (:218) — called from
+    ///     inside OnReceivedStateDivergenceMessage on both sides too (so it fires exactly when the
+    ///     method above does), and carries richer detail (the full NetFullCombatState dumps via
+    ///     `localChecksum`). NOT used as the hook point for a mechanical reason: its first parameter is
+    ///     ChecksumTracker's own PRIVATE nested struct TrackedChecksum, which cannot be named from this
+    ///     assembly — a Harmony patch method for it would need Harmony's positional `__0`/`object`
+    ///     parameter-injection convention instead of ordinary named-parameter matching (the convention
+    ///     this mod's other patches, e.g. UndoFuzz.OnGameLogError, already rely on).
+    ///     OnReceivedStateDivergenceMessage's own parameters (a public struct and a ulong) need none of
+    ///     that.
+    ///   - ReportDivergenceToSentry(TrackedChecksum, StateDivergenceMessage, ulong, int) (:241) — same
+    ///     TrackedChecksum problem as LogStateDivergence, PLUS it only runs `if (!TestMode.IsOn)`
+    ///     (ChecksumTracker.cs:224, guarding both the Log.Error above it and the call to this method) —
+    ///     true for MpFuzz's real multiplayer run, but a strictly narrower condition than
+    ///     OnReceivedStateDivergenceMessage itself needs to satisfy, for zero extra benefit here (this
+    ///     file only needs "a divergence happened, with this id/peer", not the Sentry attachment
+    ///     payload).
+    ///
+    /// A POSTFIX specifically, not a prefix: a prefix could return false and skip the original method
+    /// entirely (Harmony's own mechanism for suppressing a call). A postfix runs only AFTER the real
+    /// method has already done its own job, so this can never alter or block the game's own divergence
+    /// handling (client abandon / host disconnect, RunManager.cs:1514-1533) — the "passive observer
+    /// only" requirement for all of Part A.
+    ///
+    /// Same gating/instance/never-PatchAll reasoning as UndoFuzz.InstallGameErrorCapturePatch (see its
+    /// own doc comment): called manually from MaybeStart, only once --undosync-mpfuzz's own gate
+    /// (including the --undosync-fuzz/--undosync-uitest mutual-exclusivity check above it) has already
+    /// passed, using a dedicated Harmony instance ("undosync.mpfuzz", distinct from both
+    /// UndoSyncMod.Initialize()'s "com.beomsu.undosync" and UndoFuzz's own "undosync.fuzz") — never a
+    /// [HarmonyPatch] attribute class, so a normal player's game (no --undosync-mpfuzz on the command
+    /// line) never has ChecksumTracker touched at all.
+    /// </summary>
+    private static void InstallDivergenceObserverPatch()
+    {
+        try
+        {
+            var harmony = new Harmony("undosync.mpfuzz");
+            var original = AccessTools.Method(typeof(ChecksumTracker), "OnReceivedStateDivergenceMessage");
+            var postfix = new HarmonyMethod(AccessTools.Method(typeof(MpFuzz), nameof(OnStateDivergenceObserved)));
+            harmony.Patch(original, postfix: postfix);
+            Log.Write("[MpFuzz] Patched ChecksumTracker.OnReceivedStateDivergenceMessage (mpfuzz-only, passive postfix observer) to record checksum divergences.");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz] WARNING: failed to install divergence observer patch on ChecksumTracker.OnReceivedStateDivergenceMessage: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Harmony postfix target for ChecksumTracker.OnReceivedStateDivergenceMessage(StateDivergenceMessage
+    /// message, ulong senderId) (ChecksumTracker.cs:136) — see InstallDivergenceObserverPatch for
+    /// how/why this gets installed and why this specific method was chosen over the other two
+    /// candidates.
+    ///
+    /// Harmony matches postfix parameters by NAME against the original's own parameter names (same
+    /// convention UndoFuzz.OnGameLogError's own doc comment describes for its `text` parameter) — both
+    /// `message` and `senderId` here are named identically to ChecksumTracker.cs:136's own signature,
+    /// and neither needs Harmony's `__0`-style positional injection since both types
+    /// (StateDivergenceMessage, ulong) are public.
+    ///
+    /// Records the checksum id and the remote peer id (the two pieces of detail this task's design
+    /// note asks for explicitly), plus the remote checksum value carried on the message itself
+    /// ("whatever the message carries" — StateDivergenceMessage.senderChecksum is a
+    /// NetChecksumData{id, checksum}, per StateDivergenceMessage.cs; .senderCombatState is the full
+    /// NetFullCombatState dump, which ChecksumTracker's OWN Log.Error already prints in full inside
+    /// LogStateDivergence — not repeated here, since that would duplicate a very large string for no
+    /// extra signal beyond "a divergence happened, with this id/peer").
+    ///
+    /// A pure observer: `void` return means Harmony always keeps whatever the original method already
+    /// did (see InstallDivergenceObserverPatch's own "postfix, not prefix" paragraph), and the
+    /// try/catch below means a bug in this recording code can never propagate into — or interrupt —
+    /// the game's own divergence handling (client abandon / host disconnect, RunManager.cs:1514-1533).
+    /// </summary>
+    private static void OnStateDivergenceObserved(StateDivergenceMessage message, ulong senderId)
+    {
+        try
+        {
+            _divergenceCount++;
+            ulong myNetId = RunManager.Instance?.NetService?.NetId ?? 0;
+            _lastDivergenceDetail = $"checksumId={message.senderChecksum.id} remotePeerId={senderId} "
+                + $"remoteChecksum={message.senderChecksum.checksum} ourNetId={myNetId}";
+            Log.Write($"[MpFuzz][divergence] #{_divergenceCount} {_lastDivergenceDetail}");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz] OnStateDivergenceObserved ERROR: {ex.Message}");
         }
     }
 
@@ -379,7 +637,10 @@ internal static class MpFuzz
                 return;
             }
 
-            // Step 8: success — one summary line with everything asked for.
+            // Step 8: combat entered — same signal step 1 already proved (playersInCombat/
+            // checksumTrackerEnabled). Logged as a milestone, not "SUCCESS": that label is now
+            // reserved for step 10's final verdict below, which additionally requires zero checksum
+            // divergences.
             var cs = UndoSyncMod.GetCombatState();
             var players = cs?.Players;
             string playersDesc = players == null
@@ -387,8 +648,94 @@ internal static class MpFuzz
                 : string.Join(", ", players.Select(p => $"(netId={p.NetId}, character={p.Character.Id.Entry})"));
             ulong myNetId = RunManager.Instance?.NetService?.NetId ?? 0;
             bool checksumEnabled = RunManager.Instance?.ChecksumTracker.IsEnabled ?? false;
-            Log.Write($"[MpFuzz] SUCCESS role={role} netId={myNetId} playersInCombat={players?.Count.ToString() ?? "null"} "
+            Log.Write($"[MpFuzz] combat entered: role={role} netId={myNetId} playersInCombat={players?.Count.ToString() ?? "null"} "
                 + $"players=[{playersDesc}] checksumTrackerEnabled={checksumEnabled}");
+
+            // Step 9: STEP 2 proper — drive OUR OWN local player through the combat. Resolve `me`
+            // again (the map-vote step's own `me`, inside VoteForNextMapCoordAsync, is out of scope
+            // here) via the same LocalContext.GetMe(runState) idiom used throughout this mod.
+            var runStateForCombat = RunManager.Instance?.DebugOnlyGetState();
+            var me = runStateForCombat != null ? LocalContext.GetMe(runStateForCombat) : null;
+            if (me == null)
+            {
+                Log.Write("[MpFuzz] FAIL: combat-drive step — LocalContext.GetMe(runState) returned "
+                    + "null after CombatManager.Instance.IsInProgress became true; cannot resolve "
+                    + "which creature is ours to drive.");
+                return;
+            }
+
+            int restoreSectionFailuresBefore = StateSnapshot.RestoreSectionFailureCount;
+            int uiRefreshFailuresBefore = UiRefresh.UiRefreshFailureCount;
+            int orbInvariantViolationsBefore = UiRefresh.OrbInvariantViolationCount;
+
+            var outcome = await DriveOurCombatAsync(role, me);
+
+            int restoreSectionFailureDelta = StateSnapshot.RestoreSectionFailureCount - restoreSectionFailuresBefore;
+            int uiRefreshFailureDelta = UiRefresh.UiRefreshFailureCount - uiRefreshFailuresBefore;
+            int orbInvariantViolationDelta = UiRefresh.OrbInvariantViolationCount - orbInvariantViolationsBefore;
+
+            // Step 10: summary (Part C) — one block per instance. The SUCCESS line requires
+            // divergenceCount == 0 — see this file's own top-of-file "WHY DIVERGENCE DETECTION IS THE
+            // POINT" paragraph for why that is non-negotiable: every other line in this block can look
+            // fine while both peers were wrong in the same way, which is exactly how the orb-node bug
+            // and the UnsettlingLamp relic bug both stayed hidden. Only a divergence proves the two
+            // peers actually disagreed.
+            //
+            // divergenceCount == 0 alone is NOT sufficient, though — measured on a live run: a combat
+            // that hit combatCompleted=False with a driveError (the multiplayer busy-spin bug this
+            // file's own top-of-file "MULTIPLAYER IDLE-GATE FIX" paragraph describes) still printed
+            // "SUCCESS ... zero checksum divergences observed", because zero divergences is trivially
+            // true when nothing ever ran for the two peers to possibly disagree over. This is the same
+            // false-pass shape UndoFuzz's own UI-mode path was bitten by before and now refuses to
+            // repeat — RunUiTestCombatsAsync will not print PROVEN unless restores and node rebuilds
+            // actually occurred, not just "zero violations observed". Following that precedent: SUCCESS
+            // here requires ALL of divergenceCount == 0, the combat actually completing (Completed with
+            // no DriveError), AND real progress (TurnsPlayed and CardsPlayed both above zero). A run
+            // that did not drive a combat must never read as a pass — the else branch below names
+            // exactly which of these failed, rather than only ever blaming divergences.
+            bool zeroDivergences = _divergenceCount == 0;
+            bool combatActuallyCompleted = outcome.Completed && outcome.DriveError == null;
+            bool madeRealProgress = outcome.TurnsPlayed > 0 && outcome.CardsPlayed > 0;
+
+            Log.Write($"[MpFuzz] ==================== summary: role={role} ====================");
+            Log.Write($"[MpFuzz] role={role} netId={myNetId} combatCompleted={outcome.Completed} "
+                + $"turnsPlayed={outcome.TurnsPlayed} cardsPlayed={outcome.CardsPlayed} "
+                + $"divergenceCount={_divergenceCount} "
+                + $"restoreSectionFailureDelta={restoreSectionFailureDelta} "
+                + $"uiRefreshFailureDelta={uiRefreshFailureDelta} "
+                + $"orbInvariantViolationDelta={orbInvariantViolationDelta}"
+                + (outcome.DriveError != null ? $" driveError=\"{outcome.DriveError}\"" : "")
+                + (outcome.StuckAfterRestore ? $" stuckAfterRestore=\"{outcome.StuckAfterRestoreDetail}\"" : ""));
+
+            if (zeroDivergences && combatActuallyCompleted && madeRealProgress)
+            {
+                Log.Write($"[MpFuzz] SUCCESS role={role} netId={myNetId} — combat driven with zero "
+                    + "checksum divergences observed. See the summary line above for turn/card counts "
+                    + "and section-failure deltas.");
+            }
+            else
+            {
+                var reasons = new List<string>();
+                if (!zeroDivergences)
+                {
+                    reasons.Add($"{_divergenceCount} checksum divergence(s) observed (most recent: "
+                        + $"{_lastDivergenceDetail}) — see the \"[MpFuzz][divergence]\" line(s) above "
+                        + "for the checksum id(s) and remote peer id(s) involved");
+                }
+                if (!combatActuallyCompleted)
+                {
+                    reasons.Add(outcome.DriveError != null
+                        ? $"combat did not complete: driveError=\"{outcome.DriveError}\""
+                        : "combat did not complete (Completed=false with no driveError recorded)");
+                }
+                if (!madeRealProgress)
+                {
+                    reasons.Add("no real progress was made "
+                        + $"(turnsPlayed={outcome.TurnsPlayed}, cardsPlayed={outcome.CardsPlayed})");
+                }
+                Log.Write($"[MpFuzz] FAILURE role={role} netId={myNetId} — THIS IS NOT A PASS — "
+                    + string.Join("; ", reasons) + ".");
+            }
         }
         catch (Exception ex)
         {
@@ -410,6 +757,75 @@ internal static class MpFuzz
                 Log.Write($"[MpFuzz] --{NoQuitArg} set — staying open.");
             }
         }
+    }
+
+    // ==================================================================================
+    // Combat drive (step 9, Part B)
+    // ==================================================================================
+
+    /// <summary>
+    /// Drives OUR OWN local player through the combat entered by RunAsync's step 7/8, by delegating to
+    /// UndoFuzz.DriveCombatAsync — the SAME single-process driver UndoFuzz's headless
+    /// (--undosync-fuzz) and UI-mode (--undosync-uitest) paths both already use unmodified (see
+    /// UndoFuzz.cs's own top-of-file doc comment, "Both paths reuse the exact same drive loop").
+    /// Reused rather than reimplemented: it already handles card selection/targeting (TryManualPlay,
+    /// CardModel's real production play path), end-turn (PlayerCmd.EndTurn), the action budget, and
+    /// the stuck-after-restore watch — see UndoFuzz.DriveCombatAsync's own doc comment for the full
+    /// behaviour, none of which changes here.
+    ///
+    /// Made reachable from this file by the MINIMUM visibility change UndoFuzz.cs needed:
+    /// DriveCombatAsync itself, its CombatOutcome result type, and the two per-path timeout selectors
+    /// (_activeIdleWaitTimeout/_activeCombatWallClockTimeout) went from `private` to `internal` —
+    /// nothing about their logic changed. See UndoFuzz.MultiplayerIdleWaitTimeout /
+    /// MultiplayerCombatWallClockTimeout's own doc comments for the new multiplayer values, and
+    /// UndoFuzz.RestoresAllowed's own doc comment for the new restore off-switch this path uses.
+    ///
+    /// MULTIPLAYER-SPECIFIC SETUP, all done here (never inside UndoFuzz.cs, so the headless/UI paths
+    /// stay byte-for-byte unaffected — see each written field's own doc comment for why leaking is
+    /// structurally impossible):
+    ///   1. _activeIdleWaitTimeout/_activeCombatWallClockTimeout set to the new Multiplayer* constants
+    ///      — two real OS processes over real (loopback) ENet, each doing its own real asset loads and
+    ///      real animations, same "minutes, not seconds" reasoning this file's own class-level timeout
+    ///      constants already use for the pre-combat steps, re-derived again here for the in-combat
+    ///      drive loop.
+    ///   2. UndoFuzz.RestoresAllowed = false — NO RESTORES IN STEP 2. Restore/undo
+    ///      (ChecksumHook.RestoreTo, UndoPicker, the undo vote) is step 3 and is deliberately not
+    ///      started by this file; setting this false makes UndoFuzz.AttemptRestore return null
+    ///      unconditionally, regardless of which restore policy
+    ///      (UndoFuzz's own private _useDeterministicRestorePolicy) would otherwise have been
+    ///      consulted — that selector is therefore never even read on this path and is left completely
+    ///      untouched (still private, still defaulted to the headless policy) by this file.
+    ///   3. UndoFuzz._useMultiplayerIdleGate = true — see this file's own top-of-file "MULTIPLAYER
+    ///      IDLE-GATE FIX" paragraph for the two measured live-run failure shapes this closes
+    ///      (a host busy-spinning on no-op EndTurn calls; a client racing ahead of its own in-flight,
+    ///      host-requested actions) and UndoFuzz.IsMultiplayerIdleGateOpen's own doc comment for
+    ///      exactly how. Same "only the currently-active path's own setup writes it, immediately
+    ///      before its own DriveCombatAsync call" discipline as the two fields above.
+    ///
+    /// `rng` is a fresh, non-seeded System.Random — never the game's own Rng/RunRngSet streams (same
+    /// reasoning as every other harness-side rng in this mod), and deliberately NOT derived from a
+    /// shared seed the way UndoFuzz's headless/UI paths are: each side drives its OWN local player
+    /// independently (per this file's own class-level doc comment), so there is no cross-process
+    /// choice to keep in sync, and step 2's goal (prove divergence detection works against two
+    /// independently-acting real peers) is better served by genuinely independent choices on each side
+    /// than by a shared seed that could mask a desync behind identical decisions.
+    /// </summary>
+    private static async Task<UndoFuzz.CombatOutcome> DriveOurCombatAsync(string role, Player me)
+    {
+        UndoFuzz._activeIdleWaitTimeout = UndoFuzz.MultiplayerIdleWaitTimeout;
+        UndoFuzz._activeCombatWallClockTimeout = UndoFuzz.MultiplayerCombatWallClockTimeout;
+        UndoFuzz.RestoresAllowed = false;
+        UndoFuzz._useMultiplayerIdleGate = true;
+
+        var outcome = new UndoFuzz.CombatOutcome { CombatIndex = 0, BaseSeed = $"mpfuzz-{role}", Seed = $"mpfuzz-{role}" };
+        var rng = new Random();
+
+        Log.Write($"[MpFuzz] role={role} driving combat "
+            + $"(idleWaitTimeout={UndoFuzz.MultiplayerIdleWaitTimeout.TotalMinutes}m, "
+            + $"combatWallClockTimeout={UndoFuzz.MultiplayerCombatWallClockTimeout.TotalMinutes}m, "
+            + "restoresAllowed=false, multiplayerIdleGate=true).");
+        await UndoFuzz.DriveCombatAsync(0, me, rng, outcome);
+        return outcome;
     }
 
     // ==================================================================================

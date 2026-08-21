@@ -156,7 +156,15 @@ internal static class UndoFuzz
     /// forever (see RestoreProbability's doc comment) rather than by genuine long combats. With the
     /// restore policy fixed this is pure safety margin, not the expected steady state — a combat that
     /// still exhausts it is a harness/drive-loop concern, logged and counted separately from restore
-    /// fidelity failures (see RunAllCombatsAsync's summary).</summary>
+    /// fidelity failures (see RunAllCombatsAsync's summary).
+    ///
+    /// Also the backstop this exact budget was measured burning through on MpFuzz's own busy-spin bug
+    /// (see IsMultiplayerIdleGateOpen's own doc comment): the live two-instance run that exposed it
+    /// hit driveError="action budget exhausted (800 ...)" on BOTH peers — host in 21s with
+    /// turnsPlayed=797/cardsPlayed=3, client in 3s with turnsPlayed=0/cardsPlayed=800. With
+    /// IsMultiplayerIdleGateOpen closing that gap, a healthy multiplayer combat's own turn/card counts
+    /// should stay nowhere near this cap; still hitting it now means a genuine stall, not the
+    /// busy-spin.</summary>
     private const int ActionBudgetPerCombat = 800;
 
     private static readonly TimeSpan CombatStartTimeout = TimeSpan.FromSeconds(10);
@@ -196,14 +204,52 @@ internal static class UndoFuzz
     private static readonly TimeSpan UiTestIdleWaitTimeout = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan UiTestCombatWallClockTimeout = TimeSpan.FromSeconds(900);
 
+    /// <summary>
+    /// MpFuzz (--undosync-mpfuzz, step 2) path only — see MpFuzz.DriveOurCombatAsync, the ONLY place
+    /// that ever writes _activeIdleWaitTimeout to this value (same "structurally cannot leak into the
+    /// other paths" reasoning as UiTestIdleWaitTimeout's own doc comment: this file's own headless/UI
+    /// call graphs never touch it).
+    ///
+    /// Started from UiTestIdleWaitTimeout (90s) and doubled, per this task's own instruction to derive
+    /// multiplayer bounds from the UI-mode ones: a multiplayer combat needs everything the UI path
+    /// already needs GENEROUS real-time slack for (real asset loads, real card-play/enemy-turn
+    /// animations, all in real time, not headless) PLUS a genuine network round trip to a second real
+    /// OS process over ENet (loopback in MpFuzz's own --undosync-mpfuzz-role=host/client usage, but
+    /// still real socket I/O, not an in-process call) for every replicated action both TryManualPlay
+    /// and PlayerCmd.EndTurn go through (ActionQueueSynchronizer.RequestEnqueue,
+    /// ActionQueueSynchronizer.cs:141-166). NOT measured against a live two-instance run — this task's
+    /// own constraints forbid actually running the game — so this is a reasoned, deliberately generous
+    /// estimate, not a tuned value; revisit with real numbers once step 3 (or later) can drive an
+    /// actual live run.
+    /// </summary>
+    internal static readonly TimeSpan MultiplayerIdleWaitTimeout = TimeSpan.FromMinutes(3);
+
+    /// <summary>
+    /// MpFuzz path only — see MultiplayerIdleWaitTimeout's own doc comment for the full reasoning
+    /// (started from UiTestCombatWallClockTimeout's 900s/15min, extended further here since a real
+    /// multiplayer combat's wall-clock cost is not just "one process's own real-time animations" but
+    /// two independently-paced peers coordinating every turn transition — see MpFuzz.cs's own
+    /// top-of-file "MULTIPLAYER IDLE-GATE FIX" paragraph for the specific coordination gap this
+    /// harness found (and has since closed via IsMultiplayerIdleGateOpen) while tracing that cost,
+    /// which is exactly why this bound stays generous rather than tight: the fix stops the driver
+    /// busy-spinning, it does not make two real OS processes coordinate any faster).
+    /// </summary>
+    internal static readonly TimeSpan MultiplayerCombatWallClockTimeout = TimeSpan.FromMinutes(20);
+
     /// <summary>Active idle-wait / wall-clock timeouts for whichever path is CURRENTLY driving — read
     /// by WaitForIdleOurTurnAsync and DriveCombatAsync respectively. Default to the Headless* values
     /// above, so a process that never runs --undosync-uitest (i.e. every --undosync-fuzz run) can never
     /// observe anything else, regardless of static field initialization order. See
     /// HeadlessIdleWaitTimeout's own doc comment for the full "why per-path, why static fields, why
-    /// this can't leak" reasoning.</summary>
-    private static TimeSpan _activeIdleWaitTimeout = HeadlessIdleWaitTimeout;
-    private static TimeSpan _activeCombatWallClockTimeout = HeadlessCombatWallClockTimeout;
+    /// this can't leak" reasoning.
+    ///
+    /// Was `private`; now `internal` so MpFuzz.DriveOurCombatAsync can write the new Multiplayer*
+    /// values above before its own DriveCombatAsync call — same "only the currently-active path's own
+    /// setup ever writes these, immediately before its own DriveCombatAsync call" discipline the
+    /// headless/UI paths already follow, extended to a third writer. No default value or read site
+    /// changed.</summary>
+    internal static TimeSpan _activeIdleWaitTimeout = HeadlessIdleWaitTimeout;
+    internal static TimeSpan _activeCombatWallClockTimeout = HeadlessCombatWallClockTimeout;
 
     /// <summary>Selects which restore policy AttemptRestore dispatches to for the CURRENTLY RUNNING
     /// path (Defect 3) — false (the default) is the headless path's own random/probability-gated
@@ -212,8 +258,98 @@ internal static class UndoFuzz
     /// (TryAttemptDeterministicRestore). Same "structurally cannot leak" reasoning as
     /// _activeIdleWaitTimeout/_activeCombatWallClockTimeout above: only ever written inside
     /// RunOneUiTestCombatAsync, which the headless call graph (RunAllCombatsAsync/RunOneCombatAsync)
-    /// never reaches, so a headless run can never observe anything but the default.</summary>
+    /// never reaches, so a headless run can never observe anything but the default.
+    ///
+    /// Stays `private` and untouched by MpFuzz (step 2): unlike the two fields above, this one never
+    /// needed to become `internal` — see <see cref="RestoresAllowed"/> below, which gates AttemptRestore
+    /// BEFORE this selector is ever consulted, so MpFuzz's "no restores in step 2" requirement doesn't
+    /// need to pick a policy at all.</summary>
     private static bool _useDeterministicRestorePolicy;
+
+    /// <summary>
+    /// MpFuzz (step 2) only. AttemptRestore below checks this FIRST, before consulting
+    /// _useDeterministicRestorePolicy at all — false makes AttemptRestore return null unconditionally,
+    /// i.e. perform no restore, ever, regardless of which policy would otherwise have run. Defaults to
+    /// true so the headless and UI-mode paths (which never write this field) are completely unaffected
+    /// — same "only the currently-active path's own setup writes it, and only that one path can ever
+    /// observe anything but the default" discipline as _activeIdleWaitTimeout/
+    /// _useDeterministicRestorePolicy above.
+    ///
+    /// WHY THIS EXISTS SEPARATELY FROM _useDeterministicRestorePolicy: that field only chooses BETWEEN
+    /// two restore-PERFORMING policies (TryAttemptRestore's probability roll, or
+    /// TryAttemptDeterministicRestore's fixed cadence) — neither of its two values means "off". Step 2
+    /// is explicitly forbidden from performing any restore at all (ChecksumHook.RestoreTo, UndoPicker,
+    /// and the undo vote are step 3, not started here) — MpFuzz.DriveOurCombatAsync sets this false,
+    /// and ONLY this, before its own DriveCombatAsync call; see that method's own doc comment.
+    /// </summary>
+    internal static bool RestoresAllowed = true;
+
+    // --- MpFuzz-only idle gate (busy-spin fix) --------------------------------------------------
+    // Measured on a live two-instance run (--undosync-mpfuzz): both peers hit
+    // driveError="action budget exhausted (800 ...)" — host in 21s with turnsPlayed=797,
+    // cardsPlayed=3; client in 3s with turnsPlayed=0, cardsPlayed=800 — while divergenceCount stayed
+    // 0 throughout, because nothing was actually landing for either driver to diverge over. Both
+    // shapes trace back to one root cause: WaitForIdleOurTurnAsync's existing Ready condition (Phase
+    // == Play && CanUndoRedo()) answers "is MY queue empty", not "did the action I just issued
+    // actually resolve" — the same fact in singleplayer/headless, not in multiplayer. See
+    // IsMultiplayerIdleGateOpen's own doc comment (near WaitForIdleOurTurnAsync, below) for exactly
+    // how each measured shape is closed and the source citations for both.
+
+    /// <summary>
+    /// MpFuzz (--undosync-mpfuzz) path only. Selects whether WaitForIdleOurTurnAsync applies
+    /// IsMultiplayerIdleGateOpen's two extra conditions on top of its existing Phase/CanUndoRedo
+    /// check. Same "only the currently-active path's own setup ever writes this, immediately before
+    /// its own DriveCombatAsync call" discipline as _activeIdleWaitTimeout/
+    /// _useDeterministicRestorePolicy/RestoresAllowed above: only ever written by
+    /// MpFuzz.DriveOurCombatAsync, which the headless (RunAllCombatsAsync/RunOneCombatAsync) and
+    /// UI-mode (RunUiTestCombatsAsync/RunOneUiTestCombatAsync) call graphs never reach — so a headless
+    /// or UI-mode run can never observe anything but the default (false). WaitForIdleOurTurnAsync's
+    /// own `||` short-circuit on this flag means IsMultiplayerIdleGateOpen is never even CALLED on
+    /// those two paths, let alone able to change their behaviour.
+    /// </summary>
+    internal static bool _useMultiplayerIdleGate;
+
+    /// <summary>
+    /// MpFuzz path only. ChecksumTracker.NextId (ChecksumTracker.cs:57) snapshotted by
+    /// DriveCombatAsync right after it issues an action (a TryManualPlay that returned true, or an
+    /// EndTurn) — IsMultiplayerIdleGateOpen requires NextId to have advanced past this value before
+    /// the driver is allowed to issue its next action. Null at the start of every combat (reset in
+    /// DriveCombatAsync, see its own "fresh per-combat baseline" comment) so the very first
+    /// WaitForIdleOurTurnAsync call of a combat is never gated on a snapshot left over from a
+    /// previous one. Written from a single call site, guarded there by `if (_useMultiplayerIdleGate)`
+    /// — see that call site's own comment — and only ever read from inside
+    /// IsMultiplayerIdleGateOpen, itself only ever consulted when that same flag is set, so this
+    /// field is provably dead on the headless/UI-mode paths.
+    /// </summary>
+    private static uint? _lastIssuedActionChecksumId;
+
+    /// <summary>
+    /// MpFuzz path only. Bound for the settle-wait IsMultiplayerIdleGateOpen performs on
+    /// ChecksumTracker.NextId — independent of, and far shorter than, _activeIdleWaitTimeout's own
+    /// MultiplayerIdleWaitTimeout (3 minutes) that bounds WaitForIdleOurTurnAsync overall.
+    ///
+    /// NextId++ happens synchronously and LOCALLY, on every peer regardless of host/client role, the
+    /// moment THIS peer's own ActionExecutor finishes running the action
+    /// (ChecksumTracker.ObtainAndTrackChecksum, ChecksumTracker.cs:158-167, called off
+    /// RunManager.SendPostActionChecksum via ActionExecutor.JustBeforeActionFinishedExecuting, a
+    /// subscription RunManager.InitializeShared installs unconditionally for every non-TestMode run,
+    /// RunManager.cs:489,568) — no cross-peer round trip is needed for THIS peer's own NextId to
+    /// move, even for the client role, whose action itself took one loopback round trip just to get
+    /// enqueued (ActionQueueSynchronizer.RequestEnqueue, ActionQueueSynchronizer.cs:141-166) before it
+    /// could execute locally and generate that local checksum. A healthy settle is therefore expected
+    /// in well under a second, not minutes — this bound is generous slack on top of that, not a tuned
+    /// value.
+    ///
+    /// If it genuinely takes longer than this bound, that is exactly the shape a true stall would
+    /// also take. Rather than let THIS specific check hang indefinitely on top of the outer timeout,
+    /// IsMultiplayerIdleGateOpen gives up on it once this elapses and falls through — i.e. stops
+    /// treating "NextId hasn't advanced yet" as blocking for that poll, and leaves
+    /// WaitForIdleOurTurnAsync's pre-existing Ready/TimedOut machinery (backed by
+    /// _activeIdleWaitTimeout and, one layer up, DriveCombatAsync's own wall-clock/budget checks and
+    /// DescribeStallState) as the one place that diagnoses a genuine hang — exactly as it already does
+    /// for the headless/UI paths, unchanged.
+    /// </summary>
+    private static readonly TimeSpan MultiplayerActionSettleTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>Timeout for any single awaited step inside SetUpRandomLoadoutAsync (one relic Obtain,
     /// one potion TryToProcure, one CardPileCmd.Add). _activeCombatWallClockTimeout only wraps
@@ -223,7 +359,13 @@ internal static class UndoFuzz
     /// therefore the whole fuzz run — forever. See AwaitWithTimeoutAsync.</summary>
     private static readonly TimeSpan LoadoutStepTimeout = TimeSpan.FromSeconds(5);
 
-    private sealed class CombatOutcome
+    /// <summary>
+    /// Was `private`; now `internal` so MpFuzz.cs (--undosync-mpfuzz, step 2) can construct one and
+    /// read its results back after delegating to <see cref="DriveCombatAsync"/> — see that method's
+    /// own doc comment for why MpFuzz reuses this driver instead of writing a second one. No field or
+    /// behaviour changed, only the class's own visibility.
+    /// </summary>
+    internal sealed class CombatOutcome
     {
         public int CombatIndex;
         public string BaseSeed = "";
@@ -1387,6 +1529,17 @@ internal static class UndoFuzz
     private static readonly PropertyInfo? PTsPlayersReadyToBeginEnemyTurn =
         FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "PlayersReadyToBeginEnemyTurn") : null;
 
+    /// <summary>Same reflection pattern as PTsPlayersReadyToBeginEnemyTurn immediately above, reaching
+    /// CombatTurnState.PlayersReadyToEndTurn (CombatTurnState.cs:64, HashSet&lt;Player&gt;) instead —
+    /// added for MpFuzz (--undosync-mpfuzz): see MpFuzz.cs's own top-of-file "MULTIPLAYER IDLE-GATE
+    /// FIX" paragraph for why "which players have already called PlayerCmd.EndTurn" (as opposed to
+    /// "...are ready to begin the enemy turn", already covered above) is the multiplayer-specific
+    /// signal DescribeStallState was missing. Reused by IsMultiplayerIdleGateOpen (below), not just
+    /// this diagnostic dump — that method is where this accessor now also gates the driver directly,
+    /// not merely describes it after the fact.</summary>
+    private static readonly PropertyInfo? PTsPlayersReadyToEndTurn =
+        FCmTurnState != null ? AccessTools.Property(FCmTurnState.FieldType, "PlayersReadyToEndTurn") : null;
+
     /// <summary>Lazily-cached reflection handles for ActionQueueSet's private nested `ActionQueue` type
     /// (ActionQueueSet.cs:22) — private, so it cannot be named in source, meaning its declaring Type is
     /// only knowable at runtime (off the first element's GetType()). Every element of _actionQueues
@@ -1531,8 +1684,24 @@ internal static class UndoFuzz
                     string ids = string.Join(",", readySet.Select(p => p.NetId.ToString()));
                     readyDesc = $"{readySet.Count}/{(totalPlayers?.ToString() ?? "?")} ids=[{ids}]";
                 }
+                // MP-specific addition (MpFuzz.cs's own top-of-file "MULTIPLAYER IDLE-GATE FIX"
+                // paragraph): a player can call PlayerCmd.EndTurn (SetReadyToEndTurn) long before
+                // AllPlayersReadyToEndTurn fires the actual phase transition — this set is the only
+                // place that shows up before then, since neither PlayerCombatState.Phase nor
+                // ActionQueueSynchronizer.CombatState change for that player until every player has
+                // readied (CombatManager.cs:1055-1071). Also now the first condition
+                // IsMultiplayerIdleGateOpen checks, below — this dump and that gate read the exact
+                // same set for the exact same reason.
+                string readyEndDesc = "?/?";
+                if (turnStateObj != null && PTsPlayersReadyToEndTurn?.GetValue(turnStateObj) is HashSet<Player> readyEndSet)
+                {
+                    int? totalPlayers2 = UndoSyncMod.GetCombatState()?.Players.Count;
+                    string ids2 = string.Join(",", readyEndSet.Select(p => p.NetId.ToString()));
+                    readyEndDesc = $"{readyEndSet.Count}/{(totalPlayers2?.ToString() ?? "?")} ids=[{ids2}]";
+                }
                 turnPart = $"turn{{enemyStarted={cm.IsEnemyTurnStarted} endingP1={cm.EndingPlayerTurnPhaseOne} "
-                    + $"endingP2={cm.EndingPlayerTurnPhaseTwo} aboutToLose={cm.IsAboutToLose} ready={readyDesc}}}";
+                    + $"endingP2={cm.EndingPlayerTurnPhaseTwo} aboutToLose={cm.IsAboutToLose} "
+                    + $"readyToBeginEnemyTurn={readyDesc} readyToEndTurn={readyEndDesc}}}";
             }
 
             // --- game errors: _gameErrors, populated by OnGameLogError via the fuzz-only Log.Error
@@ -1561,6 +1730,86 @@ internal static class UndoFuzz
     {
         int idx = text.IndexOf('\n');
         return idx < 0 ? text : text.Substring(0, idx).TrimEnd('\r');
+    }
+
+    /// <summary>
+    /// MpFuzz path only — called from WaitForIdleOurTurnAsync only when _useMultiplayerIdleGate is
+    /// set, ANDed onto its existing Phase==Play/CanUndoRedo() check, never replacing it. See the
+    /// "MpFuzz-only idle gate" comment block above _useMultiplayerIdleGate's own declaration for the
+    /// two measured live-run failure shapes this closes.
+    ///
+    /// Two conditions, both required:
+    ///   1. NOT ALREADY ENDED — `me` must not be in CombatTurnState.PlayersReadyToEndTurn
+    ///      (CombatTurnState.cs:64, public HashSet&lt;Player&gt;), reached through the same
+    ///      FCmTurnState/PTsPlayersReadyToEndTurn reflection accessors DescribeStallState already uses
+    ///      for its own turn-coordination dump — reused here, not re-reflected. This closes the
+    ///      measured HOST failure: PlayerCmd.EndTurn (PlayerCmd.cs:278-288) checks
+    ///      IsPlayerReadyToEndTurn FIRST and is a complete no-op once true — no action of any kind is
+    ///      enqueued — so CombatManager.SetReadyToEndTurn (CombatManager.cs:932-960) only ever runs
+    ///      ONCE per player per turn; it adds the player to this set and returns, without touching
+    ///      that player's own PlayerCombatState.Phase or the shared ActionQueueSynchronizer.CombatState
+    ///      — those only change once EVERY player has readied (AllPlayersReadyToEndTurn,
+    ///      CombatManager.cs:1055-1071). The OLD check alone therefore read Ready again immediately
+    ///      after the very first (successful) EndTurn call, and every call after that was a pure
+    ///      in-process no-op with nothing to wait on — a busy-spin, not a hang: the measured host run
+    ///      burned 797 of its 800-unit ActionBudgetPerCombat this way in 21 seconds.
+    ///   2. LAST ACTION SETTLED — ChecksumTracker.NextId (ChecksumTracker.cs:57) must have advanced
+    ///      past <see cref="_lastIssuedActionChecksumId"/>. NextId is the one cheap, role-symmetric
+    ///      answer to "did the thing I just did actually land" — see
+    ///      <see cref="MultiplayerActionSettleTimeout"/>'s own doc comment for why it moves
+    ///      synchronously and locally on every peer with no cross-peer wait needed. That is exactly
+    ///      what a plain "is my local ActionQueueSet empty" check (what CanUndoRedo effectively
+    ///      reduces to here) is NOT for a client: a client's action is *requested* from the host
+    ///      rather than enqueued locally (ActionQueueSynchronizer.RequestEnqueue,
+    ///      ActionQueueSynchronizer.cs:141-166), so the local queue can read empty while that request
+    ///      is still in flight to the host and back. This closes the measured CLIENT failure: the
+    ///      driver played all 800 of its action-budget units as cards in 3 seconds with turnsPlayed
+    ///      staying 0 — none of them confirmed to have actually resolved before the next was issued.
+    ///      Bounded by MultiplayerActionSettleTimeout, not unbounded — see that field's own doc
+    ///      comment for what happens once it elapses without NextId moving.
+    ///
+    /// Condition 1 alone already fully explains and blocks the EndTurn/host shape (PlayerCmd.EndTurn's
+    /// own EndPlayerTurnAction is one of the two action types RunManager.SendPostActionChecksum never
+    /// generates a checksum for, RunManager.cs:568-572 — the same two GenerateMissingPostActionChecksum
+    /// mirrors above — so condition 2 would never see EndTurn's own action advance NextId at all;
+    /// condition 1 is what actually gates that case). Condition 2 is what gates card plays
+    /// (PlayCardAction is NOT on that skip list, so a real play does bump NextId once it resolves).
+    /// </summary>
+    /// <summary>Why the multiplayer idle gate last refused to open, for the stall report. Without this
+    /// a blocked multiplayer driver logs "blockers=[none (CanUndoRedo would return true)]" — accurate
+    /// about CanUndoRedo and useless about the actual cause, because DescribeUndoRedoBlockers only
+    /// knows about CanUndoRedo's own conditions and this gate sits on top of them. That exact
+    /// misleading line was measured on both peers before this field existed.</summary>
+    private static string _mpGateBlockReason = "";
+
+    private static bool IsMultiplayerIdleGateOpen(Player me, Stopwatch settleSw)
+    {
+        var turnStateObj = FCmTurnState?.GetValue(CombatManager.Instance);
+        if (turnStateObj != null && PTsPlayersReadyToEndTurn?.GetValue(turnStateObj) is HashSet<Player> readyEndSet
+            && readyEndSet.Contains(me))
+        {
+            _mpGateBlockReason = $"already in PlayersReadyToEndTurn (set has {readyEndSet.Count} player(s): "
+                + $"[{string.Join(",", readyEndSet.Select(p => p.NetId))}]) — waiting for the turn to advance";
+            return false;
+        }
+
+        if (_lastIssuedActionChecksumId is { } lastId)
+        {
+            uint currentId = RunManager.Instance?.ChecksumTracker.NextId ?? lastId;
+            if (currentId <= lastId)
+            {
+                bool fellThrough = settleSw.Elapsed > MultiplayerActionSettleTimeout;
+                _mpGateBlockReason = fellThrough
+                    ? ""
+                    : $"last issued action has not settled (ChecksumTracker.NextId={currentId} still <= "
+                      + $"lastIssued={lastId}, settle {settleSw.Elapsed.TotalSeconds:F1}s of "
+                      + $"{MultiplayerActionSettleTimeout.TotalSeconds:F0}s)";
+                return fellThrough;
+            }
+        }
+
+        _mpGateBlockReason = "";
+        return true;
     }
 
     /// <summary>
@@ -1602,10 +1851,20 @@ internal static class UndoFuzz
     /// nothing ever flips it false again on that path — so without this check ahead of it, a dead turn
     /// loop would otherwise present as an ordinary TimedOut stall and burn the full _activeIdleWaitTimeout
     /// before DriveCombatAsync found out. See _gameTurnLoopDied's own doc comment for how it gets set.
+    ///
+    /// MpFuzz path only: when _useMultiplayerIdleGate is set (written only by
+    /// MpFuzz.DriveOurCombatAsync — see that field's own doc comment for why it structurally cannot
+    /// leak into the headless/UI paths), IsMultiplayerIdleGateOpen ANDs two more conditions onto the
+    /// Ready check below via a short-circuiting `||` on the flag itself — see that method's own doc
+    /// comment for the full reasoning and the two measured live-run failure shapes it closes.
+    /// `settleSw` is a second, independent Stopwatch (started alongside `sw` above, only ever read by
+    /// that method) bounding just its own NextId settle-wait — see MultiplayerActionSettleTimeout's
+    /// own doc comment for why that needs a shorter, separate clock from `sw`/_activeIdleWaitTimeout.
     /// </summary>
     private static async Task<IdleWait> WaitForIdleOurTurnAsync(Player me)
     {
         var sw = Stopwatch.StartNew();
+        var settleSw = Stopwatch.StartNew();
         while (true)
         {
             if (_gameTurnLoopDied)
@@ -1619,14 +1878,16 @@ internal static class UndoFuzz
                 return IdleWait.CombatEnded;
             }
             var pcs = me.PlayerCombatState;
-            if (pcs != null && pcs.Phase == PlayerTurnPhase.Play && UndoSyncMod.CanUndoRedo())
+            if (pcs != null && pcs.Phase == PlayerTurnPhase.Play && UndoSyncMod.CanUndoRedo()
+                && (!_useMultiplayerIdleGate || IsMultiplayerIdleGateOpen(me, settleSw)))
             {
                 _lastIdleWaitBlockers = "";
                 return IdleWait.Ready;
             }
             if (sw.Elapsed > _activeIdleWaitTimeout)
             {
-                _lastIdleWaitBlockers = $"phase={me.PlayerCombatState?.Phase.ToString() ?? "null"} blockers=[{UndoSyncMod.DescribeUndoRedoBlockers()}]";
+                _lastIdleWaitBlockers = $"phase={me.PlayerCombatState?.Phase.ToString() ?? "null"} blockers=[{UndoSyncMod.DescribeUndoRedoBlockers()}]"
+                + (_useMultiplayerIdleGate && _mpGateBlockReason.Length > 0 ? $" mpGate=[{_mpGateBlockReason}]" : "");
                 return IdleWait.TimedOut;
             }
             await Task.Delay(IdlePollInterval);
@@ -1650,8 +1911,18 @@ internal static class UndoFuzz
     /// exactly the shape an action-id-reuse bug in ChecksumHook.RestoreTo's FastForward* calls would
     /// take: the queue looks idle right after the restore, but a newly-enqueued action with a
     /// colliding id never actually drains.
+    ///
+    /// Was `private`; now `internal` so MpFuzz.cs (--undosync-mpfuzz) can call this directly on
+    /// its own already-entered combat, reusing this exact driver instead of writing a second one — see
+    /// MpFuzz.DriveOurCombatAsync's own doc comment for how it configures the per-path selectors above
+    /// before calling this, and MpFuzz.cs's top-of-file "MULTIPLAYER IDLE-GATE FIX" paragraph for the
+    /// multiplayer-only gap this driver's own gating (WaitForIdleOurTurnAsync/UndoSyncMod.CanUndoRedo)
+    /// had, found while tracing this method for that call site and since closed by
+    /// IsMultiplayerIdleGateOpen (called from WaitForIdleOurTurnAsync itself, gated on
+    /// _useMultiplayerIdleGate — not a change to this method's own logic, which stays exactly as it
+    /// was for every path).
     /// </summary>
-    private static async Task DriveCombatAsync(int combatIndex, Player me, Random rng, CombatOutcome outcome)
+    internal static async Task DriveCombatAsync(int combatIndex, Player me, Random rng, CombatOutcome outcome)
     {
         var sw = Stopwatch.StartNew();
         int restoreSectionFailuresBefore = StateSnapshot.RestoreSectionFailureCount;
@@ -1696,6 +1967,13 @@ internal static class UndoFuzz
             bool restoreActionPending = false;
             string restoreWatchDesc = "";
 
+            // MpFuzz path only: fresh per-combat baseline for IsMultiplayerIdleGateOpen's settle-wait
+            // snapshot — see _lastIssuedActionChecksumId's own doc comment. Reset unconditionally
+            // (cheap, and only ever read when _useMultiplayerIdleGate is set) rather than gating the
+            // reset itself, so a future multi-combat MpFuzz run can never start gated on a stale id
+            // left over from this process's previous combat.
+            _lastIssuedActionChecksumId = null;
+
             while (CombatManager.Instance.IsInProgress)
             {
                 if (sw.Elapsed > _activeCombatWallClockTimeout)
@@ -1708,6 +1986,18 @@ internal static class UndoFuzz
                 {
                     outcome.DriveError = $"action budget exhausted ({ActionBudgetPerCombat} card-plays/end-turns) — abandoning";
                     outcome.BudgetExhausted = true;
+                    // Same stall dump the two IdleWait.TimedOut branches below print, added here too:
+                    // a fast busy-spin could burn the whole action budget WITHOUT ever timing out (see
+                    // MpFuzz.cs's own top-of-file "MULTIPLAYER IDLE-GATE FIX" paragraph for the exact
+                    // multiplayer shape this used to take — one player readies to end turn while the
+                    // other hasn't, and nothing WaitForIdleOurTurnAsync checked changed, so it returned
+                    // Ready immediately, forever, with zero waiting between iterations — now closed by
+                    // IsMultiplayerIdleGateOpen). Kept as a backstop rather than removed: still cheap,
+                    // still harmless for the headless/UI paths (which hit this branch far more rarely
+                    // and for unrelated reasons), and still the right diagnostic if budget exhaustion
+                    // happens for some other reason on any path, including a genuinely stuck MpFuzz
+                    // combat whose settle-wait kept falling through (MultiplayerActionSettleTimeout).
+                    Log.Write($"[Fuzz] combat={combatIndex} STALL STATE: {DescribeStallState()}");
                     Log.Write($"[Fuzz] combat={combatIndex} BUDGET EXHAUSTED (turnsPlayed={outcome.TurnsPlayed}, cardsPlayed={outcome.CardsPlayed}, restoresAttempted={outcome.RestoresAttempted}) — this is a harness/drive-loop concern, not a restore-fidelity finding");
                     return;
                 }
@@ -1812,7 +2102,29 @@ internal static class UndoFuzz
 
                 if (!acted)
                 {
-                    PlayerCmd.EndTurn(me, canBackOut: false);
+                    // MEASURED, and the same class of mistake as the map vote in MpFuzz: PlayerCmd.EndTurn
+                    // (PlayerCmd.cs:278-288) is NOT the way a player ends a turn in multiplayer. Its only
+                    // caller in the shipped game is EndPlayerTurnAction.ExecuteAction
+                    // (EndPlayerTurnAction.cs:40) — a GameAction with a ToNetAction override (:49), i.e. one
+                    // that exists to be replicated. Calling it directly only adds the local player to this
+                    // peer's own CombatTurnState.PlayersReadyToEndTurn, so the other peer never learns of it,
+                    // AllPlayersReadyToEndTurn is never true anywhere, and the turn never advances. Both
+                    // instances logged exactly that: host saw the set as [1], client saw it as [1001] — each
+                    // holding only its own vote — and then waited out the full idle timeout.
+                    //
+                    // Singleplayer is unaffected either way (one peer, so local IS everyone), but routing
+                    // through the action is what the game itself does, so the multiplayer path uses it and
+                    // the other paths keep the direct call they were verified with.
+                    if (_useMultiplayerIdleGate)
+                    {
+                        var syncr = RunManager.Instance?.ActionQueueSynchronizer;
+                        int turnNumber = me.PlayerCombatState?.TurnNumber ?? 0;
+                        syncr?.RequestEnqueue(new MegaCrit.Sts2.Core.GameActions.EndPlayerTurnAction(me, turnNumber));
+                    }
+                    else
+                    {
+                        PlayerCmd.EndTurn(me, canBackOut: false);
+                    }
                     outcome.TurnsPlayed++;
                     actionBudget--;
                     _lastDriverAction = "EndTurn";
@@ -1825,6 +2137,15 @@ internal static class UndoFuzz
                 // path, which paces restores off RestoreProbability/MinTurnsBetweenRestores instead
                 // and never reads this field — see CombatOutcome.ActionsSinceLastDeterministicRestore.
                 outcome.ActionsSinceLastDeterministicRestore++;
+                // MpFuzz path only: snapshot ChecksumTracker.NextId (ChecksumTracker.cs:57) now that
+                // an action was just issued above (TryManualPlay success or EndTurn) — the next
+                // WaitForIdleOurTurnAsync call requires this to have advanced before returning Ready
+                // again, via IsMultiplayerIdleGateOpen. Guarded by _useMultiplayerIdleGate so this is
+                // a complete no-op — not even a ChecksumTracker.NextId read — on the headless/UI-mode
+                // paths, which never set that flag; see _useMultiplayerIdleGate's own doc comment for
+                // why only MpFuzz.DriveOurCombatAsync ever can.
+                if (_useMultiplayerIdleGate)
+                    _lastIssuedActionChecksumId = RunManager.Instance?.ChecksumTracker.NextId;
                 // No explicit wait here: TryManualPlay only enqueues, it doesn't resolve the card
                 // synchronously, and EndTurn just flips a ready flag. The very next loop iteration's
                 // WaitForIdleOurTurnAsync above is what waits for that PlayCardAction (or the
@@ -2010,9 +2331,15 @@ internal static class UndoFuzz
     /// it can never leak between paths. DriveCombatAsync's own call site is untouched by Defect 3: it
     /// still calls exactly one function, at exactly the same point in its loop, with the same three
     /// arguments — only the name changed, from TryAttemptRestore directly to this dispatcher.
+    ///
+    /// Checks <see cref="RestoresAllowed"/> FIRST, before either policy — see that field's own doc
+    /// comment for why MpFuzz (step 2) needs a genuine "perform no restore at all" switch that neither
+    /// existing policy provides on its own. Defaults true, so this check is a no-op for the headless
+    /// and UI-mode paths, which never write it.
     /// </summary>
     private static SyncPoint? AttemptRestore(int combatIndex, Random rng, CombatOutcome outcome)
     {
+        if (!RestoresAllowed) return null;
         return _useDeterministicRestorePolicy
             ? TryAttemptDeterministicRestore(combatIndex, rng, outcome)
             : TryAttemptRestore(combatIndex, rng, outcome);
