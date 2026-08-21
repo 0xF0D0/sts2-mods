@@ -11,7 +11,8 @@ counters show their values — the same screen grammar as playing yourself.
     live-updating as they draw and play)
   - Every "yours" readout on screen switches to theirs: energy orb, stars,
     draw/discard/exhaust counters (the exhaust button pops in/out based on
-    *their* exhaust pile), HP, gold, deck count, potions and relics
+    *their* exhaust pile), HP, gold, deck count, potions, relics, and the
+    character portrait — hovering a potion slot describes *their* potion
   - A "Spectating — name" banner shows at the top center of the screen
     (Korean strings when the game language is Korean), and the end-turn
     button is hidden until you exit
@@ -70,14 +71,27 @@ locally — so **other players' card data already exists in your client's
   (`UpdateGold`, `UpdateHealth`, `OnPileContentsChanged`) so local updates
   can't flash local values back in. Gold is *not* done with a `_player` swap:
   `UpdateGoldAnim` drives a "+N" popup off `_currentGold` bookkeeping, and
-  swapping would fake a delta animation. Stars reuse vanilla's own
+  swapping would fake a delta animation — while spectating `UpdateGold` is
+  skipped outright and its `_currentGold`/`_additionalGold` ledger written
+  directly, so a local gold change can't flash your own number mid-animation
+  and leaving spectate still shows the right total. Stars reuse vanilla's own
   `SetStarCountText` (keeping its 0-star red and shader hues) and need a
   `_Process` postfix, because that method repaints from the local player every
   frame regardless of events.
-- **Potions and relics**: node collections, so they can't be label-stamped —
-  the vanilla containers are hidden and read-only replicas drawn in their place
-  (`NPotionHolder.Create(isUsable: false)` + `NPotion.Create`, the same API
-  vanilla's own peer-inspect screen uses). Unlike NCard these are not pooled.
+- **Potions, relics and portrait**: node collections, so they can't be
+  label-stamped — the vanilla nodes are hidden and read-only replicas drawn in
+  their place. Hiding is always `Modulate = Colors.Transparent`, never
+  `Visible = false`: the top bar is a Container, and collapsing a slot reflows
+  the whole row (the belt once landed next to the gold counter that way). The
+  belt is redrawn on a `TopLevel` overlay — which a Container's layout pass
+  skips — with the viewed player's slot count, squeezed into the real belt's
+  span when they carry more slots than you so it cannot spill onto the room
+  icon. Replicas are real `NPotionHolder.Create(isUsable: false)` holders fed
+  through `AddPotion`, with vanilla's own `(-30, -30)` potion offset from
+  `NPotionContainer.Add` (without it the artwork renders outside its frame);
+  going through real holders is what makes hover behave like the real belt, and
+  a Prefix on `NPotionHolder.OnFocus` points the tooltip at the peer's potion.
+  Unlike NCard, none of these are pooled.
 - **Peer card-selection mirror**: `CardSelectCmd.From*` take the candidate list
   as an argument and remote peers resolve the result by *index* into it, which
   proves every peer holds the same list in the same order — so the mirror is
