@@ -14,6 +14,7 @@ using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
@@ -22,6 +23,7 @@ using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
+using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
@@ -121,6 +123,7 @@ internal static class PeerSpectate
     private static CardPile? _subscribedDeckPile;
     private static Player? _subscribedPotionPeer;
     private static Player? _subscribedRelicPeer;
+    private static Player? _subscribedPotionSlotPeer;
 
     internal static bool Active => _peer != null && _root != null && GodotObject.IsInstanceValid(_root) && _root.IsInsideTree();
 
@@ -234,6 +237,8 @@ internal static class PeerSpectate
         _subscribedRelicPeer = peer;
         peer.RelicObtained += OnPeerRelicsChanged;
         peer.RelicRemoved += OnPeerRelicsChanged;
+        _subscribedPotionSlotPeer = peer;
+        peer.MaxPotionCountChanged += OnPeerMaxPotionCountChanged;
 
         Rebuild();
         PeerIndicators.ApplyAll();
@@ -244,6 +249,7 @@ internal static class PeerSpectate
         PeerStarCounter.Apply();
         PeerPotionReplica.Enter(peer);
         PeerRelicReplica.Enter(peer);
+        PeerPortraitReplica.Enter(peer);
         Log.Write($"spectate enter: {PeerScreens.PlayerName(peer)} (netId={peer.NetId}, {combatState.Hand.Cards.Count} cards)");
         // If this peer already has a card-selection screen open on their end (we
         // recorded it via a CardSelectCmd prefix before we started watching them),
@@ -324,8 +330,14 @@ internal static class PeerSpectate
             _subscribedRelicPeer.RelicRemoved -= OnPeerRelicsChanged;
             _subscribedRelicPeer = null;
         }
+        if (_subscribedPotionSlotPeer != null)
+        {
+            _subscribedPotionSlotPeer.MaxPotionCountChanged -= OnPeerMaxPotionCountChanged;
+            _subscribedPotionSlotPeer = null;
+        }
         PeerPotionReplica.Exit();
         PeerRelicReplica.Exit();
+        PeerPortraitReplica.Exit();
 
         ClearCards();
         if (_root != null && GodotObject.IsInstanceValid(_root))
@@ -496,6 +508,11 @@ internal static class PeerSpectate
     private static void OnPeerPotionsChanged(PotionModel _) => PeerPotionReplica.Rebuild();
 
     private static void OnPeerRelicsChanged(RelicModel _) => PeerRelicReplica.Rebuild();
+
+    // A relic that grows/shrinks max potion slots mid-combat should immediately
+    // resize the belt we're mirroring too, not just wait for the next potion
+    // procured/used/discarded event to happen to also trigger a Rebuild.
+    private static void OnPeerMaxPotionCountChanged(int _) => PeerPotionReplica.Rebuild();
 
     private static void OnCombatEnded(CombatRoom _) => Exit();
 
@@ -672,6 +689,7 @@ internal static class PeerCardSelectMirror
             {
                 _shownScreen = null;
                 _shownForNetId = null;
+                PeerSpectate.SetStripVisible(true);
             }
             return _shownScreen != null;
         }
@@ -729,6 +747,15 @@ internal static class PeerCardSelectMirror
         _shownScreen = screen;
         _shownForNetId = choice.Player.NetId;
         PeerSpectate.SetStripVisible(false);
+        // The screen can also leave on its own (vanilla removes it when its
+        // completion source resolves). Without this the strip would stay hidden
+        // for the rest of the spectate session.
+        Control tracked = screen;
+        screen.Connect(Node.SignalName.TreeExiting, Callable.From(() =>
+        {
+            if (ReferenceEquals(_shownScreen, tracked))
+                Forget(choice.Player.NetId);
+        }));
     }
 
     /// <summary>
@@ -875,9 +902,18 @@ internal static class PeerCardSelectMirror
                 Name = "PeerViewSelectBlocker",
                 MouseFilter = Control.MouseFilterEnum.Stop,
                 FocusMode = Control.FocusModeEnum.None,
+                // TopLevel + explicit viewport rect rather than anchors: a
+                // FullRect preset only spans the screen root's own rect, and the
+                // grid screens' root does not span the canvas — so the blocker
+                // covered nothing there and clicks reached the card holders,
+                // resolving the mirror's own completion source and closing it.
+                TopLevel = true,
+                ZIndex = 4096,
             };
             screen.AddChildSafely(blocker);
-            blocker.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            Rect2 visible = screen.GetViewport().GetVisibleRect();
+            blocker.GlobalPosition = visible.Position;
+            blocker.Size = visible.Size;
         }
         catch (System.Exception e)
         {
@@ -1265,8 +1301,23 @@ internal static class PeerTopBar
     private static readonly System.Reflection.FieldInfo GoldLabelField =
         AccessTools.Field(typeof(NTopBarGold), "_goldLabel");
 
+    private static readonly System.Reflection.FieldInfo GoldPopupLabelField =
+        AccessTools.Field(typeof(NTopBarGold), "_goldPopupLabel");
+
     private static readonly System.Reflection.FieldInfo CurrentGoldField =
         AccessTools.Field(typeof(NTopBarGold), "_currentGold");
+
+    private static readonly System.Reflection.FieldInfo AdditionalGoldField =
+        AccessTools.Field(typeof(NTopBarGold), "_additionalGold");
+
+    private static readonly System.Reflection.FieldInfo GoldPlayerField =
+        AccessTools.Field(typeof(NTopBarGold), "_player");
+
+    private static readonly System.Reflection.FieldInfo AlreadyRunningField =
+        AccessTools.Field(typeof(NTopBarGold), "_alreadyRunning");
+
+    private static readonly System.Reflection.FieldInfo AnimCtsField =
+        AccessTools.Field(typeof(NTopBarGold), "_animCts");
 
     private static readonly System.Reflection.FieldInfo HpLabelField =
         AccessTools.Field(typeof(NTopBarHp), "_hpLabel");
@@ -1288,12 +1339,49 @@ internal static class PeerTopBar
             NTopBarGold? gold = NRun.Instance?.GlobalUi.TopBar.Gold;
             if (peer == null || gold == null || !GodotObject.IsInstanceValid(gold))
                 return;
+            // A "+N" gold animation may already be mid-flight — started just before
+            // we began spectating, or by a local gold change PatchTopBarGold just
+            // intercepted below — and its own async loop in UpdateGoldAnim keeps
+            // re-stamping _goldLabel with LOCAL numbers on every tick, so a one-shot
+            // repaint here would just get overwritten again a few ms later. Cancel
+            // it and hide its popup so nothing but this stamp ever touches the label
+            // again for the rest of the spectate session.
+            if (AlreadyRunningField.GetValue(gold) is bool running && running
+                && AnimCtsField.GetValue(gold) is System.Threading.CancellationTokenSource cts)
+            {
+                cts.Cancel();
+                if (GoldPopupLabelField.GetValue(gold) is MegaLabel popup && GodotObject.IsInstanceValid(popup))
+                    popup.Modulate = Colors.Transparent;
+            }
             if (GoldLabelField.GetValue(gold) is MegaLabel label && GodotObject.IsInstanceValid(label))
                 label.SetTextAutoSize(peer.Gold.ToString());
         }
         catch (System.Exception e)
         {
             Log.Write($"top bar gold apply error: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Runs in place of vanilla's UpdateGold/UpdateGoldAnim while spectating (see
+    /// PatchTopBarGold's Prefix) — keeps _currentGold/_additionalGold consistent
+    /// with the real local gold total, since we're skipping the method that would
+    /// normally do that bookkeeping, then repaints the peer's value on top.
+    /// </summary>
+    internal static void SuppressGoldAnim(NTopBarGold gold)
+    {
+        try
+        {
+            if (!GodotObject.IsInstanceValid(gold))
+                return;
+            if (GoldPlayerField.GetValue(gold) is Player localPlayer)
+                CurrentGoldField.SetValue(gold, localPlayer.Gold);
+            AdditionalGoldField.SetValue(gold, 0);
+            ApplyGold();
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"top bar gold suppress error: {e}");
         }
     }
 
@@ -1310,6 +1398,12 @@ internal static class PeerTopBar
                 && GodotObject.IsInstanceValid(label)
                 && CurrentGoldField.GetValue(gold) is int localGold)
                 label.SetTextAutoSize(localGold.ToString());
+            // We may have force-cancelled an in-flight "+N" popup animation above
+            // (ApplyGold) while spectating — put it back in vanilla's own resting
+            // state (transparent, per NTopBarGold._Ready) rather than leave it
+            // however that cancellation happened to catch it.
+            if (GoldPopupLabelField.GetValue(gold) is MegaLabel popup && GodotObject.IsInstanceValid(popup))
+                popup.Modulate = Colors.Transparent;
         }
         catch (System.Exception e)
         {
@@ -1389,21 +1483,47 @@ internal static class PeerTopBar
 }
 
 /// <summary>
-/// While spectating, the potion belt shows the viewed player's potions painted
-/// in place over the vanilla slot frames — NOT by hiding NPotionContainer and
-/// drawing a replacement beside it. NTopBar's row is a layout Container: hiding a
-/// child collapses its slot, which shoves every sibling after it (room icon, etc.)
-/// left and lets whatever we draw next get laid out right next to gold instead of
-/// where the potions belong. So the vanilla container, its holders, and their
-/// frames are left fully alone; only each local potion's own picture (if any) is
-/// hidden, and a same-sized peer NPotion is drawn on top of it via a TopLevel
-/// overlay root — TopLevel exempts a node from its parent Container's layout pass
-/// entirely (Godot: "Nodes inside a Container will not affect the container in any
-/// way once top_level is enabled"), so it can sit at an absolute GlobalPosition
-/// copied from the real slot regardless of what the top bar's layout is doing.
-/// Each local holder's _isUsable is also forced false for the whole spectate
-/// session so a slot click can't open MY potion popup while a peer's picture is
-/// drawn over it; both this and the local potion's Visible are restored on Exit.
+/// While spectating, the potion belt is a FULL REPLICA of the peer's belt, drawn on
+/// a TopLevel overlay — not a mix of "keep the vanilla holders, paint peer potions
+/// over them" like an earlier version of this class did. That mixed approach had
+/// two bugs: (A) a peer potion's picture was a bare NPotion sibling positioned on
+/// top of the real holder rather than a real child of it (added via AddPotion), so
+/// hovering it never reached the real holder's OnFocus — Godot's mouse picking
+/// stops at the first non-Ignore control it finds front-to-back, and some interior
+/// NPotion child kept that default MouseFilter even though the outer NPotion node
+/// was set to Ignore (MouseFilter doesn't cascade to descendants); (B) a peer with
+/// more slots than us had nowhere to grow that stayed inside the belt's own frame,
+/// so the extras spilled out over the room icon.
+///
+/// The fix: hide EVERY real holder (Modulate, never Visible — NTopBar's row is a
+/// layout Container: hiding a child collapses its slot, which shoves every sibling
+/// after it, e.g. the room icon, left; TopLevel exempts a node from its parent
+/// Container's layout pass entirely, so our replica can sit at an absolute
+/// GlobalPosition regardless of what the top bar's layout is doing) and draw
+/// peerMax fresh NPotionHolder replicas in its place, using the real AddPotion API
+/// for filled slots — exactly the structure vanilla uses for the local player, so
+/// hovering one behaves exactly like vanilla (see PatchPotionHolderFocus, whose
+/// Prefix reproduces the tooltip half of that behavior without the bounce/sound/
+/// controller-reticle side effects, which don't belong to something you can't
+/// actually interact with). MouseFilter on the hidden real holders is also forced
+/// to Ignore: Modulate alone doesn't stop a still-Visible holder from being hover-
+/// eligible (NPotionHolder.OnFocus fires regardless of _isUsable), and left alone
+/// it would compete with our replica for the same screen position's hover event.
+///
+/// Layout: the replicas are packed into the exact span the real belt occupied
+/// (first real holder's left edge to last real holder's right edge). With
+/// peerMax &lt;= our own holder count, the real belt's own spacing/scale is reused
+/// unchanged and slots are filled from the left (mirrors how vanilla's own belt
+/// looks when you have more slots than potions). With peerMax &gt; our own holder
+/// count, peerMax slots are packed evenly across that same span and scaled down
+/// uniformly so a slot's own width can never exceed its share of the span — this
+/// is what keeps bug (B) from
+/// recurring; there's no vanilla layout API for "add one more slot", and
+/// NPotionContainer.GrowPotionHolders is both private and real Player-facing UI
+/// state we must never touch here.
+///
+/// Full regeneration on every potion/slot-count change (belts are small) — no
+/// incremental patching of a single slot.
 /// </summary>
 internal static class PeerPotionReplica
 {
@@ -1413,17 +1533,22 @@ internal static class PeerPotionReplica
     private static readonly System.Reflection.FieldInfo IsUsableField =
         AccessTools.Field(typeof(NPotionHolder), "_isUsable");
 
-    private static readonly System.Reflection.FieldInfo PotionScaleField =
-        AccessTools.Field(typeof(NPotionHolder), "_potionScale");
-
     private static Control? _root;
     private static Player? _peer;
     private static List<NPotionHolder>? _localHolders;
-    private static readonly List<NPotion> _replicaPotions = new();
 
-    // Per local holder: its own reference, the local potion it had (if any, so we
-    // can un-hide the exact same node on Exit), and its original _isUsable value.
-    private static readonly List<(NPotionHolder Holder, NPotion? LocalPotion, bool WasUsable)> _hiddenState = new();
+    // Every real vanilla holder, hidden for the whole spectate session, keyed to
+    // the state needed to restore it exactly on Exit. Also doubles as the
+    // membership set PatchPotionHolderFocus's Prefix checks via IsHiddenLocalHolder
+    // to suppress a hidden holder's own tooltip if it ever gets focus anyway.
+    private static readonly Dictionary<NPotionHolder, (Color OriginalModulate, Control.MouseFilterEnum OriginalMouseFilter, bool WasUsable)> _hiddenRealHolders = new();
+
+    // Our own full-replica holders, entirely recreated on every Rebuild().
+    private static readonly List<NPotionHolder> _overlayHolders = new();
+
+    // Each overlay holder's peer potion (null for an empty slot) — the mapping
+    // PatchPotionHolderFocus's Prefix queries to build the right hover tip.
+    private static readonly Dictionary<NPotionHolder, PotionModel?> _slotPotions = new();
 
     internal static void Enter(Player peer)
     {
@@ -1436,19 +1561,20 @@ internal static class PeerPotionReplica
             if (parent == null || HoldersField.GetValue(container) is not List<NPotionHolder> holders)
                 return;
 
-            _hiddenState.Clear();
+            _hiddenRealHolders.Clear();
             foreach (NPotionHolder holder in holders)
             {
                 if (!GodotObject.IsInstanceValid(holder))
                     continue;
                 bool wasUsable = IsUsableField.GetValue(holder) is bool b && b;
-                NPotion? localPotion = holder.Potion;
-                if (localPotion != null && GodotObject.IsInstanceValid(localPotion))
-                    localPotion.Visible = false;
-                // Never let a spectate-time click reach the LOCAL potion under our
+                Color originalModulate = holder.Modulate;
+                Control.MouseFilterEnum originalMouseFilter = holder.MouseFilter;
+                holder.Modulate = Colors.Transparent;
+                holder.MouseFilter = Control.MouseFilterEnum.Ignore;
+                // Never let a spectate-time click reach the LOCAL holder under our
                 // overlay — the only vanilla state this touches, restored on Exit.
                 IsUsableField.SetValue(holder, false);
-                _hiddenState.Add((holder, localPotion, wasUsable));
+                _hiddenRealHolders[holder] = (originalModulate, originalMouseFilter, wasUsable);
             }
             _localHolders = holders;
 
@@ -1468,10 +1594,8 @@ internal static class PeerPotionReplica
     }
 
     /// <summary>
-    /// Full rebuild on every potion change (procured/used/discarded) — belts are
-    /// small, so this is simpler and safer than trying to patch a single slot.
-    /// Peer potions map to local holders by index; a peer with more potions than
-    /// the local player has holders is truncated (never invents new slots).
+    /// Tears down and redraws every replica holder from scratch — see class doc
+    /// comment for the layout math.
     /// </summary>
     internal static void Rebuild()
     {
@@ -1479,43 +1603,86 @@ internal static class PeerPotionReplica
             return;
         try
         {
-            ClearReplicas();
-            int i = 0;
-            foreach (PotionModel potion in _peer.Potions)
-            {
-                if (i >= _localHolders.Count)
-                {
-                    Log.Write($"potion replica: peer has more potions than local holders ({_localHolders.Count}) — truncating");
-                    break;
-                }
-                NPotionHolder localHolder = _localHolders[i];
-                i++;
-                if (!GodotObject.IsInstanceValid(localHolder))
-                    continue;
-                NPotion? nPotion = NPotion.Create(potion);
-                if (nPotion == null)
-                    continue;
-                _root.AddChildSafely(nPotion);
-                nPotion.MouseFilter = Control.MouseFilterEnum.Ignore;
+            ClearOverlayHolders();
 
-                // Copying an existing local potion's own transform is the exact
-                // match; with no local potion to copy, fall back to the holder's
-                // own position/scale, mirroring what vanilla AddPotion does.
-                NPotion? localPotion = localHolder.Potion;
-                if (localPotion != null && GodotObject.IsInstanceValid(localPotion))
+            IReadOnlyList<PotionModel?> slots = _peer.PotionSlots;
+            int peerMax = slots.Count; // == _peer.MaxPotionCount by construction
+            if (peerMax <= 0)
+                return;
+            if (_localHolders.Count == 0)
+            {
+                Log.Write("potion replica: no real holders to anchor the belt on — skipping overlay");
+                return;
+            }
+
+            NPotionHolder firstReal = _localHolders[0];
+            NPotionHolder lastReal = _localHolders[^1];
+            float spanStart = firstReal.GlobalPosition.X;
+            float spanEnd = lastReal.GlobalPosition.X + lastReal.Size.X * lastReal.Scale.X;
+
+            Vector2 pitch;
+            Vector2 scale;
+            bool squeezed = peerMax > _localHolders.Count;
+            if (!squeezed)
+            {
+                // Peer has the same or fewer slots — keep the real belt's own
+                // spacing and scale untouched, just fill fewer of them from the left.
+                pitch = _localHolders.Count > 1
+                    ? (lastReal.GlobalPosition - firstReal.GlobalPosition) / (_localHolders.Count - 1)
+                    : Vector2.Zero;
+                scale = firstReal.Scale;
+            }
+            else
+            {
+                // Peer has more slots than we have real holders for — squeeze
+                // peerMax slots evenly into the SAME span the real belt occupied,
+                // scaled down uniformly so a slot's own width can never exceed its
+                // share of that span (this is what keeps the belt inside its frame).
+                float perSlotWidth = (spanEnd - spanStart) / peerMax;
+                float realWidth = firstReal.Size.X * firstReal.Scale.X;
+                float factor = realWidth > 0f ? perSlotWidth / realWidth : 1f;
+                pitch = new Vector2(perSlotWidth, 0f);
+                scale = firstReal.Scale * factor;
+            }
+
+            for (int index = 0; index < peerMax; index++)
+            {
+                NPotionHolder holder = NPotionHolder.Create(isUsable: false);
+                _root.AddChildSafely(holder);
+                holder.Scale = scale;
+
+                Vector2 position = firstReal.GlobalPosition + pitch * index;
+                if (squeezed)
                 {
-                    nPotion.GlobalPosition = localPotion.GlobalPosition;
-                    nPotion.Scale = localPotion.Scale;
-                    nPotion.PivotOffset = localPotion.PivotOffset;
+                    // Recenter vertically on the real belt's own center line —
+                    // top-aligning a shrunk holder to the real belt's (larger) top
+                    // edge would visually sag it below where the row used to sit.
+                    float realCenterY = firstReal.GlobalPosition.Y + firstReal.Size.Y * firstReal.Scale.Y * 0.5f;
+                    float newHeight = holder.Size.Y * scale.Y;
+                    position.Y = realCenterY - newHeight * 0.5f;
                 }
-                else
+                holder.GlobalPosition = position;
+
+                PotionModel? potionModel = slots[index];
+                _slotPotions[holder] = potionModel;
+                if (potionModel != null)
                 {
-                    Vector2 scale = PotionScaleField.GetValue(localHolder) is Vector2 s ? s : new Vector2(0.9f, 0.9f);
-                    nPotion.GlobalPosition = localHolder.GlobalPosition;
-                    nPotion.Scale = scale;
-                    nPotion.PivotOffset = nPotion.Size * 0.5f;
+                    // Real AddPotion, not a manually-positioned sprite — this is
+                    // what makes hovering a filled replica slot behave exactly like
+                    // vanilla (see class doc comment). Leaves the empty-slot icon
+                    // showing for a null potionModel, same as an empty vanilla slot.
+                    NPotion? nPotion = NPotion.Create(potionModel);
+                    if (nPotion != null)
+                    {
+                        // Vanilla offsets the potion by (-30, -30) inside its holder
+                        // before handing it over (NPotionContainer.Add) — AddPotion
+                        // itself only sets scale and pivot, so without this the
+                        // artwork sits a half-slot off its frame.
+                        nPotion.Position = new Vector2(-30f, -30f);
+                        holder.AddPotion(nPotion);
+                    }
                 }
-                _replicaPotions.Add(nPotion);
+                _overlayHolders.Add(holder);
             }
         }
         catch (System.Exception e)
@@ -1524,35 +1691,53 @@ internal static class PeerPotionReplica
         }
     }
 
-    private static void ClearReplicas()
+    /// <summary>
+    /// True for a real (hidden) local holder — PatchPotionHolderFocus uses this to
+    /// suppress its tooltip entirely if it ever receives focus, rather than falling
+    /// through to vanilla's own (wrong — it's the LOCAL slot, hidden) one.
+    /// </summary>
+    internal static bool IsHiddenLocalHolder(NPotionHolder holder) => _hiddenRealHolders.ContainsKey(holder);
+
+    /// <summary>
+    /// The peer potion (if any) standing behind this REPLICA holder, for
+    /// PatchPotionHolderFocus. False means the holder isn't one of ours at all
+    /// (e.g. an NPotionHolder belonging to some other screen entirely).
+    /// </summary>
+    internal static bool TryGetPeerPotion(NPotionHolder holder, out PotionModel? potion) =>
+        _slotPotions.TryGetValue(holder, out potion);
+
+    private static void ClearOverlayHolders()
     {
-        foreach (NPotion potion in _replicaPotions)
+        foreach (NPotionHolder holder in _overlayHolders)
         {
-            // NPotionHolder/NPotion are plain nodes, not pooled like NCard.
-            if (GodotObject.IsInstanceValid(potion))
-                potion.QueueFreeSafelyNoPool();
+            // NPotionHolder/NPotion are plain nodes, not pooled like NCard —
+            // freeing the holder frees its AddPotion'd NPotion child with it.
+            if (GodotObject.IsInstanceValid(holder))
+                holder.QueueFreeSafelyNoPool();
         }
-        _replicaPotions.Clear();
+        _overlayHolders.Clear();
+        _slotPotions.Clear();
     }
 
     internal static void Exit()
     {
         try
         {
-            ClearReplicas();
+            ClearOverlayHolders();
+
             if (_root != null && GodotObject.IsInstanceValid(_root))
                 _root.QueueFreeSafelyNoPool();
             _root = null;
 
-            foreach (var state in _hiddenState)
+            foreach (var (holder, state) in _hiddenRealHolders)
             {
-                if (!GodotObject.IsInstanceValid(state.Holder))
+                if (!GodotObject.IsInstanceValid(holder))
                     continue;
-                IsUsableField.SetValue(state.Holder, state.WasUsable);
-                if (state.LocalPotion != null && GodotObject.IsInstanceValid(state.LocalPotion))
-                    state.LocalPotion.Visible = true;
+                holder.Modulate = state.OriginalModulate;
+                holder.MouseFilter = state.OriginalMouseFilter;
+                IsUsableField.SetValue(holder, state.WasUsable);
             }
-            _hiddenState.Clear();
+            _hiddenRealHolders.Clear();
             _localHolders = null;
             _peer = null;
         }
@@ -1576,10 +1761,20 @@ internal static class PeerPotionReplica
 /// doc comment marks as a flatter substitute used elsewhere (run history, the
 /// multiplayer expanded state, the relic collection) that "cannot flash and never
 /// displays amounts". A plain HFlowContainer reproduces the vanilla row's wrapping.
+///
+/// NRelicInventory is itself a FlowContainer, so hiding it with Visible = false
+/// would collapse its own slot in ITS parent's layout — exactly the top-bar bug
+/// PeerPotionReplica's doc comment describes — so it's hidden via Modulate instead
+/// (original value remembered, not assumed to be Colors.White). Modulate alone
+/// still leaves it able to receive mouse input, though, which would pop MY relic
+/// tooltips right through our overlay — so MouseFilter is also forced to Ignore
+/// for the duration. Both are restored on Exit.
 /// </summary>
 internal static class PeerRelicReplica
 {
     private static NRelicInventory? _hidden;
+    private static Color _hiddenOriginalModulate;
+    private static Control.MouseFilterEnum _hiddenOriginalMouseFilter;
     private static HFlowContainer? _root;
     private static Player? _peer;
 
@@ -1598,7 +1793,10 @@ internal static class PeerRelicReplica
             Vector2 size = inventory.Size;
 
             _hidden = inventory;
-            inventory.Visible = false;
+            _hiddenOriginalModulate = inventory.Modulate;
+            _hiddenOriginalMouseFilter = inventory.MouseFilter;
+            inventory.Modulate = Colors.Transparent;
+            inventory.MouseFilter = Control.MouseFilterEnum.Ignore;
 
             // TopLevel so NGlobalUi's own layout can't reposition this root the way
             // it collapsed the potion belt (see PeerPotionReplica's doc comment) —
@@ -1651,7 +1849,10 @@ internal static class PeerRelicReplica
                 _root.QueueFreeSafelyNoPool();
             _root = null;
             if (_hidden != null && GodotObject.IsInstanceValid(_hidden))
-                _hidden.Visible = true;
+            {
+                _hidden.Modulate = _hiddenOriginalModulate;
+                _hidden.MouseFilter = _hiddenOriginalMouseFilter;
+            }
             _hidden = null;
             _peer = null;
         }
@@ -1665,6 +1866,120 @@ internal static class PeerRelicReplica
     {
         if (_root != null && GodotObject.IsInstanceValid(_root))
             _root.Visible = visible;
+    }
+}
+
+/// <summary>
+/// While spectating, the top-bar character portrait (and its ascension/achievement
+/// hover tip) shows the viewed player's, not the local one.
+///
+/// CharacterModel.Icon (CharacterModel.cs:129) instantiates a brand-new scene on
+/// every access — `PreloadManager.Cache.GetScene(IconPath).Instantiate&lt;Control&gt;(...)`
+/// — so grabbing peer.Character.Icon here is safe: it is never the same live
+/// instance NTopBarPortrait.Initialize already added for the local player, so
+/// there's no risk of stealing a node still owned by the vanilla tree. Existing
+/// children are hidden via Modulate rather than removed (see PeerPotionReplica's
+/// doc comment for why Visible is avoided throughout this mod) so the local icon
+/// needs no re-instantiation on Exit — it's still right there, just hidden.
+///
+/// NTopBarPortraitTip.Initialize(IRunState) builds its hover tip from
+/// `AscensionHelper.GetHoverTip(LocalContext.GetMe(runState).Character, ascensionLevel, achievementsLocked)`
+/// (NTopBarPortraitTip.cs:76) — of those three arguments, only the character is
+/// per-player; ascensionLevel (IRunState.AscensionLevel) and achievementsLocked
+/// (IRunState.GameMode.AreAchievementsAndEpochsLocked()) both come from the run
+/// itself, which every player in a multiplayer run shares (peer.RunState and the
+/// local player's RunState are the same instance). So the peer's tip is rebuilt
+/// with the exact same two run-level arguments and only the character swapped.
+/// </summary>
+internal static class PeerPortraitReplica
+{
+    private static readonly System.Reflection.FieldInfo HoverTipField =
+        AccessTools.Field(typeof(NTopBarPortraitTip), "_hoverTip");
+
+    private static NTopBarPortrait? _hiddenPortrait;
+    private static Control? _peerIcon;
+    private static readonly List<(CanvasItem Child, Color OriginalModulate)> _hiddenChildren = new();
+
+    private static NTopBarPortraitTip? _hiddenTip;
+    private static IHoverTip? _originalHoverTip;
+
+    internal static void Enter(Player peer)
+    {
+        try
+        {
+            NTopBarPortrait? portrait = NRun.Instance?.GlobalUi.TopBar.Portrait;
+            if (portrait != null && GodotObject.IsInstanceValid(portrait))
+            {
+                _hiddenChildren.Clear();
+                foreach (Node child in portrait.GetChildren())
+                {
+                    if (child is CanvasItem canvasItem && GodotObject.IsInstanceValid(canvasItem))
+                    {
+                        _hiddenChildren.Add((canvasItem, canvasItem.Modulate));
+                        canvasItem.Modulate = Colors.Transparent;
+                    }
+                }
+
+                _peerIcon = peer.Character.Icon;
+                portrait.AddChildSafely(_peerIcon);
+                _hiddenPortrait = portrait;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"portrait replica enter error: {e}");
+        }
+
+        try
+        {
+            NTopBarPortraitTip? tip = NRun.Instance?.GlobalUi.TopBar.PortraitTip;
+            if (tip != null && GodotObject.IsInstanceValid(tip) && tip.ShowTip)
+            {
+                _originalHoverTip = HoverTipField.GetValue(tip) as IHoverTip;
+                HoverTip peerTip = AscensionHelper.GetHoverTip(
+                    peer.Character, peer.RunState.AscensionLevel, peer.RunState.GameMode.AreAchievementsAndEpochsLocked());
+                HoverTipField.SetValue(tip, peerTip);
+                _hiddenTip = tip;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"portrait tip replica enter error: {e}");
+        }
+    }
+
+    internal static void Exit()
+    {
+        try
+        {
+            if (_peerIcon != null && GodotObject.IsInstanceValid(_peerIcon))
+                _peerIcon.QueueFreeSafelyNoPool();
+            _peerIcon = null;
+
+            foreach (var (child, originalModulate) in _hiddenChildren)
+            {
+                if (GodotObject.IsInstanceValid(child))
+                    child.Modulate = originalModulate;
+            }
+            _hiddenChildren.Clear();
+            _hiddenPortrait = null;
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"portrait replica exit error: {e}");
+        }
+
+        try
+        {
+            if (_hiddenTip != null && GodotObject.IsInstanceValid(_hiddenTip))
+                HoverTipField.SetValue(_hiddenTip, _originalHoverTip);
+            _hiddenTip = null;
+            _originalHoverTip = null;
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"portrait tip replica exit error: {e}");
+        }
     }
 }
 
@@ -1874,20 +2189,24 @@ public static class PatchTopBarDeckClick
 
 /// <summary>
 /// UpdateGold only ever fires from the LOCAL player's own GoldChanged event (its
-/// _player field is fixed at Initialize, never swapped) — this repaints the label
-/// with the peer's gold right after, so a local gold change while spectating can't
-/// leave the local value showing. See PeerTopBar's doc comment for why this is a
-/// direct label stamp (P1) rather than the _player-swap trick PatchEnergyCounter
-/// uses: UpdateGold kicks off UpdateGoldAnim's "+N" popup/ledger animation, which
-/// would read the wrong player's gold delta if we ever redirected _player itself.
+/// _player field is fixed at Initialize, never swapped) — a local gold change while
+/// spectating must never let the local number flash on screen. A Postfix repaint
+/// (like PatchTopBarHp/PatchTopBarDeckCount use) isn't enough here: UpdateGold
+/// kicks off UpdateGoldAnim's async "+N" popup animation, which keeps re-stamping
+/// _goldLabel with the LOCAL player's numbers on every tick for about a second —
+/// a one-shot postfix repaint would just get overwritten again a few ms later. So
+/// this is a Prefix that skips the original outright while spectating and does the
+/// equivalent bookkeeping + repaint synchronously instead (PeerTopBar.SuppressGoldAnim).
 /// </summary>
 [HarmonyPatch(typeof(NTopBarGold), "UpdateGold")]
 public static class PatchTopBarGold
 {
-    public static void Postfix()
+    public static bool Prefix(NTopBarGold __instance)
     {
-        if (PeerSpectate.Active)
-            PeerTopBar.ApplyGold();
+        if (!PeerSpectate.Active)
+            return true;
+        PeerTopBar.SuppressGoldAnim(__instance);
+        return false;
     }
 }
 
@@ -1910,6 +2229,68 @@ public static class PatchTopBarDeckCount
     {
         if (PeerSpectate.Active)
             PeerTopBar.ApplyDeckCount();
+    }
+}
+
+/// <summary>
+/// While spectating, hovering one of our REPLICA potion holders (PeerPotionReplica)
+/// must show a tooltip for the PEER's potion, not the bounce/sound/controller-
+/// reticle side effects vanilla's own OnFocus also does for something you can't
+/// actually interact with. This is a straight Prefix skip — the only other place
+/// in this mod that does that is PatchTopBarGold, for a parallel reason: there's a
+/// vanilla method whose side effects don't belong here, not just a value to
+/// postfix-repaint over. Mirrors NPotionHolder.OnFocus's own hover-tip lines
+/// exactly (257-292 in the decompiled source) but reads the potion from
+/// PeerPotionReplica's slot mapping instead of `this.Potion` (equivalent in
+/// practice — our replica holders really do have it set via AddPotion — but going
+/// through the mapping keeps this in sync with PeerPotionReplica's own bookkeeping
+/// and avoids relying on that always being true). Every REAL local holder is
+/// hidden for the whole spectate session (see PeerPotionReplica's class doc
+/// comment); IsHiddenLocalHolder suppresses their tooltip entirely in the rare
+/// case one still ends up focused.
+/// </summary>
+[HarmonyPatch(typeof(NPotionHolder), "OnFocus")]
+public static class PatchPotionHolderFocus
+{
+    // Matches NPotionHolder's own private `EmptyHoverTip` static property exactly
+    // (NPotionHolder.cs:220) — inaccessible from here, so reconstructed verbatim.
+    private static readonly HoverTip EmptyHoverTip = new HoverTip(
+        new LocString("static_hover_tips", "POTION_SLOT.title"),
+        new LocString("static_hover_tips", "POTION_SLOT.description"));
+
+    public static bool Prefix(NPotionHolder __instance)
+    {
+        if (!PeerSpectate.Active)
+            return true;
+        try
+        {
+            // A real local holder, hidden for the whole spectate session — no
+            // tooltip at all if it somehow still ends up focused.
+            if (PeerPotionReplica.IsHiddenLocalHolder(__instance))
+                return false;
+            // Not one of our replica holders (some other screen's potion holder
+            // entirely) — let vanilla behave normally.
+            if (!PeerPotionReplica.TryGetPeerPotion(__instance, out PotionModel? potion))
+                return true;
+
+            if (potion != null)
+            {
+                NHoverTipSet.CreateAndShow(__instance, potion.HoverTips, HoverTipAlignment.Center)
+                    ?.SetGlobalPosition(__instance.GlobalPosition + Vector2.Down * __instance.Size.Y * Mathf.Max(1.5f, __instance.Scale.Y));
+            }
+            else
+            {
+                NHoverTipSet? tip = NHoverTipSet.CreateAndShow(__instance, EmptyHoverTip);
+                tip?.SetGlobalPosition(__instance.GlobalPosition + Vector2.Down * __instance.Size.Y * Mathf.Max(1.5f, __instance.Scale.Y));
+                tip?.SetAlignment(__instance, HoverTipAlignment.Center);
+            }
+            return false;
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"potion holder focus prefix error: {e}");
+            return true;
+        }
     }
 }
 
