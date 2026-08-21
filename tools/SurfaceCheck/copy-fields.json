@@ -1,0 +1,1017 @@
+{
+  "MegaCrit.Sts2.Core.Models.AbstractModel.<CategorySortingId>k__BackingField": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.AbstractModel.<EntrySortingId>k__BackingField": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.AbstractModel.<IsMutable>k__BackingField": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel.<Affliction>k__BackingField": {
+    "type": "MegaCrit.Sts2.Core.Models.AfflictionModel",
+    "risk": "reference-game",
+    "reason": "re-bound by CardModel.DeepCloneFields (CardModel.cs:1194-1217), which StateSnapshot.RebindDeepCloneOwnership re-invokes on the LIVE model after every CopyMutableFields — so the live model never keeps the discarded clone's copy. This is the exact mechanism that fixed CardEnergyCost._card; if the game ever drops a field from DeepCloneFields, this entry stops being true and the reason must be re-judged. Re-applied via AfflictInternal, which rebinds AfflictionModel.Card."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel.<Enchantment>k__BackingField": {
+    "type": "MegaCrit.Sts2.Core.Models.EnchantmentModel",
+    "risk": "reference-game",
+    "reason": "re-bound by CardModel.DeepCloneFields (CardModel.cs:1194-1217), which StateSnapshot.RebindDeepCloneOwnership re-invokes on the LIVE model after every CopyMutableFields — so the live model never keeps the discarded clone's copy. This is the exact mechanism that fixed CardEnergyCost._card; if the game ever drops a field from DeepCloneFields, this entry stops being true and the reason must be re-judged. Re-applied via EnchantInternal, which rebinds EnchantmentModel.Card."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel.<HasBeenRemovedFromState>k__BackingField": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._baseReplayCount": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._baseStarCost": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._currentPlayIndex": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._currentTarget": {
+    "type": "MegaCrit.Sts2.Core.Entities.Creatures.Creature",
+    "risk": "reference-game",
+    "reason": "Transient: set in OnPlayWrapper (CardModel.cs:1862) and cleared when the play ends (:2015). UndoSyncMod.CanUndoRedo only allows a restore at an idle play phase with empty action queues, so this is null at every restore point."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._currentUpgradeLevel": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._dynamicVars": {
+    "type": "MegaCrit.Sts2.Core.Localization.DynamicVars.DynamicVarSet",
+    "risk": "collection",
+    "reason": "re-bound by CardModel.DeepCloneFields (CardModel.cs:1194-1217), which StateSnapshot.RebindDeepCloneOwnership re-invokes on the LIVE model after every CopyMutableFields — so the live model never keeps the discarded clone's copy. This is the exact mechanism that fixed CardEnergyCost._card; if the game ever drops a field from DeepCloneFields, this entry stops being true and the reason must be re-judged."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._energyCost": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.CardEnergyCost",
+    "risk": "reference-game",
+    "reason": "re-bound by CardModel.DeepCloneFields (CardModel.cs:1194-1217), which StateSnapshot.RebindDeepCloneOwnership re-invokes on the LIVE model after every CopyMutableFields — so the live model never keeps the discarded clone's copy. This is the exact mechanism that fixed CardEnergyCost._card; if the game ever drops a field from DeepCloneFields, this entry stops being true and the reason must be re-judged."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._exhaustOnNextPlay": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._floorAddedToDeck": {
+    "type": "System.Nullable`1[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._hasSingleTurnRetain": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._hasSingleTurnSly": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._isDupe": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._isEnchantmentPreview": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._keywords": {
+    "type": "System.Collections.Generic.HashSet`1[[MegaCrit.Sts2.Core.Entities.Cards.CardKeyword, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "re-bound by CardModel.DeepCloneFields (CardModel.cs:1194-1217), which StateSnapshot.RebindDeepCloneOwnership re-invokes on the LIVE model after every CopyMutableFields — so the live model never keeps the discarded clone's copy. This is the exact mechanism that fixed CardEnergyCost._card; if the game ever drops a field from DeepCloneFields, this entry stops being true and the reason must be re-judged."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._lastStarsSpent": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._pool": {
+    "type": "MegaCrit.Sts2.Core.Models.CardPoolModel",
+    "risk": "reference-game",
+    "reason": "Canonical shared CardPoolModel, not per-instance mutable state — every card of a type points at the same pool object by design."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._starCostSet": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._tags": {
+    "type": "System.Collections.Generic.HashSet`1[[MegaCrit.Sts2.Core.Entities.Cards.CardTag, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "Lazily initialised from CanonicalTags and never mutated afterwards (CardModel.cs:70, 534) — the set is effectively immutable once read, so live model and clone sharing one instance is harmless. Re-judge if anything ever starts mutating Tags in combat."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._temporaryStarCosts": {
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Cards.TemporaryCardCost, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "re-bound by CardModel.DeepCloneFields (CardModel.cs:1194-1217), which StateSnapshot.RebindDeepCloneOwnership re-invokes on the LIVE model after every CopyMutableFields — so the live model never keeps the discarded clone's copy. This is the exact mechanism that fixed CardEnergyCost._card; if the game ever drops a field from DeepCloneFields, this entry stops being true and the reason must be re-judged."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._titleLocString": {
+    "type": "MegaCrit.Sts2.Core.Localization.LocString",
+    "risk": "reference-game",
+    "reason": "Immutable localisation data shared across all instances of the card, not per-instance state."
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._upgradePreviewType": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.CardUpgradePreviewType",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.CardModel._wasStarCostJustUpgraded": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Claw._extraDamageFromClawPlays": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Discovery._mockSelectedCard": {
+    "type": "MegaCrit.Sts2.Core.Models.CardModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Dowsing._roomsEntered": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.GeneticAlgorithm._currentBlock": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.GeneticAlgorithm._increasedBlock": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Guilty._combatsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.KinglyPunch._extraDamage": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.MadScience._mockedChaosCard": {
+    "type": "MegaCrit.Sts2.Core.Models.CardModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.MadScience._tinkerTimeRider": {
+    "type": "MegaCrit.Sts2.Core.Models.Events.TinkerTime+RiderEffect",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.MadScience._tinkerTimeType": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.CardType",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Maul._extraDamageFromMaulPlays": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockAttackCard._fromOsty": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockAttackCard._hitCount": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockAttackCard._targetingType": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.TargetType",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockEnergyCost": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockEnergyCostX": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockMaxUpgradeLevel": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockMultiplayerConstraint": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.CardMultiplayerConstraint",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockPool": {
+    "type": "MegaCrit.Sts2.Core.Models.CardPoolModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockRarity": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.CardRarity",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockSelfHpLoss": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockStarCost": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockStarCostX": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockTags": {
+    "type": "System.Collections.Generic.HashSet`1[[MegaCrit.Sts2.Core.Entities.Cards.CardTag, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._blockCount": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._cardCreations": {
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard+CardCreation, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._powerApplications": {
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard+PowerApplication, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._targetType": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.TargetType",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Rampage._extraDamageFromPlays": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Regret._cardsInHand": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.SovereignBlade._createdThroughForge": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.SovereignBlade._currentDamage": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.SovereignBlade._currentRepeats": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Splash._mockGeneratedCard": {
+    "type": "MegaCrit.Sts2.Core.Models.CardModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.SpoilsMap.<SpoilsCoord>k__BackingField": {
+    "type": "System.Nullable`1[[MegaCrit.Sts2.Core.Map.MapCoord, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.SpoilsMap._spoilsActIndex": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.TheBall._extraDamageFromPlays": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.TheScythe._currentDamage": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.TheScythe._increasedDamage": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Thrash._extraDamage": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.UpMySleeve._timesPlayedThisCombat": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Cards.Wither._fakeUpgradeLevel": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.OrbModel.<HasBeenRemovedFromState>k__BackingField": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Orbs.DarkOrb._evokeVal": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Orbs.GlassOrb._passiveVal": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.PotionModel.<HasBeenRemovedFromState>k__BackingField": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.PotionModel.<IsQueued>k__BackingField": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.PotionModel._dynamicVars": {
+    "type": "MegaCrit.Sts2.Core.Localization.DynamicVars.DynamicVarSet",
+    "risk": "collection",
+    "reason": "NOT re-cloned by the game: PotionModel has no DeepCloneFields override and the base AbstractModel.DeepCloneFields is an empty AssertMutable (AbstractModel.cs:180-183). Covered instead by StateSnapshot's dedicated per-potion DynamicVarSet.Clone capture (_potionDynamicVars, StateSnapshot.cs:67 and :530-534) — CopyMutableFields alone would leave one shared object and never restore these values at all."
+  },
+  "MegaCrit.Sts2.Core.Models.Potions.SneckoOil._testEnergyCostOverride": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel.<HasBeenRemovedFromState>k__BackingField": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel.<StackCount>k__BackingField": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel._dynamicVars": {
+    "type": "MegaCrit.Sts2.Core.Localization.DynamicVars.DynamicVarSet",
+    "risk": "collection",
+    "reason": "Re-cloned by RelicModel.DeepCloneFields (RelicModel.cs:512-516) via RebindDeepCloneOwnership, and additionally captured independently as RelicCapture.DynamicVarsClone."
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel._floorAddedToDeck": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel._isMelted": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel._isWax": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel._resolvedBigIconPath": {
+    "type": "System.String",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.RelicModel._status": {
+    "type": "MegaCrit.Sts2.Core.Entities.Relics.RelicStatus",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ArchaicTooth._extraHoverTips": {
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.HoverTips.IHoverTip, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ArchaicTooth._serializableAncientCard": {
+    "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableCard",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ArchaicTooth._serializableStarterCard": {
+    "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableCard",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ArtOfWar._anyAttacksPlayedLastTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ArtOfWar._anyAttacksPlayedThisTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BeatingRemnant._damageReceivedThisTurn": {
+    "type": "System.Decimal",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BeltBuckle._dexterityApplied": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BingBong._cardsToSkip": {
+    "type": "System.Collections.Generic.HashSet`1[[MegaCrit.Sts2.Core.Models.CardModel, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BoneTea._combatsLeft": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BookOfFiveRings._cardsAdded": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BookOfFiveRings._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BrilliantScarf._cardsPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.BurningSticks._wasUsedThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Byrdpip._skin": {
+    "type": "System.String",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.CentennialPuzzle._usedThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.DemonTongue._triggeredThisTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.DustyTome._ancientCard": {
+    "type": "MegaCrit.Sts2.Core.Models.ModelId",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.DustyTome._extraHoverTips": {
+    "type": "System.Collections.Generic.IEnumerable`1[[MegaCrit.Sts2.Core.HoverTips.IHoverTip, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.EmberTea._combatsLeft": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FakeHappyFlower._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FakeHappyFlower._turnsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FakeOrichalcum._shouldTrigger": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FakeSneckoEye._testEnergyCostOverride": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FakeVenerableTeaSet._gainEnergyInNextCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FishingRod._combatsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FurCoat.<FurCoatCoordCols>k__BackingField": {
+    "type": "System.Int32[]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FurCoat.<FurCoatCoordRows>k__BackingField": {
+    "type": "System.Int32[]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FurCoat.<FurCoatCoordsSet>k__BackingField": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.FurCoat._furCoatActIndex": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.GalacticDust._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.GalacticDust._starsSpent": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Girya._timesLifted": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.GoldenCompass._goldenPathAct": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.HappyFlower._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.HappyFlower._turnsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.IronClub._cardsPlayed": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.IronClub._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.JossPaper._cardsExhausted": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.JossPaper._etherealCount": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.JossPaper._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Kunai._attacksPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Kunai._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Kusarigama._attacksPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Kusarigama._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.LastingCandy._combatRewardsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.LastingCandy._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.LavaLamp._tookDamageThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.LavaRock._hasTriggered": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.LetterOpener._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.LetterOpener._skillsPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.LizardTail._wasUsed": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.MawBank._hasItemBeenBought": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Metronome._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Metronome._orbsChanneled": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.MiniRegent._usedThisTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.MusicBox._cardBeingPlayed": {
+    "type": "MegaCrit.Sts2.Core.Models.CardModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.MusicBox._wasUsedThisTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Nunchaku._attacksPlayed": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Nunchaku._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Orichalcum._shouldTrigger": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.OrnamentalFan._attacksPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.OrnamentalFan._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsEye._usedThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsEye._wasOwnerPartOfLastPlayerTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsLegion._affectedCardPlay": {
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.CardPlay",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsLegion._cooldown": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsLegion._skin": {
+    "type": "System.String",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsLegion._triggeredBlockLastTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsTears._hadLeftoverEnergy": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsTooth._serializableCards": {
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Saves.Runs.SerializableCard, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsWing._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PaelsWing._rewardsSacrificed": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PenNib._attackToDouble": {
+    "type": "MegaCrit.Sts2.Core.Models.CardModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PenNib._attacksPlayed": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PenNib._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Pendulum._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Pendulum._turnsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Permafrost._activatedThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Pocketwatch._cardsPlayedLastTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Pocketwatch._cardsPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PollinousCore._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PollinousCore._turnsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.PumpkinCandle._kindleCount": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.RainbowRing._activationCountThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.RainbowRing._attacksPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.RainbowRing._powersPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.RainbowRing._skillsPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.RedSkull._strengthApplied": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Regalite._usedThisTurn": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.RuinedHelmet._usedThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.SeaGlass._characterId": {
+    "type": "MegaCrit.Sts2.Core.Models.ModelId",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Shuriken._attacksPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Shuriken._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.SilkenTress._isUsed": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.SilverCrucible._timesUsed": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.SilverCrucible._treasureRoomsEntered": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.SneckoEye._testEnergyCostOverride": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.StoneCalendar._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.SwordOfStone._elitesDefeated": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.TeaOfDiscourtesy._combatsLeft": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ThrowingAxe._usedThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.TouchOfOrobas._extraHoverTips": {
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.HoverTips.IHoverTip, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.TouchOfOrobas._starterRelic": {
+    "type": "MegaCrit.Sts2.Core.Models.ModelId",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.TouchOfOrobas._upgradedRelic": {
+    "type": "MegaCrit.Sts2.Core.Models.ModelId",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ToyBox._combatsSeen": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.ToyBox._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.TuningFork._isActivating": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.TuningFork._skillsPlayed": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.UnsettlingLamp._doubledPowers": {
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Models.PowerModel, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
+    "risk": "collection",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.UnsettlingLamp._isFinishedTriggering": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.UnsettlingLamp._triggeringCard": {
+    "type": "MegaCrit.Sts2.Core.Models.CardModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Vambrace._blockGainedThisCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.Vambrace._triggeringCard": {
+    "type": "MegaCrit.Sts2.Core.Models.CardModel",
+    "risk": "reference-game",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.VelvetChoker._cardsPlayedThisTurn": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.VenerableTeaSet._gainEnergyInNextCombat": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.WingedBoots._timesUsed": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.WongosMysteryTicket._combatsFinished": {
+    "type": "System.Int32",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  },
+  "MegaCrit.Sts2.Core.Models.Relics.WongosMysteryTicket._gaveRelic": {
+    "type": "System.Boolean",
+    "risk": "value",
+    "reason": "UNREVIEWED"
+  }
+}

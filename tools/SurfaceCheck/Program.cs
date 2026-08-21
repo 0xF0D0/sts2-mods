@@ -5,9 +5,10 @@ using System.Text.RegularExpressions;
 
 // SurfaceCheck — verifies, without launching the game, whether a game update breaks UndoSync's assumptions.
 //
-//   dotnet run -- check              : run all three checks; exit 1 on any finding
-//   dotnet run -- baseline           : regenerate surface-baseline.json from the current game DLL
-//   dotnet run -- coverage-baseline  : top up snapshot-coverage.json with newly-seen fields
+//   dotnet run -- check                 : run all four checks; exit 1 on any finding
+//   dotnet run -- baseline              : regenerate surface-baseline.json from the current game DLL
+//   dotnet run -- coverage-baseline     : top up snapshot-coverage.json with newly-seen fields
+//   dotnet run -- copy-fields-baseline  : top up copy-fields.json with newly-seen fields
 //
 // Check 1 (reflection targets): extract every AccessTools.*/[HarmonyPatch] string
 //   reference from the mod source and verify it still exists in the game assembly.
@@ -22,6 +23,20 @@ using System.Text.RegularExpressions;
 //   Player.MaxPotionCount/PlayerRng/RelicGrabBag go silently missing, since a field we
 //   never captured was already in the Check 2 baseline and a symmetric omission is
 //   invisible to peer checksums.
+// Check 4 (copy-field ledger): StateSnapshot.CopyMutableFields blindly reflects every
+//   non-skipped, non-delegate, non-init-only instance field from a clone back onto the
+//   live CardModel/OrbModel/PotionModel/RelicModel (and every subclass's own fields,
+//   since it walks from the concrete runtime type). CopySkip is a hand-maintained
+//   exclusion list with no matching inclusion list, so verify every field it would copy
+//   is accounted for in copy-fields.json — either judged safe, or flagged. Answers "does
+//   a human know about every field this reflective copy touches?", which Check 3 does
+//   not cover (Check 3 is about StateSnapshot's own capture/restore fields, not this
+//   separate blind-copy path). Each ledger entry also records the field's type and a
+//   risk bucket (value/collection/reference-game/reference-other) derived from it, so a
+//   type change is visible even when the name is not — the same shape as the bug already
+//   hit, where CardModel._energyCost kept its name but CardEnergyCost._card ended up
+//   pointing at a discarded clone — and so the 200+ entry backlog can be triaged by risk
+//   instead of reviewed flat.
 
 var mode = args.Length > 0 ? args[0] : "check";
 string gameDataDir = ArgValue("--game") ?? Path.Combine(
@@ -30,6 +45,7 @@ string gameDataDir = ArgValue("--game") ?? Path.Combine(
 string modSrcDir = ArgValue("--mod") ?? FindUp("UndoSync");
 string baselinePath = ArgValue("--baseline") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "surface-baseline.json");
 string coveragePath = ArgValue("--coverage") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "snapshot-coverage.json");
+string copyFieldsPath = ArgValue("--copy-fields") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "copy-fields.json");
 
 string? ArgValue(string name)
 {
@@ -238,6 +254,211 @@ if (mode == "coverage-baseline")
     return failures == 0 ? 0 : 1;
 }
 
+// ───────────── Check 4 data: the field surface StateSnapshot.CopyMutableFields touches ─────────────
+//
+// CopySkip must not be duplicated here — hardcoding those names would recreate the very
+// drift this check exists to catch. Parse them out of StateSnapshot.cs itself (already
+// read into srcFiles by Check 1) instead. A parse failure is a hard stop, not a silent
+// fallback to a hardcoded list.
+
+var stateSnapshotFile = srcFiles.FirstOrDefault(f => Path.GetFileName(f) == "StateSnapshot.cs");
+if (stateSnapshotFile == null)
+{
+    Console.Error.WriteLine($"StateSnapshot.cs not found under {modSrcDir}; cannot parse CopySkip");
+    return 2;
+}
+var copySkipMatch = Regex.Match(File.ReadAllText(stateSnapshotFile), @"CopySkip\s*=\s*new\(\)\s*\{([^}]*)\}", RegexOptions.Singleline);
+if (!copySkipMatch.Success)
+{
+    Console.Error.WriteLine($"could not parse the CopySkip initializer out of {stateSnapshotFile} — refusing to fall back to a hardcoded list");
+    return 2;
+}
+var copySkip = Regex.Matches(copySkipMatch.Groups[1].Value, @"""([^""]*)""").Select(m => m.Groups[1].Value).ToHashSet();
+
+// typeof(Delegate) is a *runtime* Type; System.Reflection.Type.IsAssignableFrom always
+// returns false across a MetadataLoadContext boundary because the reflection-only
+// System.Delegate is a different Type object than the one `typeof` would give us here.
+// So instead of `typeof(Delegate).IsAssignableFrom(fieldType)` (what CopyMutableFields
+// itself does, safely, since it runs in the real load context), walk the field type's
+// BaseType chain *within* `mlc` and compare by full name against System.Delegate /
+// System.MulticastDelegate. That mirrors what IsAssignableFrom would have checked,
+// without needing to resolve System.Delegate as a Type object in whichever core
+// assembly happens to define it.
+bool IsDelegateType(Type? t)
+{
+    for (; t != null; t = t.BaseType)
+        if (t.FullName is "System.Delegate" or "System.MulticastDelegate")
+            return true;
+    return false;
+}
+
+// Risk buckets for a copy-field's TYPE, not its name. CopyMutableFields assigns by
+// reference, so the only thing that determines whether that's dangerous is the field's
+// shape:
+//   value       — IsValueType (struct/enum/primitive) or string. Copying these by
+//                 reference is meaningless; the only possible risk is a missed change
+//                 notification, never aliasing.
+//   collection   — a mutable container (List<>/HashSet<>/Dictionary<,>/etc., or anything
+//                  implementing one of the generic collection interfaces). HIGHEST risk:
+//                  the live model and the discarded clone end up sharing one container
+//                  unless something re-clones it.
+//   reference-game    — any other reference type under MegaCrit.*. SECOND highest: this is
+//                        exactly the CardEnergyCost shape (a game object that can carry a
+//                        back-reference into the clone it was made from).
+//   reference-other   — every other reference type (BCL types not caught above, etc.).
+string[] RiskBuckets = { "collection", "reference-game", "reference-other", "value" };
+
+// Generic collection shapes worth flagging. Curated rather than "anything generic in
+// System.Collections.Generic" so a stray IComparer<T>/IEqualityComparer<T> field (not a
+// container) doesn't get misclassified as a collection.
+var collectionGenericTypeDefs = new HashSet<string>(StringComparer.Ordinal)
+{
+    "System.Collections.Generic.List`1", "System.Collections.Generic.HashSet`1",
+    "System.Collections.Generic.Dictionary`2", "System.Collections.Generic.Queue`1",
+    "System.Collections.Generic.Stack`1", "System.Collections.Generic.LinkedList`1",
+    "System.Collections.Generic.SortedList`2", "System.Collections.Generic.SortedSet`1",
+    "System.Collections.Generic.SortedDictionary`2",
+    "System.Collections.Generic.IEnumerable`1", "System.Collections.Generic.ICollection`1",
+    "System.Collections.Generic.IList`1", "System.Collections.Generic.IDictionary`2",
+    "System.Collections.Generic.ISet`1", "System.Collections.Generic.IReadOnlyCollection`1",
+    "System.Collections.Generic.IReadOnlyList`1", "System.Collections.Generic.IReadOnlyDictionary`2",
+};
+
+// Same MetadataLoadContext caveat as IsDelegateType above: compare generic type
+// definitions by FullName, never by reference-equality against a runtime `typeof(...)`.
+bool IsCollectionType(Type t)
+{
+    bool Matches(Type candidate) => candidate.IsGenericType
+        && collectionGenericTypeDefs.Contains(candidate.GetGenericTypeDefinition().FullName ?? "");
+    return Matches(t) || t.GetInterfaces().Any(Matches);
+}
+
+string ClassifyRisk(Type fieldType)
+{
+    if (fieldType.IsValueType || fieldType.FullName == "System.String") return "value";
+    if (IsCollectionType(fieldType)) return "collection";
+    if (fieldType.FullName != null && fieldType.FullName.StartsWith("MegaCrit.", StringComparison.Ordinal)) return "reference-game";
+    return "reference-other";
+}
+
+// Check 4's ledger now stores each field's type next to its reason, so a type change is
+// visible even when the field name is not (see ClassifyRisk above — that's the whole
+// point: a field going from `int` to `List<int>` flips its risk bucket with no rename).
+// Ledgers from before this change only ever had a bare reason string per key. Tolerate
+// that shape on read so `copy-fields-baseline` can migrate entries in place (reason
+// preserved verbatim) and `check` degrades gracefully — skipping the type-change
+// comparison, see below — instead of throwing on an un-migrated file.
+SortedDictionary<string, CopyFieldEntry> LoadCopyFields(string path)
+{
+    var result = new SortedDictionary<string, CopyFieldEntry>(StringComparer.Ordinal);
+    if (!File.Exists(path)) return result;
+    var raw = JsonSerializer.Deserialize<SortedDictionary<string, JsonElement>>(File.ReadAllText(path))!;
+    foreach (var (key, el) in raw)
+    {
+        if (el.ValueKind == JsonValueKind.String)
+        {
+            result[key] = new CopyFieldEntry { Reason = el.GetString() ?? "" };
+        }
+        else
+        {
+            result[key] = new CopyFieldEntry
+            {
+                Type = el.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "",
+                Risk = el.TryGetProperty("risk", out var r) ? r.GetString() ?? "" : "",
+                Reason = el.TryGetProperty("reason", out var rz) ? rz.GetString() ?? "" : "",
+            };
+        }
+    }
+    return result;
+}
+
+// The four root types CopyMutableFields is called on. It walks from the CONCRETE runtime
+// type up to (but excluding) System.Object, so every subclass's own declared fields are
+// in scope too — not just the four roots' own fields. Report each field once per
+// DECLARING type, keyed "<DeclaringType.FullName>.<fieldName>", so a field on a shared
+// base (e.g. AbstractModel) that all four roots reach isn't reported once per root.
+string[] copyFieldsRootTypeNames =
+{
+    "MegaCrit.Sts2.Core.Models.CardModel", "MegaCrit.Sts2.Core.Models.OrbModel",
+    "MegaCrit.Sts2.Core.Models.PotionModel", "MegaCrit.Sts2.Core.Models.RelicModel",
+};
+
+var copyFieldsLive = new SortedDictionary<string, LiveFieldInfo>(StringComparer.Ordinal);
+var copyFieldsSummary = new List<(string Root, int DeclaringTypes, int Fields, Dictionary<string, int> RiskCounts)>();
+
+foreach (var rootName in copyFieldsRootTypeNames)
+{
+    var root = Resolve(rootName);
+    if (root == null) { Console.WriteLine($"  WARN  copy-fields root type unresolved: {rootName}"); continue; }
+
+    var declaringTypesForRoot = new HashSet<string>();
+    var fieldsForRoot = new HashSet<string>();
+    var riskCountsForRoot = RiskBuckets.ToDictionary(b => b, _ => 0);
+
+    foreach (var concrete in sts2.GetTypes().Where(root.IsAssignableFrom))
+    {
+        for (var t = concrete; t != null && t.FullName != "System.Object"; t = t.BaseType)
+        {
+            foreach (var f in t.GetFields(InstanceDeclared))
+            {
+                if (f.IsInitOnly) continue;
+                if (IsDelegateType(f.FieldType)) continue;
+                if (copySkip.Contains(f.Name)) continue;
+
+                var key = $"{t.FullName}.{f.Name}";
+                var risk = ClassifyRisk(f.FieldType);
+                copyFieldsLive[key] = new LiveFieldInfo(f.FieldType.FullName ?? f.FieldType.Name, risk);
+                declaringTypesForRoot.Add(t.FullName!);
+                if (fieldsForRoot.Add(key)) riskCountsForRoot[risk]++;
+            }
+        }
+    }
+
+    copyFieldsSummary.Add((rootName, declaringTypesForRoot.Count, fieldsForRoot.Count, riskCountsForRoot));
+}
+
+if (mode == "copy-fields-baseline")
+{
+    var copyFields = LoadCopyFields(copyFieldsPath);
+
+    // Drop stale entries first: named in the ledger but no longer part of the live
+    // copy-field surface (renamed/removed field, or now caught by one of the filters).
+    int droppedCf = 0;
+    foreach (var staleKey in copyFields.Keys.Where(k => !copyFieldsLive.ContainsKey(k)).ToList())
+    {
+        copyFields.Remove(staleKey);
+        droppedCf++;
+    }
+
+    // PRESERVE every remaining entry's reason verbatim — and, for an entry already
+    // migrated to the typed format, its recorded type too, so a real type change (the
+    // risk this ledger exists to catch) surfaces as a `check` failure instead of being
+    // silently absorbed here. The one exception is an entry still in the pre-type
+    // bare-string format (Type == ""): it never had a type recorded, so this fills one in
+    // from the live surface now; its reason is untouched either way. New keys (not in the
+    // ledger at all) get type/risk from the live surface and reason "UNREVIEWED".
+    int addedCf = 0, migratedCf = 0;
+    foreach (var (key, live) in copyFieldsLive)
+    {
+        if (copyFields.TryGetValue(key, out var existing))
+        {
+            if (existing.Type.Length == 0)
+            {
+                existing.Type = live.TypeFullName;
+                existing.Risk = live.Risk;
+                migratedCf++;
+            }
+            continue;
+        }
+        copyFields[key] = new CopyFieldEntry { Type = live.TypeFullName, Risk = live.Risk, Reason = "UNREVIEWED" };
+        addedCf++;
+    }
+
+    File.WriteAllText(copyFieldsPath, JsonSerializer.Serialize(copyFields, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    Console.WriteLine($"\ncopy-fields baseline updated: {copyFieldsPath} ({copyFields.Count} field(s), {addedCf} newly marked UNREVIEWED, {droppedCf} stale dropped, {migratedCf} migrated to typed entries)");
+    return failures == 0 ? 0 : 1;
+}
+
 Console.WriteLine($"\n── Check 2: field surface of {surface.Count} state types vs baseline ──");
 if (!File.Exists(baselinePath))
 {
@@ -319,7 +540,113 @@ else
         : $"  Check 3: {coverageFailures} failure(s) — a game update added state StateSnapshot doesn't know about, or a coverage entry is stale");
 }
 
-return failures + diffs + coverageFailures == 0 ? 0 : 1;
+// ───────────── Check 4: CopyMutableFields field ledger ─────────────
+
+int copyFieldFailures = 0;
+
+if (!File.Exists(copyFieldsPath))
+{
+    Console.WriteLine($"\n── Check 4: CopyMutableFields field ledger — no ledger file at {copyFieldsPath}; skipping (generate one with `dotnet run -- copy-fields-baseline`) ──");
+}
+else
+{
+    var copyFields = LoadCopyFields(copyFieldsPath);
+    Console.WriteLine($"\n── Check 4: CopyMutableFields field ledger — does every blindly-copied field have a human verdict? ──");
+    foreach (var (root, declTypes, fieldCount, riskCounts) in copyFieldsSummary)
+    {
+        var bucketStr = string.Join(", ", RiskBuckets.Select(b => $"{b}={riskCounts[b]}"));
+        Console.WriteLine($"  {root}: {declTypes} declaring type(s), {fieldCount} field(s)  [{bucketStr}]");
+    }
+
+    // Stale: named in the ledger but no longer part of the live copy-field surface.
+    foreach (var stale in copyFields.Keys.Where(k => !copyFieldsLive.ContainsKey(k)))
+    {
+        Console.WriteLine($"  FAIL  {stale}: stale ledger entry (field no longer copied by CopyMutableFields)");
+        copyFieldFailures++;
+    }
+
+    // Type changed: the field is still copied, but its recorded type no longer matches the
+    // live build's. Reported distinctly from stale/unaccounted so the message says what
+    // changed, not just that something did — this is exactly the CardEnergyCost shape: an
+    // unrelated-looking field whose *type* started carrying a back-reference, with the name
+    // unchanged. Entries not yet migrated to the typed format (Type == "") have nothing to
+    // compare against and are skipped — run copy-fields-baseline first.
+    foreach (var (key, entry) in copyFields)
+    {
+        if (entry.Type.Length == 0) continue;
+        if (!copyFieldsLive.TryGetValue(key, out var live)) continue; // already reported as stale
+        if (entry.Type != live.TypeFullName)
+        {
+            Console.WriteLine($"  FAIL  {key}: type changed ({entry.Type} -> {live.TypeFullName}, risk {entry.Risk} -> {live.Risk}) — re-review and update the ledger");
+            copyFieldFailures++;
+        }
+    }
+
+    // Every non-empty reason is required.
+    foreach (var (key, entry) in copyFields)
+        if (string.IsNullOrWhiteSpace(entry.Reason))
+        {
+            Console.WriteLine($"  FAIL  {key}: empty justification");
+            copyFieldFailures++;
+        }
+
+    // Unaccounted: CopyMutableFields would copy it, but the ledger says nothing — the
+    // case that would catch a new identity/back-reference field slipping past CopySkip.
+    var accountedCf = new HashSet<string>(copyFields.Keys);
+    var unaccountedCf = copyFieldsLive.Keys.Where(k => !accountedCf.Contains(k)).ToList();
+    foreach (var key in unaccountedCf)
+    {
+        var live = copyFieldsLive[key];
+        Console.WriteLine($"  FAIL  {key}: unaccounted for (would be copied, no ledger entry) [{live.Risk}, {live.TypeFullName}]");
+        copyFieldFailures++;
+    }
+
+    var unreviewedCf = copyFields.Where(kv => kv.Value.Reason == "UNREVIEWED").Select(kv => kv.Key).ToList();
+    Console.WriteLine($"  {copyFieldsLive.Count} live field(s), {copyFields.Count - unreviewedCf.Count} reviewed, {unreviewedCf.Count} unreviewed, {unaccountedCf.Count} unaccounted");
+
+    // Break the backlog down by risk bucket instead of one flat list: collection and
+    // reference-game are the ones that can actually alias the clone (the CardEnergyCost
+    // shape), so those get listed by name — capped, with a "+N more" tail — since a human
+    // has to judge each one. value fields can only ever miss a "no event fires" call, and
+    // reference-other is everything else not already called out; both are merely counted
+    // (already broken out per root in the summary table above).
+    const int maxListedCf = 40;
+    string RiskOf(string key) => copyFieldsLive.TryGetValue(key, out var lf) ? lf.Risk
+        : (copyFields.TryGetValue(key, out var e) && e.Risk.Length > 0 ? e.Risk : "reference-other");
+
+    Console.WriteLine($"\n── Check 4 UNREVIEWED backlog: {unreviewedCf.Count} field(s) nobody has judged yet ──");
+    if (unreviewedCf.Count == 0)
+    {
+        Console.WriteLine("  none");
+    }
+    else
+    {
+        foreach (var bucket in RiskBuckets)
+        {
+            var keysInBucket = unreviewedCf.Where(k => RiskOf(k) == bucket).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            if (keysInBucket.Count == 0) continue;
+
+            if (bucket is "collection" or "reference-game")
+            {
+                Console.WriteLine($"  {bucket} ({keysInBucket.Count}):");
+                foreach (var key in keysInBucket.Take(maxListedCf))
+                    Console.WriteLine($"    UNREVIEWED  {key}");
+                if (keysInBucket.Count > maxListedCf)
+                    Console.WriteLine($"    +{keysInBucket.Count - maxListedCf} more");
+            }
+            else
+            {
+                Console.WriteLine($"  {bucket}: {keysInBucket.Count} (see summary table above)");
+            }
+        }
+    }
+
+    Console.WriteLine(copyFieldFailures == 0
+        ? "  Check 4: every copied field is accounted for"
+        : $"  Check 4: {copyFieldFailures} failure(s) — a game update added a copied field the ledger doesn't know about, changed a copied field's type, or a ledger entry is stale");
+}
+
+return failures + diffs + coverageFailures + copyFieldFailures == 0 ? 0 : 1;
 
 sealed class TypeCoverage
 {
@@ -328,4 +655,29 @@ sealed class TypeCoverage
 
     [System.Text.Json.Serialization.JsonPropertyName("ignored")]
     public SortedDictionary<string, string> Ignored { get; set; } = new();
+}
+
+// A field's live shape, as computed from the current build via the MetadataLoadContext:
+// its type's full name (what copy-fields.json records under "type") and the risk bucket
+// ClassifyRisk derived from that type.
+sealed class LiveFieldInfo
+{
+    public string TypeFullName { get; }
+    public string Risk { get; }
+    public LiveFieldInfo(string typeFullName, string risk) { TypeFullName = typeFullName; Risk = risk; }
+}
+
+// One copy-fields.json ledger entry. Type/Risk are derived facts about the current build
+// (filled in by copy-fields-baseline); Reason is the only human-owned field, and the one
+// thing that must always survive a baseline re-run verbatim.
+sealed class CopyFieldEntry
+{
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
+    public string Type { get; set; } = "";
+
+    [System.Text.Json.Serialization.JsonPropertyName("risk")]
+    public string Risk { get; set; } = "";
+
+    [System.Text.Json.Serialization.JsonPropertyName("reason")]
+    public string Reason { get; set; } = "";
 }
