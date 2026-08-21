@@ -1389,25 +1389,41 @@ internal static class PeerTopBar
 }
 
 /// <summary>
-/// While spectating, the potion belt is a live node collection (not a label), so it
-/// can't be re-stamped like the pile counters — instead the vanilla container is
-/// hidden (its own state untouched) and a read-only replica is drawn in its place,
-/// using the same NPotionHolder/NPotion factories NMultiplayerPlayerExpandedState
-/// uses to render a peer's belt (NMultiplayerPlayerExpandedState.cs:277-281).
-/// isUsable:false means a peer's potion can never be clicked to use or discard it.
+/// While spectating, the potion belt shows the viewed player's potions painted
+/// in place over the vanilla slot frames — NOT by hiding NPotionContainer and
+/// drawing a replacement beside it. NTopBar's row is a layout Container: hiding a
+/// child collapses its slot, which shoves every sibling after it (room icon, etc.)
+/// left and lets whatever we draw next get laid out right next to gold instead of
+/// where the potions belong. So the vanilla container, its holders, and their
+/// frames are left fully alone; only each local potion's own picture (if any) is
+/// hidden, and a same-sized peer NPotion is drawn on top of it via a TopLevel
+/// overlay root — TopLevel exempts a node from its parent Container's layout pass
+/// entirely (Godot: "Nodes inside a Container will not affect the container in any
+/// way once top_level is enabled"), so it can sit at an absolute GlobalPosition
+/// copied from the real slot regardless of what the top bar's layout is doing.
+/// Each local holder's _isUsable is also forced false for the whole spectate
+/// session so a slot click can't open MY potion popup while a peer's picture is
+/// drawn over it; both this and the local potion's Visible are restored on Exit.
 /// </summary>
 internal static class PeerPotionReplica
 {
-    private static readonly System.Reflection.FieldInfo PotionHoldersField =
-        AccessTools.Field(typeof(NPotionContainer), "_potionHolders");
+    private static readonly System.Reflection.FieldInfo HoldersField =
+        AccessTools.Field(typeof(NPotionContainer), "_holders");
 
-    private static NPotionContainer? _hidden;
+    private static readonly System.Reflection.FieldInfo IsUsableField =
+        AccessTools.Field(typeof(NPotionHolder), "_isUsable");
+
+    private static readonly System.Reflection.FieldInfo PotionScaleField =
+        AccessTools.Field(typeof(NPotionHolder), "_potionScale");
+
     private static Control? _root;
     private static Player? _peer;
-    private static readonly List<NPotionHolder> _replicaHolders = new();
-    private static readonly List<Vector2> _slotGlobalPositions = new();
-    private static Vector2 _originGlobal;
-    private static Vector2 _slotSize = new(64f, 64f);
+    private static List<NPotionHolder>? _localHolders;
+    private static readonly List<NPotion> _replicaPotions = new();
+
+    // Per local holder: its own reference, the local potion it had (if any, so we
+    // can un-hide the exact same node on Exit), and its original _isUsable value.
+    private static readonly List<(NPotionHolder Holder, NPotion? LocalPotion, bool WasUsable)> _hiddenState = new();
 
     internal static void Enter(Player peer)
     {
@@ -1417,34 +1433,30 @@ internal static class PeerPotionReplica
             if (container == null || !GodotObject.IsInstanceValid(container))
                 return;
             Node? parent = container.GetParent();
-            if (parent == null)
+            if (parent == null || HoldersField.GetValue(container) is not List<NPotionHolder> holders)
                 return;
 
-            // Read the vanilla layout (and its child holders' positions) before
-            // hiding it — Visible doesn't move anything, but this matches the
-            // "read, then hide" order the design calls for.
-            _slotGlobalPositions.Clear();
-            if (PotionHoldersField.GetValue(container) is Control holdersRow && GodotObject.IsInstanceValid(holdersRow))
+            _hiddenState.Clear();
+            foreach (NPotionHolder holder in holders)
             {
-                foreach (Node child in holdersRow.GetChildren())
-                {
-                    if (child is Control c)
-                    {
-                        _slotGlobalPositions.Add(c.GlobalPosition);
-                        _slotSize = c.Size;
-                    }
-                }
+                if (!GodotObject.IsInstanceValid(holder))
+                    continue;
+                bool wasUsable = IsUsableField.GetValue(holder) is bool b && b;
+                NPotion? localPotion = holder.Potion;
+                if (localPotion != null && GodotObject.IsInstanceValid(localPotion))
+                    localPotion.Visible = false;
+                // Never let a spectate-time click reach the LOCAL potion under our
+                // overlay — the only vanilla state this touches, restored on Exit.
+                IsUsableField.SetValue(holder, false);
+                _hiddenState.Add((holder, localPotion, wasUsable));
             }
-            _originGlobal = container.GlobalPosition;
-            Vector2 containerSize = container.Size;
+            _localHolders = holders;
 
-            _hidden = container;
-            container.Visible = false;
-
-            _root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
+            // TopLevel is the fix: without it, NTopBar's Container would lay this
+            // root out on its own (see class doc comment) regardless of any
+            // Position/GlobalPosition we assign below.
+            _root = new Control { TopLevel = true, MouseFilter = Control.MouseFilterEnum.Ignore };
             parent.AddChildSafely(_root);
-            _root.GlobalPosition = _originGlobal;
-            _root.Size = containerSize;
 
             _peer = peer;
             Rebuild();
@@ -1458,28 +1470,52 @@ internal static class PeerPotionReplica
     /// <summary>
     /// Full rebuild on every potion change (procured/used/discarded) — belts are
     /// small, so this is simpler and safer than trying to patch a single slot.
+    /// Peer potions map to local holders by index; a peer with more potions than
+    /// the local player has holders is truncated (never invents new slots).
     /// </summary>
     internal static void Rebuild()
     {
-        if (_root == null || !GodotObject.IsInstanceValid(_root) || _peer == null)
+        if (_root == null || !GodotObject.IsInstanceValid(_root) || _peer == null || _localHolders == null)
             return;
         try
         {
-            ClearHolders();
+            ClearReplicas();
             int i = 0;
             foreach (PotionModel potion in _peer.Potions)
             {
-                NPotionHolder holder = NPotionHolder.Create(isUsable: false);
-                _root.AddChildSafely(holder);
-                holder.Position = LocalSlotPosition(i);
-                NPotion? nPotion = NPotion.Create(potion);
-                if (nPotion != null)
+                if (i >= _localHolders.Count)
                 {
-                    holder.AddPotion(nPotion);
-                    nPotion.Position = Vector2.Zero;
+                    Log.Write($"potion replica: peer has more potions than local holders ({_localHolders.Count}) — truncating");
+                    break;
                 }
-                _replicaHolders.Add(holder);
+                NPotionHolder localHolder = _localHolders[i];
                 i++;
+                if (!GodotObject.IsInstanceValid(localHolder))
+                    continue;
+                NPotion? nPotion = NPotion.Create(potion);
+                if (nPotion == null)
+                    continue;
+                _root.AddChildSafely(nPotion);
+                nPotion.MouseFilter = Control.MouseFilterEnum.Ignore;
+
+                // Copying an existing local potion's own transform is the exact
+                // match; with no local potion to copy, fall back to the holder's
+                // own position/scale, mirroring what vanilla AddPotion does.
+                NPotion? localPotion = localHolder.Potion;
+                if (localPotion != null && GodotObject.IsInstanceValid(localPotion))
+                {
+                    nPotion.GlobalPosition = localPotion.GlobalPosition;
+                    nPotion.Scale = localPotion.Scale;
+                    nPotion.PivotOffset = localPotion.PivotOffset;
+                }
+                else
+                {
+                    Vector2 scale = PotionScaleField.GetValue(localHolder) is Vector2 s ? s : new Vector2(0.9f, 0.9f);
+                    nPotion.GlobalPosition = localHolder.GlobalPosition;
+                    nPotion.Scale = scale;
+                    nPotion.PivotOffset = nPotion.Size * 0.5f;
+                }
+                _replicaPotions.Add(nPotion);
             }
         }
         catch (System.Exception e)
@@ -1488,58 +1524,37 @@ internal static class PeerPotionReplica
         }
     }
 
-    /// <summary>
-    /// Positions replicas at the same slots the vanilla holders occupy; for any
-    /// index past the captured slots (a peer with more potion slots than the local
-    /// player), extrapolates using the spacing between the last two known slots.
-    /// </summary>
-    private static Vector2 LocalSlotPosition(int index)
+    private static void ClearReplicas()
     {
-        Vector2 global;
-        if (index < _slotGlobalPositions.Count)
-        {
-            global = _slotGlobalPositions[index];
-        }
-        else if (_slotGlobalPositions.Count >= 2)
-        {
-            Vector2 spacing = _slotGlobalPositions[^1] - _slotGlobalPositions[^2];
-            global = _slotGlobalPositions[^1] + spacing * (index - (_slotGlobalPositions.Count - 1));
-        }
-        else if (_slotGlobalPositions.Count == 1)
-        {
-            global = _slotGlobalPositions[0] + new Vector2(_slotSize.X + 8f, 0f) * index;
-        }
-        else
-        {
-            global = _originGlobal + new Vector2(_slotSize.X + 8f, 0f) * index;
-        }
-        return global - _originGlobal;
-    }
-
-    private static void ClearHolders()
-    {
-        foreach (NPotionHolder holder in _replicaHolders)
+        foreach (NPotion potion in _replicaPotions)
         {
             // NPotionHolder/NPotion are plain nodes, not pooled like NCard.
-            if (GodotObject.IsInstanceValid(holder))
-                holder.QueueFreeSafelyNoPool();
+            if (GodotObject.IsInstanceValid(potion))
+                potion.QueueFreeSafelyNoPool();
         }
-        _replicaHolders.Clear();
+        _replicaPotions.Clear();
     }
 
     internal static void Exit()
     {
         try
         {
-            ClearHolders();
+            ClearReplicas();
             if (_root != null && GodotObject.IsInstanceValid(_root))
                 _root.QueueFreeSafelyNoPool();
             _root = null;
-            if (_hidden != null && GodotObject.IsInstanceValid(_hidden))
-                _hidden.Visible = true;
-            _hidden = null;
+
+            foreach (var state in _hiddenState)
+            {
+                if (!GodotObject.IsInstanceValid(state.Holder))
+                    continue;
+                IsUsableField.SetValue(state.Holder, state.WasUsable);
+                if (state.LocalPotion != null && GodotObject.IsInstanceValid(state.LocalPotion))
+                    state.LocalPotion.Visible = true;
+            }
+            _hiddenState.Clear();
+            _localHolders = null;
             _peer = null;
-            _slotGlobalPositions.Clear();
         }
         catch (System.Exception e)
         {
@@ -1585,7 +1600,11 @@ internal static class PeerRelicReplica
             _hidden = inventory;
             inventory.Visible = false;
 
-            _root = new HFlowContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+            // TopLevel so NGlobalUi's own layout can't reposition this root the way
+            // it collapsed the potion belt (see PeerPotionReplica's doc comment) —
+            // this one looked fine in testing, but it's the same hide-and-add-a-
+            // sibling shape, so the same preventive fix applies.
+            _root = new HFlowContainer { TopLevel = true, MouseFilter = Control.MouseFilterEnum.Ignore };
             parent.AddChildSafely(_root);
             _root.GlobalPosition = origin;
             _root.Size = size;
@@ -1675,6 +1694,33 @@ internal static class PeerStarCounter
     private static readonly System.Reflection.MethodInfo SetStarCountTextMethod =
         AccessTools.Method(typeof(NStarCounter), "SetStarCountText");
 
+    private static readonly System.Reflection.MethodInfo RefreshVisibilityMethod =
+        AccessTools.Method(typeof(NStarCounter), "RefreshVisibility");
+
+    /// <summary>
+    /// Whether the counter shows at all is a property of whose character you are
+    /// looking at — a Regent's counter is always up, everyone else's appears once
+    /// they hold a star — so vanilla's own RefreshVisibility is run against the
+    /// player being shown. Its verdict is sticky (`Visible = Visible || ...`, so it
+    /// can only ever turn the counter ON), which is why visibility is cleared first;
+    /// otherwise a spectated Regent's counter would linger on your own screen after
+    /// you stopped watching them.
+    /// </summary>
+    private static void RefreshVisibilityFor(NStarCounter counter, Player player)
+    {
+        object? saved = StarCounterPlayerField.GetValue(counter);
+        try
+        {
+            counter.Visible = false;
+            StarCounterPlayerField.SetValue(counter, player);
+            RefreshVisibilityMethod.Invoke(counter, null);
+        }
+        finally
+        {
+            StarCounterPlayerField.SetValue(counter, saved);
+        }
+    }
+
     private static NStarCounter? Instance()
     {
         NCombatUi? ui = NCombatRoom.Instance?.Ui;
@@ -1692,6 +1738,7 @@ internal static class PeerStarCounter
             if (peer?.PlayerCombatState == null || counter == null || !GodotObject.IsInstanceValid(counter))
                 return;
             SetStarCountTextMethod.Invoke(counter, new object[] { peer.PlayerCombatState.Stars });
+            RefreshVisibilityFor(counter, peer);
         }
         catch (System.Exception e)
         {
@@ -1707,7 +1754,10 @@ internal static class PeerStarCounter
             if (counter == null || !GodotObject.IsInstanceValid(counter))
                 return;
             if (StarCounterPlayerField.GetValue(counter) is Player localPlayer && localPlayer.PlayerCombatState != null)
+            {
                 SetStarCountTextMethod.Invoke(counter, new object[] { localPlayer.PlayerCombatState.Stars });
+                RefreshVisibilityFor(counter, localPlayer);
+            }
         }
         catch (System.Exception e)
         {
