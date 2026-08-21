@@ -147,7 +147,7 @@
   "MegaCrit.Sts2.Core.Models.Cards.Discovery._mockSelectedCard": {
     "type": "MegaCrit.Sts2.Core.Models.CardModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Test-injection field (the _mock prefix convention in this codebase, cf. TestRngInjector). Never populated in a real run."
   },
   "MegaCrit.Sts2.Core.Models.Cards.Dowsing._roomsEntered": {
     "type": "System.Int32",
@@ -177,7 +177,7 @@
   "MegaCrit.Sts2.Core.Models.Cards.MadScience._mockedChaosCard": {
     "type": "MegaCrit.Sts2.Core.Models.CardModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Test-injection field (the _mock prefix convention in this codebase, cf. TestRngInjector). Never populated in a real run."
   },
   "MegaCrit.Sts2.Core.Models.Cards.MadScience._tinkerTimeRider": {
     "type": "MegaCrit.Sts2.Core.Models.Events.TinkerTime+RiderEffect",
@@ -232,7 +232,7 @@
   "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockPool": {
     "type": "MegaCrit.Sts2.Core.Models.CardPoolModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Declared on a Mocks.* class — test doubles that never enter a real run."
   },
   "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockRarity": {
     "type": "MegaCrit.Sts2.Core.Entities.Cards.CardRarity",
@@ -257,7 +257,7 @@
   "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockCardModel._mockTags": {
     "type": "System.Collections.Generic.HashSet`1[[MegaCrit.Sts2.Core.Entities.Cards.CardTag, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Declared on a Mocks.* class — test doubles that never enter a real run."
   },
   "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._blockCount": {
     "type": "System.Int32",
@@ -267,12 +267,12 @@
   "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._cardCreations": {
     "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard+CardCreation, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Declared on a Mocks.* class — test doubles that never enter a real run."
   },
   "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._powerApplications": {
     "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard+PowerApplication, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Declared on a Mocks.* class — test doubles that never enter a real run."
   },
   "MegaCrit.Sts2.Core.Models.Cards.Mocks.MockSkillCard._targetType": {
     "type": "MegaCrit.Sts2.Core.Entities.Cards.TargetType",
@@ -307,7 +307,7 @@
   "MegaCrit.Sts2.Core.Models.Cards.Splash._mockGeneratedCard": {
     "type": "MegaCrit.Sts2.Core.Models.CardModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Test-injection field (the _mock prefix convention in this codebase, cf. TestRngInjector). Never populated in a real run."
   },
   "MegaCrit.Sts2.Core.Models.Cards.SpoilsMap.<SpoilsCoord>k__BackingField": {
     "type": "System.Nullable`1[[MegaCrit.Sts2.Core.Map.MapCoord, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
@@ -427,17 +427,17 @@
   "MegaCrit.Sts2.Core.Models.Relics.ArchaicTooth._extraHoverTips": {
     "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.HoverTips.IHoverTip, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "UI hover-tip list, built once from canonical data and never mutated in combat. Cosmetic at worst; no gameplay path reads it."
   },
   "MegaCrit.Sts2.Core.Models.Relics.ArchaicTooth._serializableAncientCard": {
     "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableCard",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Holds a ModelId / SerializableCard — immutable identity data set when the relic is obtained, not per-turn combat state, so copying it back is a no-op in practice."
   },
   "MegaCrit.Sts2.Core.Models.Relics.ArchaicTooth._serializableStarterCard": {
     "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableCard",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Holds a ModelId / SerializableCard — immutable identity data set when the relic is obtained, not per-turn combat state, so copying it back is a no-op in practice."
   },
   "MegaCrit.Sts2.Core.Models.Relics.ArtOfWar._anyAttacksPlayedLastTurn": {
     "type": "System.Boolean",
@@ -462,7 +462,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.BingBong._cardsToSkip": {
     "type": "System.Collections.Generic.HashSet`1[[MegaCrit.Sts2.Core.Models.CardModel, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Relic state is captured with Shadow() = MemberwiseClone (StateSnapshot.cs:553), which copies reference-typed fields BY REFERENCE — the shadow and the live relic share one container, so a collection field is never actually snapshotted and CopyMutableFields assigns the same object back. Value-typed relic fields are fine; only collections have this hole. Mutated only when a card enters PileType.Deck (BingBong.cs:31,35) — the run deck, which changes between rooms, not during a combat an undo covers. Re-judge if deck adds ever become reachable mid-combat."
   },
   "MegaCrit.Sts2.Core.Models.Relics.BoneTea._combatsLeft": {
     "type": "System.Int32",
@@ -507,12 +507,12 @@
   "MegaCrit.Sts2.Core.Models.Relics.DustyTome._ancientCard": {
     "type": "MegaCrit.Sts2.Core.Models.ModelId",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Holds a ModelId / SerializableCard — immutable identity data set when the relic is obtained, not per-turn combat state, so copying it back is a no-op in practice."
   },
   "MegaCrit.Sts2.Core.Models.Relics.DustyTome._extraHoverTips": {
     "type": "System.Collections.Generic.IEnumerable`1[[MegaCrit.Sts2.Core.HoverTips.IHoverTip, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "UI hover-tip list, built once from canonical data and never mutated in combat. Cosmetic at worst; no gameplay path reads it."
   },
   "MegaCrit.Sts2.Core.Models.Relics.EmberTea._combatsLeft": {
     "type": "System.Int32",
@@ -552,12 +552,12 @@
   "MegaCrit.Sts2.Core.Models.Relics.FurCoat.<FurCoatCoordCols>k__BackingField": {
     "type": "System.Int32[]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Relic state is captured with Shadow() = MemberwiseClone (StateSnapshot.cs:553), which copies reference-typed fields BY REFERENCE — the shadow and the live relic share one container, so a collection field is never actually snapshotted and CopyMutableFields assigns the same object back. Value-typed relic fields are fine; only collections have this hole. Map coordinates computed once per act map (FurCoat.cs:99-103), not combat state."
   },
   "MegaCrit.Sts2.Core.Models.Relics.FurCoat.<FurCoatCoordRows>k__BackingField": {
     "type": "System.Int32[]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Relic state is captured with Shadow() = MemberwiseClone (StateSnapshot.cs:553), which copies reference-typed fields BY REFERENCE — the shadow and the live relic share one container, so a collection field is never actually snapshotted and CopyMutableFields assigns the same object back. Value-typed relic fields are fine; only collections have this hole. Map coordinates computed once per act map (FurCoat.cs:99-103), not combat state."
   },
   "MegaCrit.Sts2.Core.Models.Relics.FurCoat.<FurCoatCoordsSet>k__BackingField": {
     "type": "System.Boolean",
@@ -702,7 +702,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.MusicBox._cardBeingPlayed": {
     "type": "MegaCrit.Sts2.Core.Models.CardModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Transient within a single card play; UndoSyncMod.CanUndoRedo only permits a restore at an idle play phase with empty action queues, so this is null at every restore point (same argument as CardModel._currentTarget). Set in BeforeCardPlayed and cleared in AfterCardPlayed (MusicBox.cs:50-84)."
   },
   "MegaCrit.Sts2.Core.Models.Relics.MusicBox._wasUsedThisTurn": {
     "type": "System.Boolean",
@@ -747,7 +747,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.PaelsLegion._affectedCardPlay": {
     "type": "MegaCrit.Sts2.Core.Entities.Cards.CardPlay",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Transient within a single card play; UndoSyncMod.CanUndoRedo only permits a restore at an idle play phase with empty action queues, so this is null at every restore point (same argument as CardModel._currentTarget). Holds a CardPlay, which exists only for the duration of one play."
   },
   "MegaCrit.Sts2.Core.Models.Relics.PaelsLegion._cooldown": {
     "type": "System.Int32",
@@ -772,7 +772,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.PaelsTooth._serializableCards": {
     "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Saves.Runs.SerializableCard, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Relic state is captured with Shadow() = MemberwiseClone (StateSnapshot.cs:553), which copies reference-typed fields BY REFERENCE — the shadow and the live relic share one container, so a collection field is never actually snapshotted and CopyMutableFields assigns the same object back. Value-typed relic fields are fine; only collections have this hole. Stored-card list, replaced wholesale through the SerializableCards setter (PaelsTooth.cs:60-69) rather than mutated per-turn; not combat-scoped state."
   },
   "MegaCrit.Sts2.Core.Models.Relics.PaelsWing._isActivating": {
     "type": "System.Boolean",
@@ -787,7 +787,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.PenNib._attackToDouble": {
     "type": "MegaCrit.Sts2.Core.Models.CardModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Transient within a single card play; UndoSyncMod.CanUndoRedo only permits a restore at an idle play phase with empty action queues, so this is null at every restore point (same argument as CardModel._currentTarget)."
   },
   "MegaCrit.Sts2.Core.Models.Relics.PenNib._attacksPlayed": {
     "type": "System.Int32",
@@ -877,7 +877,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.SeaGlass._characterId": {
     "type": "MegaCrit.Sts2.Core.Models.ModelId",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Holds a ModelId / SerializableCard — immutable identity data set when the relic is obtained, not per-turn combat state, so copying it back is a no-op in practice."
   },
   "MegaCrit.Sts2.Core.Models.Relics.Shuriken._attacksPlayedThisTurn": {
     "type": "System.Int32",
@@ -932,17 +932,17 @@
   "MegaCrit.Sts2.Core.Models.Relics.TouchOfOrobas._extraHoverTips": {
     "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.HoverTips.IHoverTip, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "UI hover-tip list, built once from canonical data and never mutated in combat. Cosmetic at worst; no gameplay path reads it."
   },
   "MegaCrit.Sts2.Core.Models.Relics.TouchOfOrobas._starterRelic": {
     "type": "MegaCrit.Sts2.Core.Models.ModelId",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Holds a ModelId / SerializableCard — immutable identity data set when the relic is obtained, not per-turn combat state, so copying it back is a no-op in practice."
   },
   "MegaCrit.Sts2.Core.Models.Relics.TouchOfOrobas._upgradedRelic": {
     "type": "MegaCrit.Sts2.Core.Models.ModelId",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Holds a ModelId / SerializableCard — immutable identity data set when the relic is obtained, not per-turn combat state, so copying it back is a no-op in practice."
   },
   "MegaCrit.Sts2.Core.Models.Relics.ToyBox._combatsSeen": {
     "type": "System.Int32",
@@ -967,7 +967,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.UnsettlingLamp._doubledPowers": {
     "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Models.PowerModel, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]",
     "risk": "collection",
-    "reason": "UNREVIEWED"
+    "reason": "Relic state is captured with Shadow() = MemberwiseClone (StateSnapshot.cs:553), which copies reference-typed fields BY REFERENCE — the shadow and the live relic share one container, so a collection field is never actually snapshotted and CopyMutableFields assigns the same object back. Value-typed relic fields are fine; only collections have this hole. FINDING: this one DOES mutate mid-combat — DoubledPowers.Add(power) fires from the power-application hook (UnsettlingLamp.cs:107) and is only cleared at BeforeCombatStart (:66) and AfterCombatEnd (:155), so it accumulates across turns. After an undo the doubled power is gone from the creature but still listed here, and the relic's already-doubled check (:171) then refuses to double it again. Invisible to both existing checks: not in the checksum payload, and symmetric across peers."
   },
   "MegaCrit.Sts2.Core.Models.Relics.UnsettlingLamp._isFinishedTriggering": {
     "type": "System.Boolean",
@@ -977,7 +977,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.UnsettlingLamp._triggeringCard": {
     "type": "MegaCrit.Sts2.Core.Models.CardModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Same as Vambrace._triggeringCard: a CardModel reference, reference-compared only, and card identity is preserved across restore."
   },
   "MegaCrit.Sts2.Core.Models.Relics.Vambrace._blockGainedThisCombat": {
     "type": "System.Boolean",
@@ -987,7 +987,7 @@
   "MegaCrit.Sts2.Core.Models.Relics.Vambrace._triggeringCard": {
     "type": "MegaCrit.Sts2.Core.Models.CardModel",
     "risk": "reference-game",
-    "reason": "UNREVIEWED"
+    "reason": "Combat-duration, but a CardModel REFERENCE — the restore never replaces card objects (that is what CopyMutableFields exists to avoid), so the reference stays valid and copying it back is correct. Only ever reference-compared (Vambrace.cs:57-70), never dereferenced for pile state, so even a card the restore removed from combat is harmless here."
   },
   "MegaCrit.Sts2.Core.Models.Relics.VelvetChoker._cardsPlayedThisTurn": {
     "type": "System.Int32",

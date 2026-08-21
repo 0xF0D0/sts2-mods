@@ -275,8 +275,109 @@ internal sealed class StateSnapshot
         }
     }
 
-    private static object? Shadow(object? source) =>
-        source == null ? null : MShadowClone.Invoke(source, null);
+    /// <summary>
+    /// MemberwiseClone plus an independent copy of every container-valued field, so the
+    /// returned shadow doesn't share its mutable sub-objects with `source`. Plain
+    /// MemberwiseClone alone copies reference-typed fields BY REFERENCE — a List/HashSet/
+    /// Dictionary/array field on the "clone" is still the SAME object `source` holds, so the
+    /// container keeps mutating right along with the live object and is never actually
+    /// snapshotted. Confirmed victim: UnsettlingLamp._doubledPowers (List&lt;PowerModel&gt;,
+    /// UnsettlingLamp.cs:18) — DoubledPowers.Add(power) fires from BeforePowerAmountChanged
+    /// (UnsettlingLamp.cs:107) and is cleared only at BeforeCombatStart (:66) / AfterCombatEnd
+    /// (:155), so it accumulates across turns; after an undo the shadow's "captured" list has
+    /// already grown past what it held at capture time, because it was never a separate list.
+    /// See CopyShadowContainers for how the copy is done and ShadowContainersShared for the
+    /// one case (DynamicVarSet) where it deliberately isn't.
+    /// </summary>
+    /// <summary>Test seam: UndoFuzz's startup self-test needs to prove Shadow's container-copy branch
+    /// works without depending on a run happening to encounter a relic that owns one. Shadow itself
+    /// stays private.</summary>
+    internal static object? ShadowForTest(object? source) => Shadow(source);
+
+    private static object? Shadow(object? source)
+    {
+        if (source == null) return null;
+        var clone = MShadowClone.Invoke(source, null)!;
+        CopyShadowContainers(clone);
+        return clone;
+    }
+
+    /// <summary>Count of container-valued fields Shadow() gave an independent copy of — incremented
+    /// once per field, from inside CopyShadowContainers' own copy path. Same purpose/pattern as
+    /// UiRefresh.UiRefreshFailureCount: a plain counter a harness can assert on, so a run's log
+    /// shows the container-copy mechanism actually engaged rather than being assumed to from
+    /// reading the code. Dormant/unused outside a harness.</summary>
+    internal static int ShadowContainersCopied;
+
+    /// <summary>Count of container-valued fields Shadow() found but could NOT copy — the field's
+    /// runtime type has no (T value) copy constructor, or that constructor threw, so the field is
+    /// left aliasing the live object's container exactly as plain MemberwiseClone would have left
+    /// it, and CopyShadowContainers logs a one-line warning naming the declaring type/field/field
+    /// type. DynamicVarSet (DynamicVarSet.cs:12) is the expected occupant of this bucket: it
+    /// implements IReadOnlyDictionary&lt;string, DynamicVar&gt; but its only constructor takes
+    /// IEnumerable&lt;DynamicVar&gt;, not a DynamicVarSet, so Activator.CreateInstance never finds a
+    /// matching constructor. That's fine — relics, potions and powers all capture their own
+    /// DynamicVars independently through the game's own DynamicVars.Clone(owner) (see
+    /// RelicCapture.DynamicVarsClone / PowerCapture.DynamicVarsClone / _potionDynamicVars above),
+    /// so a shared _dynamicVars field on a Shadow() clone is never actually relied on.</summary>
+    internal static int ShadowContainersShared;
+
+    /// <summary>
+    /// Walks `clone`'s instance fields — same traversal/filters as CopyMutableFields (concrete
+    /// type up to but excluding object, Instance|Public|NonPublic|DeclaredOnly, skipping
+    /// IsInitOnly and delegate-typed fields for the same reasons CopyMutableFields does) — and
+    /// replaces any container-valued field with a fresh container of the SAME runtime type
+    /// holding the SAME elements. CopySkip (CopyMutableFields' skip-list for _owner/_cloneOf/etc)
+    /// does not apply here: this only ever rewrites fields on `clone` itself, never on a live
+    /// object, so there is nothing to protect against.
+    ///
+    /// Element identity is deliberately preserved — this copies the CONTAINER, never the
+    /// elements. A cloned List&lt;PowerModel&gt; must hold the very same PowerModel references the
+    /// live list does, because those models are captured/restored independently elsewhere in
+    /// this file and the snapshot's whole design depends on model identity never changing under
+    /// it.
+    ///
+    /// Two shapes are handled, in order:
+    ///  - System.Array, via Array.Clone() (shallow — same element-identity rule as above).
+    ///  - anything else that is System.Collections.IEnumerable and isn't a string, via its copy
+    ///    constructor (Activator.CreateInstance(type, new object[] { value })) — List&lt;T&gt;,
+    ///    HashSet&lt;T&gt; and Dictionary&lt;K,V&gt; all provide one.
+    /// If neither applies, or the copy constructor throws, the field is left sharing the live
+    /// object's container (ShadowContainersShared) and a one-line warning is logged — this must
+    /// never fail the capture.
+    /// </summary>
+    private static void CopyShadowContainers(object clone)
+    {
+        for (var t = clone.GetType(); t != null && t != typeof(object); t = t.BaseType)
+        {
+            foreach (var f in t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+            {
+                if (f.IsInitOnly) continue;
+                if (typeof(Delegate).IsAssignableFrom(f.FieldType)) continue;
+
+                var value = f.GetValue(clone);
+                if (value is Array array)
+                {
+                    f.SetValue(clone, array.Clone());
+                    ShadowContainersCopied++;
+                    continue;
+                }
+                if (value is System.Collections.IEnumerable && value is not string)
+                {
+                    try
+                    {
+                        f.SetValue(clone, Activator.CreateInstance(value.GetType(), new object[] { value }));
+                        ShadowContainersCopied++;
+                    }
+                    catch (Exception ex)
+                    {
+                        ShadowContainersShared++;
+                        Log.Write($"Shadow: {t.Name}.{f.Name} ({value.GetType().Name}) has no usable copy constructor, leaving shared: {ex.Message}");
+                    }
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// A throwaway copy of a stored clone, for CopyMutableFields to hand to the live model.
@@ -1054,7 +1155,18 @@ internal sealed class StateSnapshot
             // subclass-private per-turn counters (e.g. cards-played trackers)
             if (_relicShadow.TryGetValue(r.Ref, out var shadow))
             {
-                CopyMutableFields(shadow, r.Ref);
+                // Re-shadow the shadow before handing it to the live relic — same reasoning as
+                // Pristine(clone) above (see its doc comment), and the precedent already set by
+                // the power restore path a few methods up: FPowerInternal?.SetValue(p.Ref,
+                // Shadow(p.InternalShadow)). Now that Shadow() (above) gives its clone
+                // independent containers, CopyMutableFields(shadow, r.Ref) directly would hand
+                // those containers to the live relic BY REFERENCE, so the live relic and the
+                // stored _relicShadow entry would go back to sharing them — the next combat
+                // mutation would corrupt the stored snapshot, and restoring to the same point
+                // twice would replay already-polluted values. CopyMutableFields(Shadow(shadow)!,
+                // r.Ref) throws away a fresh shadow-of-the-shadow instead, keeping the stored
+                // one pristine.
+                CopyMutableFields(Shadow(shadow)!, r.Ref);
                 RebindDeepCloneOwnership(r.Ref);
             }
         }

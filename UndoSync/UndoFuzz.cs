@@ -611,6 +611,7 @@ internal static class UndoFuzz
             if (fuzzRequested)
             {
                 TraceChecksums = CommandLineHelper.HasArg("undosync-fuzz-trace");
+            SelfTestShadowContainerCopy();
 
                 int count = DefaultCombatCount;
                 if (CommandLineHelper.TryGetValue(CountArg, out var countStr)
@@ -865,6 +866,8 @@ internal static class UndoFuzz
         // --undosync-uitest.
         Log.Write($"[Fuzz] orb node/model invariant: not applicable — {UiRefresh.OrbInvariantViolationCount} violation(s) "
             + "recorded, and this path cannot produce a nonzero value because no orb nodes exist under TestMode.");
+        Log.Write($"[Fuzz] shadow containers: copied={StateSnapshot.ShadowContainersCopied} "
+            + $"shared={StateSnapshot.ShadowContainersShared} (shared = no copy constructor; DynamicVarSet is the\n            expected occupant and is captured separately)".Replace("\n", " ").Replace("            ", ""));
         Log.Write("[Fuzz] ==================== done ====================");
 
         // Quit when the run is over. Without this the process sits at the main menu forever, which
@@ -2239,6 +2242,7 @@ internal static class UndoFuzz
                 + "otherwise.");
         }
 
+        Log.Write($"[Fuzz][uitest] shadow containers: copied={StateSnapshot.ShadowContainersCopied} shared={StateSnapshot.ShadowContainersShared}");
         Log.Write("[Fuzz][uitest] ==================== done ====================");
 
         // Same reasoning as RunAllCombatsAsync's own quit step — Godot's own shutdown (not a kill) so
@@ -2439,6 +2443,16 @@ internal static class UndoFuzz
             // the exact ApplyPowerConsoleCmd call this mirrors.
             await ApplyStormPowerForUiTest(me, combatIndex);
 
+            // Also hand the player UNSETTLING_LAMP. It is the one relic confirmed to keep a
+            // combat-mutating collection (List<PowerModel> _doubledPowers, added to from its
+            // power-application hook at UnsettlingLamp.cs:107 and cleared only at combat start/end),
+            // which is exactly the state StateSnapshot.Shadow's container copy exists to snapshot.
+            // Without forcing it, a run can finish with ShadowContainersCopied == 0 and the copy
+            // branch unproven — every shared container in a random run turns out to be
+            // RelicModel._dynamicVars, which has no copy constructor and is captured separately.
+            // StormPower supplies the power applications that make the list actually grow.
+            await ObtainRelicForUiTest(me, "UNSETTLING_LAMP", combatIndex);
+
             // Defects 1 & 3: flip the shared drive loop's per-path static selectors to their UI-mode
             // values BEFORE calling DriveCombatAsync, never after. Each field defaults to the headless
             // path's own value/behaviour (see _activeIdleWaitTimeout/_activeCombatWallClockTimeout/
@@ -2541,6 +2555,98 @@ internal static class UndoFuzz
     /// OrbManager) — see this file's design doc comment on the power-injection step for the two named
     /// failure paths (A) and (B).
     /// </summary>
+    /// <summary>
+    /// Obtains one named relic for the UI verification run, through the game's own RelicCmd.Obtain
+    /// (RelicCmd.cs:35) so AfterObtained and the grab-bag bookkeeping run exactly as in a real run.
+    /// Resolved by id against ModelDb.AllRelics rather than by type so a content rename shows up as a
+    /// logged miss instead of a compile break in a harness. Never aborts the combat: a failure here
+    /// costs coverage, not correctness.
+    /// </summary>
+    /// <summary>Throwaway type for <see cref="SelfTestShadowContainerCopy"/> — one field per branch of
+    /// StateSnapshot.Shadow's container handling: an array (Array.Clone), a List and a HashSet and a
+    /// Dictionary (copy constructor), a string (must be left alone despite being IEnumerable), and an
+    /// int (a value field, untouched).</summary>
+    private sealed class ShadowProbe
+    {
+        public int[] Arr = { 1, 2, 3 };
+        public List<int> ListField = new() { 1 };
+        public HashSet<string> SetField = new() { "a" };
+        public Dictionary<string, int> DictField = new() { ["a"] = 1 };
+        public string Str = "unchanged";
+        public int Value = 7;
+    }
+
+    /// <summary>
+    /// Proves StateSnapshot.Shadow actually copies containers, rather than inferring it from a run
+    /// that happened not to exercise the branch. This exists because the first real runs reported
+    /// ShadowContainersCopied == 0: every container a random run encountered was
+    /// RelicModel._dynamicVars, a DynamicVarSet with no copy constructor that is deliberately left
+    /// shared and captured separately. A gameplay-coincidence proof is not a proof — only ~11 of the
+    /// game's ~300 relics own a non-DynamicVarSet container, and several of those populate lazily, so
+    /// a green run tells you nothing about whether the copy branch works.
+    ///
+    /// Runs once at fuzz startup and logs PASS/FAIL per field. Element identity is asserted too: the
+    /// point is a NEW container holding the SAME elements, since the models inside are captured and
+    /// restored separately and the whole design depends on their identity never changing.
+    /// </summary>
+    private static void SelfTestShadowContainerCopy()
+    {
+        try
+        {
+            var live = new ShadowProbe();
+            if (StateSnapshot.ShadowForTest(live) is not ShadowProbe shadow)
+            {
+                Log.Write("[Fuzz][selftest] shadow container copy: FAIL — Shadow() returned null or the wrong type.");
+                return;
+            }
+
+            void Check(string name, bool isNewInstance, bool contentsMatch)
+                => Log.Write($"[Fuzz][selftest] shadow container copy {name}: "
+                    + (isNewInstance && contentsMatch ? "PASS" : "FAIL")
+                    + $" (newInstance={isNewInstance} contentsPreserved={contentsMatch})");
+
+            Check("int[]", !ReferenceEquals(shadow.Arr, live.Arr), shadow.Arr.SequenceEqual(live.Arr));
+            Check("List", !ReferenceEquals(shadow.ListField, live.ListField), shadow.ListField.SequenceEqual(live.ListField));
+            Check("HashSet", !ReferenceEquals(shadow.SetField, live.SetField), shadow.SetField.SetEquals(live.SetField));
+            Check("Dictionary", !ReferenceEquals(shadow.DictField, live.DictField), shadow.DictField["a"] == 1);
+
+            // A string is IEnumerable but must never be treated as a container to copy.
+            Log.Write($"[Fuzz][selftest] shadow container copy string/int: "
+                + (ReferenceEquals(shadow.Str, live.Str) && shadow.Value == live.Value ? "PASS" : "FAIL"));
+
+            // The decisive one: mutating the live containers afterwards must NOT be visible in the
+            // shadow. That is the actual bug this fix exists to close.
+            live.ListField.Add(99);
+            live.Arr[0] = 99;
+            Log.Write($"[Fuzz][selftest] shadow isolation after live mutation: "
+                + (shadow.ListField.Count == 1 && shadow.Arr[0] == 1 ? "PASS" : "FAIL"));
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[Fuzz][selftest] shadow container copy THREW: {ex}");
+        }
+    }
+
+    private static async Task ObtainRelicForUiTest(Player me, string relicEntry, int combatIndex)
+    {
+        try
+        {
+            var model = ModelDb.AllRelics.FirstOrDefault(r => r.Id.Entry == relicEntry);
+            if (model == null)
+            {
+                Log.Write($"[Fuzz][uitest] combat={combatIndex} relic '{relicEntry}' not found in ModelDb.AllRelics — skipping.");
+                return;
+            }
+            if (me.GetRelicById(model.Id) != null) return;
+            await RelicCmd.Obtain(model.ToMutable(), me);
+            Log.Write($"[Fuzz][uitest] combat={combatIndex} obtained relic '{relicEntry}'.");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[Fuzz][uitest] combat={combatIndex} obtaining relic '{relicEntry}' FAILED: {ex.Message}");
+        }
+    }
+
     private static async Task ApplyStormPowerForUiTest(Player me, int combatIndex)
     {
         try
