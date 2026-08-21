@@ -29,6 +29,11 @@ public static class UndoSyncMod
         // before doing anything — the least intrusive place to kick that wait off is right where the
         // mod already gets control.
         UndoFuzz.MaybeStart();
+
+        // Dormant unless --undosync-mpfuzz is on the command line; see MpFuzz.cs. Same call-site
+        // reasoning as UndoFuzz.MaybeStart() immediately above — MpFuzz itself awaits
+        // NGame.Instance.GameStartupComplete before doing anything.
+        MpFuzz.MaybeStart();
     }
 
     internal static CombatState? GetCombatState() =>
