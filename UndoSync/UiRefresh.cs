@@ -116,6 +116,13 @@ internal static class UiRefresh
     // this has to be fired by hand instead of through the public Stars setter.
     private static readonly FieldInfo? FPlayerStarsChanged = AccessTools.Field(typeof(PlayerCombatState), "StarsChanged");
 
+    // Player.GoldChanged (Player.cs:144-157) is an `event Action?` with no arguments. Same shape
+    // as the stars case: StateSnapshot writes Player._gold by reflection, so the Gold setter that
+    // would raise this never runs, and NTopBarGold subscribes ONLY GoldChanged (NTopBarGold.cs:118)
+    // with no CombatStateChanged fallback — so NotifyGlobal does not rescue it either. Reached the
+    // same way as FTurnStarted/FPlayerStarsChanged: the backing field of the event, not the event.
+    private static readonly FieldInfo? FPlayerGoldChanged = AccessTools.Field(typeof(Player), "GoldChanged");
+
     // Backs DropOrphanedCardVfx: NSovereignBladeVfx is the per-forge-card VFX node ForgeCmd
     // parents directly onto the player's NCreature (ForgeCmd.PlayCombatRoomForgeVfx,
     // ForgeCmd.cs:108-122) and finds again by CARD IDENTITY (SovereignBlade.GetVfxNode,
@@ -150,6 +157,7 @@ internal static class UiRefresh
         Section("intents", () => RefreshIntents(cs));
         Section("global", () => NotifyGlobal(cs));
         Section("stars", () => RefreshStars(cs));
+        Section("gold", () => RefreshGold(cs));
         Section("card visuals", DeferredCardVisualRefresh);
         Section("orphaned blade vfx", () => DropOrphanedCardVfx(cs));
     }
@@ -262,6 +270,19 @@ internal static class UiRefresh
         foreach (var model in modelHand)
         {
             if (shown.ContainsKey(model)) continue;
+
+            // `shown` above is built from NPlayerHand.ActiveHolders, which is
+            // Holders.Where(IsVisibleInTree) (NPlayerHand.cs:521) — a strict SUBSET of what the
+            // game itself treats as "this card already has a node". GetCardHolder
+            // (NPlayerHand.cs:631-634) searches Holders PLUS _selectedHandCardContainer.Holders
+            // PLUS _holdersAwaitingQueue, with no visibility filter. A card sitting in the
+            // selection container or the awaiting-queue is therefore absent from `shown` while
+            // very much still having a node, and creating a second NCard for the same CardModel
+            // here would leave two nodes claiming one model — which is exactly the ambiguity
+            // NOrbManager's reference-identity lookups turn into a thrown gameplay action.
+            // Ask the game's own lookup before creating anything.
+            if (hand.GetCardHolder(model) != null) continue;
+
             if (NCard.Create(model) is { } created)
                 hand.Add(created);
         }
@@ -625,6 +646,25 @@ internal static class UiRefresh
     /// Inventing a fake old value instead could mislead any OTHER StarsChanged subscriber that
     /// animates a before/after delta.
     /// </summary>
+    /// <summary>
+    /// Repaints the top-bar gold counter after a restore. Gold changes in combat (relics and cards
+    /// that grant or spend it), and the counter is driven purely by Player.GoldChanged — an event a
+    /// reflection write to Player._gold never raises. Unlike energy, whose NEnergyCounter also
+    /// subscribes CombatStateChanged (NEnergyCounter.cs:191-192) and is therefore repainted by
+    /// NotifyGlobal, NTopBarGold has no such fallback (NTopBarGold.cs:118), so nothing else in
+    /// RefreshAll covers it.
+    ///
+    /// Fired by hand rather than by assigning through the public Gold property, for the same reason
+    /// RefreshStars does: going through the setter would be a real state change with its own
+    /// side effects, and the value is already correct — only the view is stale.
+    /// </summary>
+    private static void RefreshGold(CombatState cs)
+    {
+        foreach (var player in cs.Players)
+            if (FPlayerGoldChanged?.GetValue(player) is Delegate goldChanged)
+                goldChanged.DynamicInvoke();
+    }
+
     private static void RefreshStars(CombatState cs)
     {
         foreach (var player in cs.Players)
