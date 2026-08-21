@@ -115,13 +115,13 @@ internal static class UndoFuzz
     /// below so restores stay rare, spread-out events rather than the dominant thing the drive loop
     /// does — a restore-happy policy was previously collapsing every combat back to the oldest anchor
     /// over and over instead of letting play actually progress.</summary>
-    private const double RestoreProbability = 0.12;
+    private const double RestoreProbability = 0.35;
 
     /// <summary>Hard cap on restores attempted per combat. Small on purpose: this is a fuzzer for the
     /// restore/verify path itself, not a stress test of restore volume — a handful of restores at
     /// varied points across many combats explores far more of the state space than piling up restores
     /// inside a single combat while the other 9 barely get touched.</summary>
-    private const int MaxRestoresPerCombat = 3;
+    private const int MaxRestoresPerCombat = 8;
 
     /// <summary>Minimum number of end-turns the drive loop must have issued since the last restore
     /// before another one is even considered. Without this, back-to-back restores at the same
@@ -142,13 +142,13 @@ internal static class UndoFuzz
     /// this-many'th successful driver action (a TryManualPlay that returned true, or an EndTurn) —
     /// see CombatOutcome.ActionsSinceLastDeterministicRestore for where that count comes from.
     /// </summary>
-    private const int UiTestActionsPerRestore = 3;
+    private const int UiTestActionsPerRestore = 2;
 
     /// <summary>UI path only. Hard cap on restores for that path — larger than the headless
     /// MaxRestoresPerCombat above on purpose: a fixed cadence firing every UiTestActionsPerRestore
     /// actions needs a correspondingly larger ceiling to actually matter within one short UI
     /// combat.</summary>
-    private const int UiTestMaxRestoresPerCombat = 5;
+    private const int UiTestMaxRestoresPerCombat = 15;
 
     /// <summary>Hard cap on card-plays + end-turns for one combat, so a scripted loop that keeps
     /// producing "playable" cards (rather than a genuine game hang) can't run forever. Raised from the
@@ -297,6 +297,14 @@ internal static class UndoFuzz
         /// moves. See RunUiTestCombatsAsync's summary for why this, together with RestoresAttempted,
         /// is what actually proves UiRefresh.SyncOrbNodes ran — not OrbManagerObserved alone.</summary>
         public int SyncOrbNodesRebuiltDelta;
+
+        /// <summary>Delta in UiRefresh.OrbInvariantViolationCount across this combat. That check
+        /// runs immediately after SyncOrbNodes and re-derives the invariant from the model rather
+        /// than trusting the rebuild: node list length == OrbQueue.Capacity, node[i].Model
+        /// reference-equal to Orbs[i] below Orbs.Count, null above it. Any nonzero value means the
+        /// rebuild did not actually produce the state it claims to, so a run carrying one must
+        /// never print PROVEN no matter how many restores or rebuilds it counted.</summary>
+        public int OrbInvariantViolationDelta;
 
         /// <summary>True when the driver could not complete a successful action (a card play that
         /// resolved, or an end-turn) within the normal timeout after a restore — the shape an
@@ -850,6 +858,13 @@ internal static class UndoFuzz
             + $"relicsInjected={totalRelicsInjected} potionsInjected={totalPotionsInjected} deckCardsInjected={totalDeckCardsInjected} "
             + $"upgrades={totalCardsUpgraded}");
 
+        // Structurally zero on this path, and said out loud rather than left to read like a pass:
+        // the headless run has no NCreature and therefore no NOrbManager at all
+        // (NCreature.cs:450-455), so UiRefresh.SyncOrbNodes skips every player and this check
+        // never even gets a node list to compare. Node/model agreement is provable only under
+        // --undosync-uitest.
+        Log.Write($"[Fuzz] orb node/model invariant: not applicable — {UiRefresh.OrbInvariantViolationCount} violation(s) "
+            + "recorded, and this path cannot produce a nonzero value because no orb nodes exist under TestMode.");
         Log.Write("[Fuzz] ==================== done ====================");
 
         // Quit when the run is over. Without this the process sits at the main menu forever, which
@@ -2196,12 +2211,17 @@ internal static class UndoFuzz
         // restore to have actually been attempted AND UiRefresh.SyncOrbNodesRebuiltCount to have
         // actually moved during this combat (see CombatOutcome.SyncOrbNodesRebuiltDelta) before
         // printing anything resembling a PASS.
-        bool provenSyncOrbNodesRan = outcome.RestoresAttempted > 0 && outcome.SyncOrbNodesRebuiltDelta > 0;
+        // A violation means the rebuild produced state that does not match the model, so it
+        // disqualifies the run outright — counting restores and rebuilds proves the code RAN,
+        // not that it was CORRECT, and only this third term covers the difference.
+        bool provenSyncOrbNodesRan = outcome.RestoresAttempted > 0
+            && outcome.SyncOrbNodesRebuiltDelta > 0
+            && outcome.OrbInvariantViolationDelta == 0;
         if (provenSyncOrbNodesRan)
         {
             Log.Write($"[Fuzz][uitest] PROVEN: UiRefresh.SyncOrbNodes was actually exercised against real nodes — "
                 + $"restoresAttempted={outcome.RestoresAttempted}, SyncOrbNodesRebuiltCount delta={outcome.SyncOrbNodesRebuiltDelta}, "
-                + $"orbManagerObserved={outcome.OrbManagerObserved}.");
+                + $"orbManagerObserved={outcome.OrbManagerObserved}, orbInvariantViolations=0.");
         }
         else
         {
@@ -2210,6 +2230,8 @@ internal static class UndoFuzz
                 missingProof.Add("no restore was attempted (restoresAttempted=0)");
             if (outcome.SyncOrbNodesRebuiltDelta == 0)
                 missingProof.Add("UiRefresh.SyncOrbNodesRebuiltCount never increased (delta=0)");
+            if (outcome.OrbInvariantViolationDelta > 0)
+                missingProof.Add($"the node/model invariant was VIOLATED {outcome.OrbInvariantViolationDelta} time(s) — see the \"ORB INVARIANT VIOLATION\" lines above for the exact index and mismatch");
             Log.Write($"[Fuzz][uitest] NOT PROVEN — this run did NOT prove UiRefresh.SyncOrbNodes was exercised against real "
                 + $"nodes: {string.Join(" AND ", missingProof)} (orbManagerObserved={outcome.OrbManagerObserved}). "
                 + "Do not treat this run as a PASS for that code path; investigate why NCreature.Create/NOrbManager.Create "
@@ -2433,6 +2455,7 @@ internal static class UndoFuzz
             // DriveCombatAsync. See RunUiTestCombatsAsync's summary for why this delta, not
             // OrbManagerObserved alone, is what proves SyncOrbNodes actually ran.
             int syncOrbNodesRebuiltBefore = UiRefresh.SyncOrbNodesRebuiltCount;
+            int orbInvariantViolationsBefore = UiRefresh.OrbInvariantViolationCount;
 
             // The SAME driver the headless path uses — see this file's top-of-file doc comment ("Both
             // paths reuse the exact same drive loop"). Its own SOURCE is unmodified by Defects 1/3;
@@ -2441,6 +2464,7 @@ internal static class UndoFuzz
             await DriveCombatAsync(combatIndex, me, rng, outcome);
 
             outcome.SyncOrbNodesRebuiltDelta = UiRefresh.SyncOrbNodesRebuiltCount - syncOrbNodesRebuiltBefore;
+            outcome.OrbInvariantViolationDelta = UiRefresh.OrbInvariantViolationCount - orbInvariantViolationsBefore;
 
             if (ObserveOrbManagerPresence(me))
                 outcome.OrbManagerObserved = true;

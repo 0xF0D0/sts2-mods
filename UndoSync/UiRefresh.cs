@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.UI;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
@@ -107,6 +108,14 @@ internal static class UiRefresh
     private static readonly FieldInfo? FCreatureCurrentHpChanged = AccessTools.Field(typeof(Creature), "CurrentHpChanged");
     private static readonly FieldInfo? FCreatureMaxHpChanged = AccessTools.Field(typeof(Creature), "MaxHpChanged");
 
+    // Backs RefreshStars: PlayerCombatState.StarsChanged (public event Action<int,int>?,
+    // PlayerCombatState.cs:127) is a field-like event with no explicit accessor block, so its
+    // compiler-generated backing field shares the event's own name with no mangling — same
+    // reflection pattern as FCreatureRevived/FCreatureBlockChanged/FCreatureCurrentHpChanged/
+    // FCreatureMaxHpChanged above and FTurnStarted below. See RefreshStars' own doc comment for why
+    // this has to be fired by hand instead of through the public Stars setter.
+    private static readonly FieldInfo? FPlayerStarsChanged = AccessTools.Field(typeof(PlayerCombatState), "StarsChanged");
+
     // Backs DropOrphanedCardVfx: NSovereignBladeVfx is the per-forge-card VFX node ForgeCmd
     // parents directly onto the player's NCreature (ForgeCmd.PlayCombatRoomForgeVfx,
     // ForgeCmd.cs:108-122) and finds again by CARD IDENTITY (SovereignBlade.GetVfxNode,
@@ -135,10 +144,12 @@ internal static class UiRefresh
         Section("hand snap", SnapHandHolders);
         Section("powers", () => RebuildPowerIcons(cs));
         Section("orbs", () => SyncOrbNodes(cs));
+        Section("orb invariant", () => VerifyOrbNodeInvariant(cs));
         Section("potions", () => RebuildPotionSlots(cs));
         Section("pile counters", () => SyncPileCounters(cs));
         Section("intents", () => RefreshIntents(cs));
         Section("global", () => NotifyGlobal(cs));
+        Section("stars", () => RefreshStars(cs));
         Section("card visuals", DeferredCardVisualRefresh);
         Section("orphaned blade vfx", () => DropOrphanedCardVfx(cs));
     }
@@ -160,6 +171,18 @@ internal static class UiRefresh
     /// NOrbManager existing once is not proof this method ever ran against it. Dormant/unused outside
     /// the fuzzer.</summary>
     internal static int SyncOrbNodesRebuiltCount;
+
+    /// <summary>Counts every node/model mismatch VerifyOrbNodeInvariant finds — incremented once per
+    /// violation (a length mismatch counts as one; an index-by-index Model mismatch counts one per
+    /// bad index), from inside that method's own logging call site. Unlike UiRefreshFailureCount /
+    /// SyncOrbNodesRebuiltCount above, this is NOT fuzzer-only: VerifyOrbNodeInvariant runs from
+    /// RefreshAll on every restore in every play session, real or headless, so a future regression in
+    /// SyncOrbNodes self-reports here — and in a user's own log — instead of surfacing later as an
+    /// unexplained mid-combat InvalidOperationException/ArgumentOutOfRangeException out of NOrbManager
+    /// (see SyncOrbNodes' own doc comment, cases (A)/(B), for exactly what an undetected mismatch here
+    /// would eventually cause). Should always read 0; the UI-mode fuzzer (UndoFuzz.cs's --undosync-
+    /// uitest path) also reads it back by delta and refuses to print PROVEN when it moved.</summary>
+    internal static int OrbInvariantViolationCount;
 
     private static void Section(string name, Action action)
     {
@@ -397,6 +420,81 @@ internal static class UiRefresh
         }
     }
 
+    /// <summary>
+    /// Checks SyncOrbNodes' own result instead of trusting it: for every player with an OrbQueue and a
+    /// real NOrbManager, confirms (1) the node list's length equals OrbQueue.Capacity, (2) for every
+    /// index below Orbs.Count the node's Model is REFERENCE-EQUAL to the model at that index, and (3)
+    /// for every index at or past Orbs.Count the node's Model is null. These are exactly the two
+    /// invariants SyncOrbNodes' own doc comment documents as load-bearing for NOrbManager itself: (1)
+    /// is what TweenLayout's `_orbs[i]` indexing needs (NOrbManager.cs:306-327), and (2)/(3) are what
+    /// EvokeOrbAnim's `_orbs.Last(node => node.Model == orb)` reference match needs (NOrbManager.cs:265).
+    ///
+    /// Deliberately runs as its own RefreshAll Section, right after "orbs", rather than being folded
+    /// into SyncOrbNodes itself: SyncOrbNodes' job is to make the node list equal the model, this
+    /// method's job is to check the result, and keeping them separate means this check still runs (and
+    /// still reports whatever it finds) even on a path where SyncOrbNodes' own Section caught an
+    /// exception partway through a rebuild.
+    ///
+    /// Runs in REAL PLAY SESSIONS, not only under a test flag — this is not gated on TestMode.IsOn or
+    /// any --undosync-* command-line flag, unlike UndoFuzz.cs. That is deliberate: SyncOrbNodes exists
+    /// to prevent a specific, previously-real crash (see its own doc comment), and the cheapest general
+    /// defense against a regression in that area is to keep checking its own invariant on every restore
+    /// a real player ever performs, not just under the headless/UI-mode fuzzers — so a future break
+    /// self-reports as an OrbInvariantViolationCount bump in a user's own log instead of the next
+    /// symptom being an unexplained mid-combat crash out of NOrbManager with no diagnostic trail at all.
+    ///
+    /// Never throws (an unexpected exception here is still caught by this Section's own try/catch and
+    /// counted as a UiRefreshFailureCount instead) and never mutates anything — a pure read-back check.
+    /// </summary>
+    private static void VerifyOrbNodeInvariant(CombatState cs)
+    {
+        foreach (var player in cs.Players)
+        {
+            var queue = player.PlayerCombatState?.OrbQueue;
+            if (queue == null) continue; // character without orbs — SyncOrbNodes skipped this player too
+
+            var mgr = NCombatRoom.Instance?.GetCreatureNode(player.Creature)?.OrbManager;
+            if (mgr == null) continue; // no node this session (e.g. headless TestMode, NCreature.cs:450-455) — nothing to verify
+
+            if (FOrbMgrOrbs?.GetValue(mgr) is not List<NOrb> list)
+            {
+                OrbInvariantViolationCount++;
+                Log.Write($"UiRefresh ORB INVARIANT VIOLATION: player={player.NetId} could not read NOrbManager._orbs via reflection — unable to verify");
+                continue;
+            }
+
+            var models = queue.Orbs;
+            int capacity = queue.Capacity;
+
+            if (list.Count != capacity)
+            {
+                OrbInvariantViolationCount++;
+                Log.Write($"UiRefresh ORB INVARIANT VIOLATION: player={player.NetId} node list length={list.Count} expected OrbQueue.Capacity={capacity}");
+                continue; // length already wrong — an index-by-index compare below would be meaningless
+            }
+
+            for (int i = 0; i < capacity; i++)
+            {
+                var nodeModel = list[i]?.Model;
+                if (i < models.Count)
+                {
+                    var expected = models[i];
+                    if (!ReferenceEquals(nodeModel, expected))
+                    {
+                        OrbInvariantViolationCount++;
+                        string found = nodeModel == null ? "null" : $"a different model (id={nodeModel.Id.Entry})";
+                        Log.Write($"UiRefresh ORB INVARIANT VIOLATION: player={player.NetId} index={i} expected node.Model == models[{i}] (id={expected.Id.Entry}) but found {found}");
+                    }
+                }
+                else if (nodeModel != null)
+                {
+                    OrbInvariantViolationCount++;
+                    Log.Write($"UiRefresh ORB INVARIANT VIOLATION: player={player.NetId} index={i} expected null Model (index >= Orbs.Count={models.Count}) but found model id={nodeModel.Id.Entry}");
+                }
+            }
+        }
+    }
+
     // ── potions ──
 
     private static void RebuildPotionSlots(CombatState cs)
@@ -495,6 +593,47 @@ internal static class UiRefresh
         MNotifyChanged?.Invoke(cm.StateTracker, new object[] { "UndoSync" });
         if (FTurnStarted?.GetValue(cm) is Delegate turnStarted)
             turnStarted.DynamicInvoke(cs);
+    }
+
+    // ── stars ──
+
+    /// <summary>
+    /// Re-fires PlayerCombatState.StarsChanged for every player after a restore. StateSnapshot
+    /// restores Stars by writing the private _stars field directly through reflection, bypassing
+    /// the public Stars setter entirely — so the setter's event never fires on its own, and
+    /// NStarCounter's on-screen star count is left showing the pre-restore value.
+    ///
+    /// Deliberately does NOT write through the public Stars property to get that event fired:
+    /// PlayerCombatState.Stars' setter also calls CombatManager.Instance.History.StarsModified(...)
+    /// (PlayerCombatState.cs:115) before it raises StarsChanged (PlayerCombatState.cs:116) — going
+    /// through the setter here would append a fresh entry to the combat history this mod has just
+    /// carefully restored. Firing the event directly via its backing field (FPlayerStarsChanged),
+    /// same pattern as FCreatureRevived/FCreatureBlockChanged/FTurnStarted elsewhere in this file,
+    /// gets the UI notified without touching History at all.
+    ///
+    /// This matters specifically because NStarCounter subscribes ONLY StarsChanged
+    /// (NStarCounter.cs:207) and repaints from OnStarsChanged (NStarCounter.cs:229-233) — unlike
+    /// NEnergyCounter, which ALSO subscribes CombatManager.StateTracker.CombatStateChanged
+    /// (NEnergyCounter.cs:191-192) and is therefore already covered by NotifyGlobal's
+    /// MNotifyChanged call above. NStarCounter has no such fallback, so without this section its
+    /// counter would stay stale until something else happened to change Stars again.
+    ///
+    /// Both event arguments are the restored value, not a real (old, new) pair: StateSnapshot's
+    /// direct field write already overwrote the in-memory old value by the time RefreshAll runs, so
+    /// there is no true "old" value left to report, and NStarCounter's own handler only needs the
+    /// new value to repaint the label (NStarCounter.UpdateStarCount, NStarCounter.cs:249-267).
+    /// Inventing a fake old value instead could mislead any OTHER StarsChanged subscriber that
+    /// animates a before/after delta.
+    /// </summary>
+    private static void RefreshStars(CombatState cs)
+    {
+        foreach (var player in cs.Players)
+        {
+            var pcs = player.PlayerCombatState;
+            if (pcs == null) continue;
+            if (FPlayerStarsChanged?.GetValue(pcs) is Delegate starsChanged)
+                starsChanged.DynamicInvoke(pcs.Stars, pcs.Stars);
+        }
     }
 
     /// <summary>
