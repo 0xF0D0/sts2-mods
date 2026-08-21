@@ -9,8 +9,9 @@ counters show their values — the same screen grammar as playing yourself.
 - In combat, **click another player's character** to enter spectate mode:
   - The bottom hand is replaced by that player's actual hand (hover to zoom,
     live-updating as they draw and play)
-  - The energy orb and draw/discard/exhaust counters switch to their values
-    (the exhaust button pops in/out based on *their* exhaust pile)
+  - Every "yours" readout on screen switches to theirs: energy orb, stars,
+    draw/discard/exhaust counters (the exhaust button pops in/out based on
+    *their* exhaust pile), HP, gold, deck count, potions and relics
   - A "Spectating — name" banner shows at the top center of the screen
     (Korean strings when the game language is Korean), and the end-turn
     button is hidden until you exit
@@ -20,6 +21,10 @@ counters show their values — the same screen grammar as playing yourself.
   - The top-bar deck button or deck hotkey → that player's master deck
   - Pressing the same key/button again toggles the screen closed (the hand
     strip hides while a pile/deck screen is open)
+  - When they hit a card-selection screen — a card-generating potion, Survivor,
+    anything that makes them pick — the same screen appears on your side,
+    read-only, captioned with who is choosing. It closes itself once they
+    pick; Esc closes it without leaving spectate.
 - Exit: the back button on the left edge, Esc/back, clicking the character
   again, or automatically on combat end — your own hand and indicators are
   restored.
@@ -54,6 +59,37 @@ locally — so **other players' card data already exists in your client's
   (subscribed via `ContentsChanged`); `AddCard`/`RemoveCard` postfixes stop
   local pile animations from flashing local counts back in. Restored from the
   vanilla `_currentCount` bookkeeping on exit.
+- **Hand strip anchor**: the strip's baseline Y comes from the hand container's
+  global position *minus the hand node's own local offset*. Ending your turn
+  makes `NPlayerHand.AnimDisable` tween the whole hand node down to
+  `_disablePosition` (0, 100), so reading the live position would pin the
+  replica 100px low for the rest of the turn; removing the node's offset yields
+  the resting anchor, correct mid-tween as well.
+- **Top-bar readouts**: gold, HP and deck count are label-stamped from the
+  viewed player and re-stamped by postfixes on the vanilla refresh methods
+  (`UpdateGold`, `UpdateHealth`, `OnPileContentsChanged`) so local updates
+  can't flash local values back in. Gold is *not* done with a `_player` swap:
+  `UpdateGoldAnim` drives a "+N" popup off `_currentGold` bookkeeping, and
+  swapping would fake a delta animation. Stars reuse vanilla's own
+  `SetStarCountText` (keeping its 0-star red and shader hues) and need a
+  `_Process` postfix, because that method repaints from the local player every
+  frame regardless of events.
+- **Potions and relics**: node collections, so they can't be label-stamped —
+  the vanilla containers are hidden and read-only replicas drawn in their place
+  (`NPotionHolder.Create(isUsable: false)` + `NPotion.Create`, the same API
+  vanilla's own peer-inspect screen uses). Unlike NCard these are not pooled.
+- **Peer card-selection mirror**: `CardSelectCmd.From*` take the candidate list
+  as an argument and remote peers resolve the result by *index* into it, which
+  proves every peer holds the same list in the same order — so the mirror is
+  drawn from local data with no network involvement. Prefixes record the
+  pending choice per player (so entering spectate mid-choice still shows it);
+  the vanilla screen is shown read-only with a full-rect `MouseFilter.Stop`
+  child and `FocusMode = None` swept over every descendant. It must be closed
+  through `NOverlayStack.Remove` — that is what recalculates the stack's shared
+  input-blocking backstop and frees the node; a direct `QueueFree` would strand
+  the backstop over the screen. Closing is driven by
+  `PlayerChoiceSynchronizer.PlayerChoiceReceived`, with a continuation on the
+  original `Task` as the safety net for choices that end without one.
 - **Click-to-spectate**: `NCreature._Ready` postfix connects `GuiInput` on
   player creature hitboxes. Guards: self excluded (`LocalContext.IsMe`), an
   active card play (`NPlayerHand.InCardPlay` — normal card targeting does NOT

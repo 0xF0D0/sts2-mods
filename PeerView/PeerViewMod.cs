@@ -3,12 +3,16 @@ using System.Linq;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Assets;
+using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Modding;
@@ -16,11 +20,19 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
+using MegaCrit.Sts2.Core.Nodes.Potions;
+using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens;
+using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
+using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.TopBar;
+// NTopBarGold/NTopBarHp live in a lowercase "sts2" namespace (a casing quirk in the
+// game's own build — NTopBar.cs itself imports both casings for the same reason).
+using MegaCrit.sts2.Core.Nodes.TopBar;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
@@ -104,6 +116,11 @@ internal static class PeerSpectate
     private static PlayerCombatState? _subscribedState;
     private static bool _combatEndSubscribed;
     private static bool _capstoneClosedSubscribed;
+    private static Player? _subscribedGoldPeer;
+    private static Creature? _subscribedCreature;
+    private static CardPile? _subscribedDeckPile;
+    private static Player? _subscribedPotionPeer;
+    private static Player? _subscribedRelicPeer;
 
     internal static bool Active => _peer != null && _root != null && GodotObject.IsInstanceValid(_root) && _root.IsInsideTree();
 
@@ -157,7 +174,7 @@ internal static class PeerSpectate
         // the hand's baseline height (its own x sits slightly off-center).
         _cardLayer.GlobalPosition = new Vector2(
             visible.Position.X + visible.Size.X / 2f,
-            hand.CardHolderContainer.GlobalPosition.Y);
+            RestingHandY(hand));
 
         // Spectate banner: top-center of the screen, clear of the battlefield.
         _header = new Label
@@ -197,20 +214,48 @@ internal static class PeerSpectate
         _subscribedExhaust.ContentsChanged += OnPeerPileCountsChanged;
         _subscribedState = combatState;
         _subscribedState.EnergyChanged += OnEnergyChanged;
+        _subscribedState.StarsChanged += OnPeerStarsChanged;
         if (CombatManager.Instance != null)
         {
             CombatManager.Instance.CombatEnded += OnCombatEnded;
             _combatEndSubscribed = true;
         }
+        _subscribedGoldPeer = peer;
+        peer.GoldChanged += OnPeerGoldChanged;
+        _subscribedCreature = peer.Creature;
+        _subscribedCreature.CurrentHpChanged += OnPeerHpChanged;
+        _subscribedCreature.MaxHpChanged += OnPeerHpChanged;
+        _subscribedDeckPile = peer.Deck;
+        _subscribedDeckPile.ContentsChanged += OnPeerDeckChanged;
+        _subscribedPotionPeer = peer;
+        peer.PotionProcured += OnPeerPotionsChanged;
+        peer.UsedPotionRemoved += OnPeerPotionsChanged;
+        peer.PotionDiscarded += OnPeerPotionsChanged;
+        _subscribedRelicPeer = peer;
+        peer.RelicObtained += OnPeerRelicsChanged;
+        peer.RelicRemoved += OnPeerRelicsChanged;
 
         Rebuild();
         PeerIndicators.ApplyAll();
         PeerIndicators.RefreshEnergyCounters();
+        PeerTopBar.ApplyGold();
+        PeerTopBar.ApplyHp();
+        PeerTopBar.ApplyDeckCount();
+        PeerStarCounter.Apply();
+        PeerPotionReplica.Enter(peer);
+        PeerRelicReplica.Enter(peer);
         Log.Write($"spectate enter: {PeerScreens.PlayerName(peer)} (netId={peer.NetId}, {combatState.Hand.Cards.Count} cards)");
+        // If this peer already has a card-selection screen open on their end (we
+        // recorded it via a CardSelectCmd prefix before we started watching them),
+        // show its mirror now that we're actually looking at them.
+        PeerCardSelectMirror.OnSpectateEntered(peer);
     }
 
     internal static void Exit()
     {
+        // Close before anything else tears down — CloseShown() is a no-op if nothing
+        // is up, and doing it first keeps the mirror from ever outliving the strip.
+        PeerCardSelectMirror.OnSpectateExited();
         bool wasActive = _peer != null;
         if (_subscribedHand != null)
         {
@@ -235,6 +280,7 @@ internal static class PeerSpectate
         if (_subscribedState != null)
         {
             _subscribedState.EnergyChanged -= OnEnergyChanged;
+            _subscribedState.StarsChanged -= OnPeerStarsChanged;
             _subscribedState = null;
         }
         if (_combatEndSubscribed)
@@ -249,6 +295,37 @@ internal static class PeerSpectate
                 NCapstoneContainer.Instance.CapstoneClosed -= OnCapstoneClosed;
             _capstoneClosedSubscribed = false;
         }
+        if (_subscribedGoldPeer != null)
+        {
+            _subscribedGoldPeer.GoldChanged -= OnPeerGoldChanged;
+            _subscribedGoldPeer = null;
+        }
+        if (_subscribedCreature != null)
+        {
+            _subscribedCreature.CurrentHpChanged -= OnPeerHpChanged;
+            _subscribedCreature.MaxHpChanged -= OnPeerHpChanged;
+            _subscribedCreature = null;
+        }
+        if (_subscribedDeckPile != null)
+        {
+            _subscribedDeckPile.ContentsChanged -= OnPeerDeckChanged;
+            _subscribedDeckPile = null;
+        }
+        if (_subscribedPotionPeer != null)
+        {
+            _subscribedPotionPeer.PotionProcured -= OnPeerPotionsChanged;
+            _subscribedPotionPeer.UsedPotionRemoved -= OnPeerPotionsChanged;
+            _subscribedPotionPeer.PotionDiscarded -= OnPeerPotionsChanged;
+            _subscribedPotionPeer = null;
+        }
+        if (_subscribedRelicPeer != null)
+        {
+            _subscribedRelicPeer.RelicObtained -= OnPeerRelicsChanged;
+            _subscribedRelicPeer.RelicRemoved -= OnPeerRelicsChanged;
+            _subscribedRelicPeer = null;
+        }
+        PeerPotionReplica.Exit();
+        PeerRelicReplica.Exit();
 
         ClearCards();
         if (_root != null && GodotObject.IsInstanceValid(_root))
@@ -291,7 +368,39 @@ internal static class PeerSpectate
             // repaint the vanilla indicators with the local player's values.
             PeerIndicators.RestoreAll();
             PeerIndicators.RefreshEnergyCounters();
+            PeerTopBar.RestoreGold();
+            PeerTopBar.RestoreHp();
+            PeerTopBar.RestoreDeckCount();
+            PeerStarCounter.Restore();
             Log.Write($"spectate exit: netId={exitedNetId}");
+        }
+    }
+
+    private static readonly System.Reflection.FieldInfo? HandShowPositionField =
+        AccessTools.Field(typeof(NPlayerHand), "_showPosition");
+
+    /// <summary>
+    /// The Y the hand's card container sits at with its "player actions disabled"
+    /// offset removed. Once you end your turn, NPlayerHand.AnimDisable tweens the
+    /// whole hand node down to _disablePosition (0, 100), so reading the live global
+    /// position would anchor the replica strip 100px too low for the rest of the turn.
+    /// _showPosition is the hand's resting local position, so subtracting the node's
+    /// current local offset from it yields the resting anchor — correct mid-tween too.
+    /// </summary>
+    private static float RestingHandY(NPlayerHand hand)
+    {
+        float liveY = hand.CardHolderContainer.GlobalPosition.Y;
+        try
+        {
+            Vector2 resting = HandShowPositionField?.GetValue(hand) is Vector2 showPosition
+                ? showPosition
+                : Vector2.Zero;
+            return liveY - hand.Position.Y + resting.Y;
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"hand anchor error: {e}");
+            return liveY;
         }
     }
 
@@ -376,6 +485,18 @@ internal static class PeerSpectate
 
     private static void OnEnergyChanged(int _, int __) => PeerIndicators.RefreshEnergyCounters();
 
+    private static void OnPeerGoldChanged() => PeerTopBar.ApplyGold();
+
+    private static void OnPeerHpChanged(int _, int __) => PeerTopBar.ApplyHp();
+
+    private static void OnPeerDeckChanged() => PeerTopBar.ApplyDeckCount();
+
+    private static void OnPeerStarsChanged(int _, int __) => PeerStarCounter.Apply();
+
+    private static void OnPeerPotionsChanged(PotionModel _) => PeerPotionReplica.Rebuild();
+
+    private static void OnPeerRelicsChanged(RelicModel _) => PeerRelicReplica.Rebuild();
+
     private static void OnCombatEnded(CombatRoom _) => Exit();
 
     private static void OnCapstoneClosed() => SetStripVisible(true);
@@ -391,6 +512,8 @@ internal static class PeerSpectate
     {
         if (_root != null && GodotObject.IsInstanceValid(_root))
             _root.Visible = visible;
+        PeerPotionReplica.SetVisible(visible);
+        PeerRelicReplica.SetVisible(visible);
     }
 
     private static void Rebuild()
@@ -492,6 +615,487 @@ internal static class PeerSpectate
     private static float SafeAngle(int n, int i) => n <= 10 ? HandPosHelper.GetAngle(n, i) : 0f;
 
     private static Vector2 SafeScale(int n) => n <= 10 ? HandPosHelper.GetScale(n) : Vector2.One * 0.6f;
+}
+
+/// <summary>
+/// Kind of card-selection entry point a peer's pending choice came through — used to
+/// recreate the matching read-only mirror screen (see PeerCardSelectMirror.CreateMirror).
+/// </summary>
+internal enum PeerCardSelectKind
+{
+    ChooseACard,
+    SimpleGrid,
+    CombatPile,
+}
+
+/// <summary>
+/// Enough of a CardSelectCmd call's arguments to recreate its selection screen
+/// read-only, captured by the Harmony prefixes below. Lockstep guarantees these
+/// candidate lists/piles are identical on every peer's machine (CardSelectCmd's
+/// remote-choice path only ever receives an INDEX into a list it built itself — see
+/// e.g. FromChooseACardScreen's `cards[num]`), so recreating the same screen locally
+/// from the same arguments is exact, not a guess.
+/// </summary>
+internal sealed class PeerPendingChoice
+{
+    public required PeerCardSelectKind Kind { get; init; }
+    public required Player Player { get; init; }
+    public IReadOnlyList<CardModel>? Cards { get; init; }
+    public bool CanSkip { get; init; }
+    public CardSelectorPrefs Prefs { get; init; }
+    public CardPile? Pile { get; init; }
+    public System.Func<CardModel, bool>? Filter { get; init; }
+}
+
+/// <summary>
+/// Shows a read-only mirror of a spectated peer's card-selection screen (Attack
+/// Potion-style grids, Survivor-style pile picks, etc.) built from the exact same
+/// candidate list/pile the peer's own screen was built from (see PeerPendingChoice).
+/// Never creates a GameAction, consumes RNG, or sends a net message — this is a
+/// second instance of the game's own selection-screen classes, with every input path
+/// neutered (see BlockInput) so it is purely something to look at.
+/// </summary>
+internal static class PeerCardSelectMirror
+{
+    private static readonly Dictionary<ulong, PeerPendingChoice> _pending = new();
+    private static Control? _shownScreen;
+    private static ulong? _shownForNetId;
+    private static PlayerChoiceSynchronizer? _registeredSynchronizer;
+
+    internal static bool IsShown
+    {
+        get
+        {
+            // Self-heal if the screen got freed by something other than CloseShown
+            // (e.g. a scene teardown) so we don't report a stale "shown" forever.
+            if (_shownScreen != null && !GodotObject.IsInstanceValid(_shownScreen))
+            {
+                _shownScreen = null;
+                _shownForNetId = null;
+            }
+            return _shownScreen != null;
+        }
+    }
+
+    /// <summary>Called from the three CardSelectCmd prefixes below.</summary>
+    internal static void Record(PeerPendingChoice choice)
+    {
+        try
+        {
+            EnsureSubscribed();
+            ulong netId = choice.Player.NetId;
+            // One pending choice per player (nested selections aren't a thing this
+            // mirrors) — a new one replaces whatever this player had, closing the old
+            // mirror first if it happened to be the one on screen.
+            if (_shownForNetId == netId)
+                CloseShown();
+            _pending[netId] = choice;
+            if (PeerSpectate.Peer?.NetId == netId)
+                ShowFor(choice);
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror record error: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Called from PeerSpectate.Enter once the new peer is fully set up: if they
+    /// already have a pending choice recorded (their screen was opened before we
+    /// started watching them), show its mirror now.
+    /// </summary>
+    internal static void OnSpectateEntered(Player peer)
+    {
+        try
+        {
+            if (_pending.TryGetValue(peer.NetId, out PeerPendingChoice? choice))
+                ShowFor(choice);
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror spectate-enter error: {e}");
+        }
+    }
+
+    /// <summary>Called from PeerSpectate.Exit — closes whatever mirror is up, if any.</summary>
+    internal static void OnSpectateExited() => CloseShown();
+
+    private static void ShowFor(PeerPendingChoice choice)
+    {
+        CloseShown();
+        Control? screen = CreateMirror(choice);
+        if (screen == null)
+            return;
+        _shownScreen = screen;
+        _shownForNetId = choice.Player.NetId;
+        PeerSpectate.SetStripVisible(false);
+    }
+
+    /// <summary>
+    /// Closes the currently-shown mirror through NOverlayStack.Remove — never
+    /// QueueFree directly. Remove is what recalculates the shared backstop (the
+    /// input-blocking dim) and calls the screen's own AfterOverlayClosed (which frees
+    /// the node); skipping it would leave the backstop dim on screen permanently,
+    /// the same class of bug UndoSync hit with NModalContainer.
+    /// </summary>
+    internal static void CloseShown()
+    {
+        try
+        {
+            if (_shownScreen != null && GodotObject.IsInstanceValid(_shownScreen) && _shownScreen is IOverlayScreen overlay)
+                NOverlayStack.Instance?.Remove(overlay);
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror close error: {e}");
+        }
+        finally
+        {
+            bool wasShown = _shownScreen != null;
+            _shownScreen = null;
+            _shownForNetId = null;
+            if (wasShown)
+                PeerSpectate.SetStripVisible(true);
+        }
+    }
+
+    private static Control? CreateMirror(PeerPendingChoice choice)
+    {
+        try
+        {
+            switch (choice.Kind)
+            {
+                case PeerCardSelectKind.ChooseACard:
+                {
+                    // ShowScreen pushes onto NOverlayStack itself and returns null in
+                    // TestMode — nothing to mirror in that case.
+                    NChooseACardSelectionScreen? screen = NChooseACardSelectionScreen.ShowScreen(choice.Cards!, choice.CanSkip);
+                    if (screen == null || !GodotObject.IsInstanceValid(screen))
+                        return null;
+                    ApplyBannerText(screen, choice.Player);
+                    BlockInput(screen);
+                    return screen;
+                }
+                case PeerCardSelectKind.SimpleGrid:
+                {
+                    // Create does NOT push (unlike ShowScreen above) — we push it ourselves.
+                    NSimpleCardSelectScreen screen = NSimpleCardSelectScreen.Create(choice.Cards!, choice.Prefs);
+                    NOverlayStack.Instance?.Push(screen);
+                    if (!GodotObject.IsInstanceValid(screen))
+                        return null;
+                    ApplyBottomLabelText(screen, choice.Player);
+                    BlockInput(screen);
+                    return screen;
+                }
+                case PeerCardSelectKind.CombatPile:
+                {
+                    NCombatPileCardSelectScreen screen = NCombatPileCardSelectScreen.Create(choice.Pile!, choice.Prefs, choice.Filter);
+                    NOverlayStack.Instance?.Push(screen);
+                    if (!GodotObject.IsInstanceValid(screen))
+                        return null;
+                    ApplyBottomLabelText(screen, choice.Player);
+                    BlockInput(screen);
+                    return screen;
+                }
+                default:
+                    return null;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror create error: {e}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// NChooseACardSelectionScreen's banner normally reads "Choose a Card" — accurate
+    /// for the player picking, misleading for a spectator — so repoint it at who's
+    /// actually picking. "Banner" is a plain (non-unique-name) direct child of the
+    /// screen root, so it's reachable by path the same way PeerScreens.SetOwnerLabel
+    /// already reaches %BottomLabel on the pile/deck capstones.
+    /// </summary>
+    private static void ApplyBannerText(NChooseACardSelectionScreen screen, Player peer)
+    {
+        try
+        {
+            NCommonBanner? banner = screen.GetNodeOrNull<NCommonBanner>("Banner");
+            if (banner == null || !GodotObject.IsInstanceValid(banner) || banner.label == null)
+                return;
+            banner.label.SetTextAutoSize(PeerScreens.IsKorean
+                ? $"{PeerScreens.PlayerName(peer)} 고르는 중"
+                : $"{PeerScreens.PlayerName(peer)} is choosing");
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror banner error: {e}");
+        }
+    }
+
+    /// <summary>Same idea as ApplyBannerText, for the grid screens' %BottomLabel prompt.</summary>
+    private static void ApplyBottomLabelText(Control screen, Player peer)
+    {
+        try
+        {
+            var label = screen.GetNodeOrNull<MegaRichTextLabel>("%BottomLabel");
+            if (label == null || !GodotObject.IsInstanceValid(label))
+                return;
+            label.Text = PeerScreens.IsKorean
+                ? $"[center]{PeerScreens.PlayerName(peer)} 고르는 중"
+                : $"[center]{PeerScreens.PlayerName(peer)} is choosing";
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror label error: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Neuters the mirror so a spectator can never make a "selection" on someone
+    /// else's behalf. Mouse: a full-screen Stop-filter Control added as the LAST
+    /// child (the same "invisible top-most sibling" trick PeerSpectate.Rebuild uses
+    /// for its card hover sensors) sits above every real widget and eats every click
+    /// before it reaches the card holders/buttons underneath. Keyboard/controller:
+    /// recursing FocusMode=None over every descendant Control blocks focus-driven
+    /// "confirm" input. FocusMode=None (rather than NClickableControl.Disable()) is
+    /// used because the grid screens' card holders (NGridCardHolder : NCardHolder :
+    /// Control, confirmed in decompiled source) are NOT NClickableControl — a
+    /// Disable()-only sweep would miss them, while FocusMode=None reaches every
+    /// widget type uniformly. Without this, a click/confirm would resolve the
+    /// mirror's own (never-awaited) _completionSource and make the screen vanish on
+    /// its own, and the spectator would wrongly think they had just chosen a card.
+    /// </summary>
+    private static void BlockInput(Control screen)
+    {
+        try
+        {
+            DisableFocusRecursive(screen);
+            var blocker = new Control
+            {
+                Name = "PeerViewSelectBlocker",
+                MouseFilter = Control.MouseFilterEnum.Stop,
+                FocusMode = Control.FocusModeEnum.None,
+            };
+            screen.AddChildSafely(blocker);
+            blocker.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror input block error: {e}");
+        }
+    }
+
+    private static void DisableFocusRecursive(Node node)
+    {
+        if (node is Control control)
+            control.FocusMode = Control.FocusModeEnum.None;
+        foreach (Node child in node.GetChildren())
+            DisableFocusRecursive(child);
+    }
+
+    /// <summary>
+    /// RunManager.Instance.PlayerChoiceSynchronizer is (re)created per run
+    /// (RunManager.cs), so — same as UndoSync's _registeredService pattern — track
+    /// which instance we're subscribed to and swap the subscription when it changes,
+    /// rather than subscribing once at mod-init and going stale after the first run.
+    /// </summary>
+    private static void EnsureSubscribed()
+    {
+        PlayerChoiceSynchronizer? synchronizer = RunManager.Instance?.PlayerChoiceSynchronizer;
+        if (synchronizer == null || ReferenceEquals(synchronizer, _registeredSynchronizer))
+            return;
+        if (_registeredSynchronizer != null)
+            _registeredSynchronizer.PlayerChoiceReceived -= OnPlayerChoiceReceived;
+        synchronizer.PlayerChoiceReceived += OnPlayerChoiceReceived;
+        _registeredSynchronizer = synchronizer;
+    }
+
+    /// <summary>
+    /// PlayerChoiceReceived also fires for the LOCAL player's own choices
+    /// (SyncLocalChoice invokes it directly before sending the net message) — only
+    /// react to peers we're actually tracking a pending mirror for; that alone also
+    /// filters out the local echo, since local players are never recorded into
+    /// _pending in the first place (the three prefixes below skip LocalContext.IsMe).
+    /// No UX highlighting of what was picked — just close, per the design.
+    /// </summary>
+    private static void OnPlayerChoiceReceived(Player player, uint choiceId, NetPlayerChoiceResult result)
+    {
+        try
+        {
+            if (!_pending.Remove(player.NetId))
+                return;
+            if (_shownForNetId == player.NetId)
+                CloseShown();
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror choice-received error: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Safety net for choices that end without a PlayerChoiceReceived ever arriving:
+    /// the peer dropped mid-selection, the combat tore down around it, the selection
+    /// was cancelled. Without this a pending entry could outlive its combat and pop a
+    /// stale mirror the next time that peer is spectated. The From* methods are async,
+    /// so a Harmony postfix runs the moment the Task is handed back rather than when
+    /// the choice resolves — observing the Task itself is what tracks the real end.
+    /// The continuation lands on a thread pool thread, so the node work is deferred
+    /// onto the main thread.
+    /// </summary>
+    internal static void ClearWhenSettled(System.Threading.Tasks.Task task, Player player)
+    {
+        try
+        {
+            ulong netId = player.NetId;
+            task.ContinueWith(
+                _ => Callable.From(() => Forget(netId)).CallDeferred(),
+                System.Threading.Tasks.TaskScheduler.Default);
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror settle hook error: {e}");
+        }
+    }
+
+    private static void Forget(ulong netId)
+    {
+        try
+        {
+            _pending.Remove(netId);
+            if (_shownForNetId == netId)
+                CloseShown();
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"card select mirror forget error: {e}");
+        }
+    }
+}
+
+/// <summary>
+/// Mirrors CardSelectCmd.FromChooseACardScreen (Attack Potion-style "pick 1 of up to
+/// 3 generated cards" screens) for a spectated peer. Void prefix — never blocks or
+/// alters the original call.
+/// </summary>
+[HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromChooseACardScreen),
+    new System.Type[] { typeof(PlayerChoiceContext), typeof(IReadOnlyList<CardModel>), typeof(Player), typeof(bool) })]
+public static class PatchCardSelectMirrorChooseACard
+{
+    public static void Prefix(IReadOnlyList<CardModel> cards, Player player, bool canSkip)
+    {
+        try
+        {
+            if (LocalContext.IsMe(player) || CardSelectCmd.Selector != null)
+                return;
+            // Matches the real method's own guards (ReportSoftlock on 0, throw on
+            // >3): in both cases no screen ever shows for ANY player, so don't mirror one.
+            if (cards.Count == 0 || cards.Count > 3)
+                return;
+            PeerCardSelectMirror.Record(new PeerPendingChoice
+            {
+                Kind = PeerCardSelectKind.ChooseACard,
+                Player = player,
+                Cards = cards,
+                CanSkip = canSkip,
+            });
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"choose-a-card mirror hook error: {e}");
+        }
+    }
+
+    public static void Postfix(System.Threading.Tasks.Task<CardModel> __result, Player player)
+    {
+        if (!LocalContext.IsMe(player))
+            PeerCardSelectMirror.ClearWhenSettled(__result, player);
+    }
+}
+
+/// <summary>Mirrors CardSelectCmd.FromSimpleGrid for a spectated peer.</summary>
+[HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromSimpleGrid),
+    new System.Type[] { typeof(PlayerChoiceContext), typeof(IReadOnlyList<CardModel>), typeof(Player), typeof(CardSelectorPrefs) })]
+public static class PatchCardSelectMirrorSimpleGrid
+{
+    public static void Prefix(IReadOnlyList<CardModel> cardsIn, Player player, CardSelectorPrefs prefs)
+    {
+        try
+        {
+            if (LocalContext.IsMe(player) || CardSelectCmd.Selector != null)
+                return;
+            // Matches the real method's own no-UI shortcuts: an empty list, or a
+            // count small enough (and no manual confirm required) that it
+            // auto-selects everything without ever showing a screen.
+            if (cardsIn.Count == 0)
+                return;
+            if (!prefs.RequireManualConfirmation && cardsIn.Count <= prefs.MinSelect)
+                return;
+            PeerCardSelectMirror.Record(new PeerPendingChoice
+            {
+                Kind = PeerCardSelectKind.SimpleGrid,
+                Player = player,
+                Cards = cardsIn,
+                Prefs = prefs,
+            });
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"simple grid mirror hook error: {e}");
+        }
+    }
+
+    public static void Postfix(System.Threading.Tasks.Task<IEnumerable<CardModel>> __result, Player player)
+    {
+        if (!LocalContext.IsMe(player))
+            PeerCardSelectMirror.ClearWhenSettled(__result, player);
+    }
+}
+
+/// <summary>
+/// Mirrors CardSelectCmd.FromCombatPile (Survivor-style "pick from draw/discard/
+/// exhaust" screens) for a spectated peer. Only the 5-arg overload is patched — the
+/// 4-arg overload just forwards into this one with a default (always-true) filter.
+/// </summary>
+[HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromCombatPile),
+    new System.Type[] { typeof(PlayerChoiceContext), typeof(CardPile), typeof(Player), typeof(CardSelectorPrefs), typeof(System.Func<CardModel, bool>) })]
+public static class PatchCardSelectMirrorCombatPile
+{
+    public static void Prefix(CardPile pile, Player player, CardSelectorPrefs prefs, System.Func<CardModel, bool>? filter)
+    {
+        try
+        {
+            if (LocalContext.IsMe(player) || CardSelectCmd.Selector != null)
+                return;
+            if (CombatManager.Instance.IsEnding || !pile.IsCombatPile)
+                return;
+            // Matches the real method's own no-UI shortcuts (see FromCombatPile):
+            // nothing left after the filter, or few enough left that it auto-selects.
+            int count = filter == null ? pile.Cards.Count : pile.Cards.Count(filter);
+            if (count == 0)
+                return;
+            if (!prefs.RequireManualConfirmation && count <= prefs.MinSelect)
+                return;
+            PeerCardSelectMirror.Record(new PeerPendingChoice
+            {
+                Kind = PeerCardSelectKind.CombatPile,
+                Player = player,
+                Pile = pile,
+                Prefs = prefs,
+                Filter = filter,
+            });
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"combat pile mirror hook error: {e}");
+        }
+    }
+
+    public static void Postfix(System.Threading.Tasks.Task<IEnumerable<CardModel>> __result, Player player)
+    {
+        if (!LocalContext.IsMe(player))
+            PeerCardSelectMirror.ClearWhenSettled(__result, player);
+    }
 }
 
 /// <summary>
@@ -649,6 +1253,470 @@ internal static class PeerIndicators
 }
 
 /// <summary>
+/// While spectating, the top-bar gold/HP/deck-count labels show the viewed player's
+/// values, using the same postfix-reapply technique as PeerIndicators' pile counters:
+/// the label is stamped directly with the peer's value, and a postfix on whichever
+/// vanilla method would otherwise repaint it with the LOCAL player's value (a card
+/// effect changing your own gold/HP/deck while you happen to be spectating someone
+/// else) repaints it again with the peer's value right after.
+/// </summary>
+internal static class PeerTopBar
+{
+    private static readonly System.Reflection.FieldInfo GoldLabelField =
+        AccessTools.Field(typeof(NTopBarGold), "_goldLabel");
+
+    private static readonly System.Reflection.FieldInfo CurrentGoldField =
+        AccessTools.Field(typeof(NTopBarGold), "_currentGold");
+
+    private static readonly System.Reflection.FieldInfo HpLabelField =
+        AccessTools.Field(typeof(NTopBarHp), "_hpLabel");
+
+    private static readonly System.Reflection.FieldInfo HpPlayerField =
+        AccessTools.Field(typeof(NTopBarHp), "_player");
+
+    private static readonly System.Reflection.FieldInfo DeckCountLabelField =
+        AccessTools.Field(typeof(NTopBarDeckButton), "_countLabel");
+
+    private static readonly System.Reflection.FieldInfo DeckPileField =
+        AccessTools.Field(typeof(NTopBarDeckButton), "_pile");
+
+    internal static void ApplyGold()
+    {
+        try
+        {
+            Player? peer = PeerSpectate.Peer;
+            NTopBarGold? gold = NRun.Instance?.GlobalUi.TopBar.Gold;
+            if (peer == null || gold == null || !GodotObject.IsInstanceValid(gold))
+                return;
+            if (GoldLabelField.GetValue(gold) is MegaLabel label && GodotObject.IsInstanceValid(label))
+                label.SetTextAutoSize(peer.Gold.ToString());
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"top bar gold apply error: {e}");
+        }
+    }
+
+    internal static void RestoreGold()
+    {
+        try
+        {
+            NTopBarGold? gold = NRun.Instance?.GlobalUi.TopBar.Gold;
+            if (gold == null || !GodotObject.IsInstanceValid(gold))
+                return;
+            // _currentGold is vanilla's own ledger for the LOCAL player, kept up to
+            // date by its subscription the whole time we were painting peer values.
+            if (GoldLabelField.GetValue(gold) is MegaLabel label
+                && GodotObject.IsInstanceValid(label)
+                && CurrentGoldField.GetValue(gold) is int localGold)
+                label.SetTextAutoSize(localGold.ToString());
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"top bar gold restore error: {e}");
+        }
+    }
+
+    internal static void ApplyHp()
+    {
+        try
+        {
+            Player? peer = PeerSpectate.Peer;
+            NTopBarHp? hp = NRun.Instance?.GlobalUi.TopBar.Hp;
+            if (peer == null || hp == null || !GodotObject.IsInstanceValid(hp))
+                return;
+            if (HpLabelField.GetValue(hp) is MegaLabel label && GodotObject.IsInstanceValid(label))
+                label.SetTextAutoSize($"{peer.Creature.CurrentHp}/{peer.Creature.MaxHp}");
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"top bar hp apply error: {e}");
+        }
+    }
+
+    internal static void RestoreHp()
+    {
+        try
+        {
+            NTopBarHp? hp = NRun.Instance?.GlobalUi.TopBar.Hp;
+            if (hp == null || !GodotObject.IsInstanceValid(hp))
+                return;
+            if (HpLabelField.GetValue(hp) is MegaLabel label
+                && GodotObject.IsInstanceValid(label)
+                && HpPlayerField.GetValue(hp) is Player localPlayer)
+                label.SetTextAutoSize($"{localPlayer.Creature.CurrentHp}/{localPlayer.Creature.MaxHp}");
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"top bar hp restore error: {e}");
+        }
+    }
+
+    internal static void ApplyDeckCount()
+    {
+        try
+        {
+            Player? peer = PeerSpectate.Peer;
+            NTopBarDeckButton? deck = NRun.Instance?.GlobalUi.TopBar.Deck;
+            if (peer == null || deck == null || !GodotObject.IsInstanceValid(deck))
+                return;
+            if (DeckCountLabelField.GetValue(deck) is MegaLabel label && GodotObject.IsInstanceValid(label))
+                label.SetTextAutoSize(peer.Deck.Cards.Count.ToString());
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"top bar deck count apply error: {e}");
+        }
+    }
+
+    internal static void RestoreDeckCount()
+    {
+        try
+        {
+            NTopBarDeckButton? deck = NRun.Instance?.GlobalUi.TopBar.Deck;
+            if (deck == null || !GodotObject.IsInstanceValid(deck))
+                return;
+            if (DeckCountLabelField.GetValue(deck) is MegaLabel label
+                && GodotObject.IsInstanceValid(label)
+                && DeckPileField.GetValue(deck) is CardPile localPile)
+                label.SetTextAutoSize(localPile.Cards.Count.ToString());
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"top bar deck count restore error: {e}");
+        }
+    }
+}
+
+/// <summary>
+/// While spectating, the potion belt is a live node collection (not a label), so it
+/// can't be re-stamped like the pile counters — instead the vanilla container is
+/// hidden (its own state untouched) and a read-only replica is drawn in its place,
+/// using the same NPotionHolder/NPotion factories NMultiplayerPlayerExpandedState
+/// uses to render a peer's belt (NMultiplayerPlayerExpandedState.cs:277-281).
+/// isUsable:false means a peer's potion can never be clicked to use or discard it.
+/// </summary>
+internal static class PeerPotionReplica
+{
+    private static readonly System.Reflection.FieldInfo PotionHoldersField =
+        AccessTools.Field(typeof(NPotionContainer), "_potionHolders");
+
+    private static NPotionContainer? _hidden;
+    private static Control? _root;
+    private static Player? _peer;
+    private static readonly List<NPotionHolder> _replicaHolders = new();
+    private static readonly List<Vector2> _slotGlobalPositions = new();
+    private static Vector2 _originGlobal;
+    private static Vector2 _slotSize = new(64f, 64f);
+
+    internal static void Enter(Player peer)
+    {
+        try
+        {
+            NPotionContainer? container = NRun.Instance?.GlobalUi.TopBar.PotionContainer;
+            if (container == null || !GodotObject.IsInstanceValid(container))
+                return;
+            Node? parent = container.GetParent();
+            if (parent == null)
+                return;
+
+            // Read the vanilla layout (and its child holders' positions) before
+            // hiding it — Visible doesn't move anything, but this matches the
+            // "read, then hide" order the design calls for.
+            _slotGlobalPositions.Clear();
+            if (PotionHoldersField.GetValue(container) is Control holdersRow && GodotObject.IsInstanceValid(holdersRow))
+            {
+                foreach (Node child in holdersRow.GetChildren())
+                {
+                    if (child is Control c)
+                    {
+                        _slotGlobalPositions.Add(c.GlobalPosition);
+                        _slotSize = c.Size;
+                    }
+                }
+            }
+            _originGlobal = container.GlobalPosition;
+            Vector2 containerSize = container.Size;
+
+            _hidden = container;
+            container.Visible = false;
+
+            _root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
+            parent.AddChildSafely(_root);
+            _root.GlobalPosition = _originGlobal;
+            _root.Size = containerSize;
+
+            _peer = peer;
+            Rebuild();
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"potion replica enter error: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Full rebuild on every potion change (procured/used/discarded) — belts are
+    /// small, so this is simpler and safer than trying to patch a single slot.
+    /// </summary>
+    internal static void Rebuild()
+    {
+        if (_root == null || !GodotObject.IsInstanceValid(_root) || _peer == null)
+            return;
+        try
+        {
+            ClearHolders();
+            int i = 0;
+            foreach (PotionModel potion in _peer.Potions)
+            {
+                NPotionHolder holder = NPotionHolder.Create(isUsable: false);
+                _root.AddChildSafely(holder);
+                holder.Position = LocalSlotPosition(i);
+                NPotion? nPotion = NPotion.Create(potion);
+                if (nPotion != null)
+                {
+                    holder.AddPotion(nPotion);
+                    nPotion.Position = Vector2.Zero;
+                }
+                _replicaHolders.Add(holder);
+                i++;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"potion replica rebuild error: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Positions replicas at the same slots the vanilla holders occupy; for any
+    /// index past the captured slots (a peer with more potion slots than the local
+    /// player), extrapolates using the spacing between the last two known slots.
+    /// </summary>
+    private static Vector2 LocalSlotPosition(int index)
+    {
+        Vector2 global;
+        if (index < _slotGlobalPositions.Count)
+        {
+            global = _slotGlobalPositions[index];
+        }
+        else if (_slotGlobalPositions.Count >= 2)
+        {
+            Vector2 spacing = _slotGlobalPositions[^1] - _slotGlobalPositions[^2];
+            global = _slotGlobalPositions[^1] + spacing * (index - (_slotGlobalPositions.Count - 1));
+        }
+        else if (_slotGlobalPositions.Count == 1)
+        {
+            global = _slotGlobalPositions[0] + new Vector2(_slotSize.X + 8f, 0f) * index;
+        }
+        else
+        {
+            global = _originGlobal + new Vector2(_slotSize.X + 8f, 0f) * index;
+        }
+        return global - _originGlobal;
+    }
+
+    private static void ClearHolders()
+    {
+        foreach (NPotionHolder holder in _replicaHolders)
+        {
+            // NPotionHolder/NPotion are plain nodes, not pooled like NCard.
+            if (GodotObject.IsInstanceValid(holder))
+                holder.QueueFreeSafelyNoPool();
+        }
+        _replicaHolders.Clear();
+    }
+
+    internal static void Exit()
+    {
+        try
+        {
+            ClearHolders();
+            if (_root != null && GodotObject.IsInstanceValid(_root))
+                _root.QueueFreeSafelyNoPool();
+            _root = null;
+            if (_hidden != null && GodotObject.IsInstanceValid(_hidden))
+                _hidden.Visible = true;
+            _hidden = null;
+            _peer = null;
+            _slotGlobalPositions.Clear();
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"potion replica exit error: {e}");
+        }
+    }
+
+    internal static void SetVisible(bool visible)
+    {
+        if (_root != null && GodotObject.IsInstanceValid(_root))
+            _root.Visible = visible;
+    }
+}
+
+/// <summary>
+/// Same replica technique as PeerPotionReplica, for the relic strip. Uses
+/// NRelicInventoryHolder — the factory the top-bar relic row itself uses (it can
+/// flash and shows stacked amounts) — rather than NRelicBasicHolder, which its own
+/// doc comment marks as a flatter substitute used elsewhere (run history, the
+/// multiplayer expanded state, the relic collection) that "cannot flash and never
+/// displays amounts". A plain HFlowContainer reproduces the vanilla row's wrapping.
+/// </summary>
+internal static class PeerRelicReplica
+{
+    private static NRelicInventory? _hidden;
+    private static HFlowContainer? _root;
+    private static Player? _peer;
+
+    internal static void Enter(Player peer)
+    {
+        try
+        {
+            NRelicInventory? inventory = NRun.Instance?.GlobalUi.RelicInventory;
+            if (inventory == null || !GodotObject.IsInstanceValid(inventory))
+                return;
+            Node? parent = inventory.GetParent();
+            if (parent == null)
+                return;
+
+            Vector2 origin = inventory.GlobalPosition;
+            Vector2 size = inventory.Size;
+
+            _hidden = inventory;
+            inventory.Visible = false;
+
+            _root = new HFlowContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+            parent.AddChildSafely(_root);
+            _root.GlobalPosition = origin;
+            _root.Size = size;
+
+            _peer = peer;
+            Rebuild();
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"relic replica enter error: {e}");
+        }
+    }
+
+    /// <summary>Full rebuild on every relic change — relic counts are small.</summary>
+    internal static void Rebuild()
+    {
+        if (_root == null || !GodotObject.IsInstanceValid(_root) || _peer == null)
+            return;
+        try
+        {
+            foreach (Node child in _root.GetChildren())
+            {
+                if (child is NRelicInventoryHolder holder && GodotObject.IsInstanceValid(holder))
+                    holder.QueueFreeSafelyNoPool();
+            }
+            foreach (RelicModel relic in _peer.Relics)
+            {
+                NRelicInventoryHolder? holder = NRelicInventoryHolder.Create(relic);
+                if (holder != null)
+                    _root.AddChildSafely(holder);
+            }
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"relic replica rebuild error: {e}");
+        }
+    }
+
+    internal static void Exit()
+    {
+        try
+        {
+            if (_root != null && GodotObject.IsInstanceValid(_root))
+                _root.QueueFreeSafelyNoPool();
+            _root = null;
+            if (_hidden != null && GodotObject.IsInstanceValid(_hidden))
+                _hidden.Visible = true;
+            _hidden = null;
+            _peer = null;
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"relic replica exit error: {e}");
+        }
+    }
+
+    internal static void SetVisible(bool visible)
+    {
+        if (_root != null && GodotObject.IsInstanceValid(_root))
+            _root.Visible = visible;
+    }
+}
+
+/// <summary>
+/// While spectating, the star counter (when visible) shows the viewed player's
+/// stars by calling vanilla's own SetStarCountText, reusing its label formatting,
+/// 0-star red color, and shader hue changes exactly instead of reimplementing them
+/// here. NStarCounter._Process re-lerps and repaints from the LOCAL player (its
+/// _player field is fixed at Initialize, never swapped) every single frame
+/// regardless of visibility, so a one-shot stamp from a StarsChanged event alone
+/// would be overwritten within a frame — PatchStarCounterProcess below is what
+/// actually keeps this pinned to the peer's value; the OnStarsChanged postfix and
+/// the PlayerCombatState.StarsChanged subscription in PeerSpectate exist for the
+/// same belt-and-suspenders reason PeerIndicators' pile counters have both an
+/// event-driven apply and a postfix-driven one.
+/// Visibility is never touched here: a character that doesn't use stars keeps this
+/// hidden even while spectating a star-using peer — a known, accepted gap.
+/// </summary>
+internal static class PeerStarCounter
+{
+    private static readonly System.Reflection.FieldInfo StarCounterField =
+        AccessTools.Field(typeof(NCombatUi), "_starCounter");
+
+    private static readonly System.Reflection.FieldInfo StarCounterPlayerField =
+        AccessTools.Field(typeof(NStarCounter), "_player");
+
+    private static readonly System.Reflection.MethodInfo SetStarCountTextMethod =
+        AccessTools.Method(typeof(NStarCounter), "SetStarCountText");
+
+    private static NStarCounter? Instance()
+    {
+        NCombatUi? ui = NCombatRoom.Instance?.Ui;
+        if (ui == null || !GodotObject.IsInstanceValid(ui))
+            return null;
+        return StarCounterField.GetValue(ui) as NStarCounter;
+    }
+
+    internal static void Apply()
+    {
+        try
+        {
+            Player? peer = PeerSpectate.Peer;
+            NStarCounter? counter = Instance();
+            if (peer?.PlayerCombatState == null || counter == null || !GodotObject.IsInstanceValid(counter))
+                return;
+            SetStarCountTextMethod.Invoke(counter, new object[] { peer.PlayerCombatState.Stars });
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"star counter apply error: {e}");
+        }
+    }
+
+    internal static void Restore()
+    {
+        try
+        {
+            NStarCounter? counter = Instance();
+            if (counter == null || !GodotObject.IsInstanceValid(counter))
+                return;
+            if (StarCounterPlayerField.GetValue(counter) is Player localPlayer && localPlayer.PlayerCombatState != null)
+                SetStarCountTextMethod.Invoke(counter, new object[] { localPlayer.PlayerCombatState.Stars });
+        }
+        catch (System.Exception e)
+        {
+            Log.Write($"star counter restore error: {e}");
+        }
+    }
+}
+
+/// <summary>
 /// While spectating, the energy orb renders the viewed player's energy: the local
 /// player field is swapped in just for the duration of the vanilla RefreshLabel
 /// call, so its color/material logic runs untouched against the peer's state.
@@ -687,6 +1755,39 @@ public static class PatchEnergyCounter
 }
 
 /// <summary>
+/// Fires when the LOCAL player's own stars change while spectating (NStarCounter's
+/// StarsChanged subscription is bound once to the local player and never swapped) —
+/// repaints with the peer's value right after so a local star gain can't leave the
+/// local number showing, even for the one frame before PatchStarCounterProcess
+/// would otherwise catch it.
+/// </summary>
+[HarmonyPatch(typeof(NStarCounter), "OnStarsChanged")]
+public static class PatchStarCounterChanged
+{
+    public static void Postfix()
+    {
+        if (PeerSpectate.Active)
+            PeerStarCounter.Apply();
+    }
+}
+
+/// <summary>
+/// NStarCounter._Process recomputes and repaints its label from the LOCAL player
+/// every frame (regardless of visibility), so this is the patch that actually keeps
+/// the counter pinned to the peer's value in real time — without it, PeerStarCounter
+/// Apply() would be overwritten within a single frame by vanilla's own loop.
+/// </summary>
+[HarmonyPatch(typeof(NStarCounter), "_Process")]
+public static class PatchStarCounterProcess
+{
+    public static void Postfix()
+    {
+        if (PeerSpectate.Active)
+            PeerStarCounter.Apply();
+    }
+}
+
+/// <summary>
 /// The top-bar deck button opens the viewed player's deck while spectating (and
 /// keeps its vanilla toggle-close behavior). The keyboard deck action never gets
 /// here — PatchPeerViewInput consumes it before NHotkeyManager.
@@ -718,6 +1819,47 @@ public static class PatchTopBarDeckClick
             Log.Write($"deck button error: {e}");
             return true;
         }
+    }
+}
+
+/// <summary>
+/// UpdateGold only ever fires from the LOCAL player's own GoldChanged event (its
+/// _player field is fixed at Initialize, never swapped) — this repaints the label
+/// with the peer's gold right after, so a local gold change while spectating can't
+/// leave the local value showing. See PeerTopBar's doc comment for why this is a
+/// direct label stamp (P1) rather than the _player-swap trick PatchEnergyCounter
+/// uses: UpdateGold kicks off UpdateGoldAnim's "+N" popup/ledger animation, which
+/// would read the wrong player's gold delta if we ever redirected _player itself.
+/// </summary>
+[HarmonyPatch(typeof(NTopBarGold), "UpdateGold")]
+public static class PatchTopBarGold
+{
+    public static void Postfix()
+    {
+        if (PeerSpectate.Active)
+            PeerTopBar.ApplyGold();
+    }
+}
+
+/// <summary>Same idea as PatchTopBarGold, for the HP label.</summary>
+[HarmonyPatch(typeof(NTopBarHp), "UpdateHealth")]
+public static class PatchTopBarHp
+{
+    public static void Postfix()
+    {
+        if (PeerSpectate.Active)
+            PeerTopBar.ApplyHp();
+    }
+}
+
+/// <summary>Same idea as PatchTopBarGold, for the deck-count label.</summary>
+[HarmonyPatch(typeof(NTopBarDeckButton), "OnPileContentsChanged")]
+public static class PatchTopBarDeckCount
+{
+    public static void Postfix()
+    {
+        if (PeerSpectate.Active)
+            PeerTopBar.ApplyDeckCount();
     }
 }
 
@@ -1091,7 +2233,20 @@ public static class PatchPeerViewInput
             || inputEvent.IsActionReleased(MegaInput.cancel)
             || inputEvent.IsActionReleased(MegaInput.pauseAndBack)
             || inputEvent.IsActionReleased(MegaInput.back);
-        if (capstoneOurs)
+        // A peer's card-selection mirror takes priority over both of the below: Esc
+        // closes just the mirror and leaves spectate (and any capstone underneath it)
+        // untouched.
+        if (PeerCardSelectMirror.IsShown)
+        {
+            if (escPressed)
+            {
+                PeerCardSelectMirror.CloseShown();
+                return true;
+            }
+            if (escReleased)
+                return true;
+        }
+        else if (capstoneOurs)
         {
             if (escPressed)
             {
