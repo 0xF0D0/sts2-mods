@@ -537,6 +537,17 @@ internal static class UndoFuzz
         /// unattributed line elsewhere in the log).</summary>
         public int DivergencesAfterRestore;
 
+        /// <summary>MpFuzz path only (step 9 addendum, card-selection prompts). Count of selections
+        /// actually answered by the FuzzCardSelector MpFuzz.DriveOurCombatAsync installs for this
+        /// combat — copied from FuzzCardSelector.SelectionsAnswered right after DriveCombatAsync
+        /// returns (see that method's own doc comment for exactly where). Zero is not itself a
+        /// failure (most combats never hit a card-selection prompt at all), but a run whose driveError
+        /// pointed at GatheringPlayerChoice-shaped stall symptoms (ActionQueueSet.cs:223 skips a
+        /// GatheringPlayerChoice action silently forever) while this stayed zero would mean the
+        /// selector never got a chance to help — worth distinguishing from a run where this is nonzero
+        /// and the combat still failed some OTHER way.</summary>
+        public int CardSelectionsAnswered;
+
         /// <summary>UI path only — the delta in UiRefresh.SyncOrbNodesRebuiltCount across this
         /// combat's DriveCombatAsync call, snapshotted by RunOneUiTestCombatAsync immediately before
         /// and after. Zero on the headless --undosync-fuzz path by construction (never read/set
@@ -624,10 +635,30 @@ internal static class UndoFuzz
     /// whose resolution asks the player to pick cards blocks forever headless (there's no UI to answer
     /// it) — which would make randomized decks/relics/potions, i.e. this whole widening effort,
     /// untestable rather than merely unrepresentative.
+    ///
+    /// Was `private`, now `internal`: reused as-is by MpFuzz.DriveOurCombatAsync (MpFuzz.cs) to answer
+    /// in-combat card-selection prompts (e.g. Survivor's discard, Survivor.cs:27) in real two-peer
+    /// multiplayer — see that method's own doc comment for the install/dispose site and for the
+    /// VERIFIED (not merely assumed) limits of doing so with CardSelectCmd's global, non-localOnly
+    /// selector stack across two independently-executing peers.
     /// </summary>
-    private sealed class FuzzCardSelector : MegaCrit.Sts2.Core.TestSupport.ICardSelector
+    internal sealed class FuzzCardSelector : MegaCrit.Sts2.Core.TestSupport.ICardSelector
     {
         private readonly Random _rng;
+
+        /// <summary>Count of selections this instance actually answered — incremented once per
+        /// GetSelectedCards call that reached the Fisher-Yates pick (i.e. NOT the `list.Count == 0`
+        /// early return, which answered nothing) and once per GetSelectedCardReward call that reached
+        /// its own pick (NOT the `options.Count == 0` early return). Exists so a caller — MpFuzz.
+        /// RunAsync's own step-10 summary, specifically — can prove a card-selection prompt was
+        /// actually hit and answered by this selector, rather than merely that the selector was
+        /// installed: "the mechanism exists" and "the mechanism ran" are different claims, and this
+        /// mod's own verification-first discipline (see e.g. UndoSyncMod.StaleIsEmptyObservations)
+        /// requires the latter be provable by a counter, not inferred from the absence of a stall.
+        /// Single-threaded, same reasoning as every other unlocked counter in this file (e.g.
+        /// _gameErrors) — nothing here is ever touched from more than one logical thread of
+        /// execution.</summary>
+        public int SelectionsAnswered { get; private set; }
 
         public FuzzCardSelector(Random rng)
         {
@@ -649,12 +680,14 @@ internal static class UndoFuzz
                 int j = _rng.Next(i + 1);
                 (list[i], list[j]) = (list[j], list[i]);
             }
+            SelectionsAnswered++;
             return Task.FromResult((IEnumerable<CardModel>)list.Take(n));
         }
 
         public CardRewardSelection GetSelectedCardReward(IReadOnlyList<CardCreationResult> options, IReadOnlyList<CardRewardAlternative> alternatives)
         {
             if (options.Count == 0) return default;
+            SelectionsAnswered++;
             return new CardRewardSelection { card = options[_rng.Next(options.Count)].Card, alternative = null };
         }
     }
@@ -1116,6 +1149,14 @@ internal static class UndoFuzz
             + "recorded, and this path cannot produce a nonzero value because no orb nodes exist under TestMode.");
         Log.Write($"[Fuzz] shadow containers: copied={StateSnapshot.ShadowContainersCopied} "
             + $"shared={StateSnapshot.ShadowContainersShared} (shared = no copy constructor; DynamicVarSet is the\n            expected occupant and is captured separately)".Replace("\n", " ").Replace("            ", ""));
+        // See UndoSyncMod.IsActionQueueIdle's doc comment for the mechanism this counts
+        // (ActionQueueSet.IsEmpty staying stale-false after StartCancellingAllPlayerDrivenCombatActions
+        // removes the last queued action, ActionQueueSet.cs:331-349, without calling CheckIfQueuesEmpty,
+        // :620-635). Process-wide total, not reset per combat, same as OrbInvariantViolationCount/
+        // ShadowContainersCopied above — a nonzero count here proves the staleness was actually observed
+        // live, not just theoretically possible.
+        Log.Write($"[Fuzz] stale ActionQueueSet.IsEmpty: {UndoSyncMod.StaleIsEmptyObservations} observation(s) "
+            + "(IsEmpty=false while the literal queued-action count was 0 — see UndoSyncMod.IsActionQueueIdle).");
         Log.Write("[Fuzz] ==================== done ====================");
 
         // Quit when the run is over. Without this the process sits at the main menu forever, which
@@ -1622,8 +1663,11 @@ internal static class UndoFuzz
     /// <summary>Reflection handle for ActionQueueSet's private field `_actionQueues`
     /// (List&lt;ActionQueue&gt;, ActionQueueSet.cs:48) — the declaring type (ActionQueueSet) is public
     /// and known at compile time, so this one can be a plain readonly field, unlike the per-element
-    /// handles below.</summary>
-    private static readonly FieldInfo? FActionQueues = AccessTools.Field(typeof(ActionQueueSet), "_actionQueues");
+    /// handles below. Internal (not private): UndoSyncMod.TryGetLiteralQueuedActionCounts reuses this
+    /// exact handle instead of re-declaring a second AccessTools.Field(typeof(ActionQueueSet),
+    /// "_actionQueues") call — see that method's doc comment for why ActionQueueSet.IsEmpty cannot be
+    /// trusted alone.</summary>
+    internal static readonly FieldInfo? FActionQueues = AccessTools.Field(typeof(ActionQueueSet), "_actionQueues");
 
     /// <summary>Same reflection pattern StateSnapshot.cs:240/249-250 already uses to reach
     /// CombatManager._turnState and, off its runtime field type, the PlayersReadyToBeginEnemyTurn
@@ -1655,7 +1699,10 @@ internal static class UndoFuzz
     private static Type? _cachedActionQueueElementType;
     private static Dictionary<string, FieldInfo?> _cachedActionQueueElementFields = new();
 
-    private static FieldInfo? GetActionQueueElementField(Type elementType, string fieldName)
+    /// <summary>Internal (not private): UndoSyncMod.TryGetLiteralQueuedActionCounts reuses this exact
+    /// cache/accessor instead of re-declaring a second copy of the same dynamic AccessTools.Field
+    /// lookup for ActionQueueSet's private nested `ActionQueue` type.</summary>
+    internal static FieldInfo? GetActionQueueElementField(Type elementType, string fieldName)
     {
         if (elementType != _cachedActionQueueElementType)
         {
@@ -2597,7 +2644,13 @@ internal static class UndoFuzz
         }
     }
 
-    private static List<EncounterModel> ResolveEncounterPool()
+    /// <summary>
+    /// Was `private`; now `internal` so MpFuzz.cs (--undosync-mpfuzz) can reuse it too, for step 8b's
+    /// own encounter-variety pick — see MpFuzz.SwitchToRandomEncounterAsync's own doc comment. Same
+    /// "no field or behaviour changed, only the class's own visibility" reasoning as DriveCombatAsync/
+    /// CombatOutcome/_activeIdleWaitTimeout's own visibility changes above.
+    /// </summary>
+    internal static List<EncounterModel> ResolveEncounterPool()
     {
         var act = ModelDb.Acts.FirstOrDefault();
         if (act == null)

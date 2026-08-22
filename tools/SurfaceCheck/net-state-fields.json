@@ -1,0 +1,166 @@
+{
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CardState.affliction": {
+    "reason": "COVERED INDIRECTLY, same mechanism as CardState.card: CardModel.<Affliction>k__BackingField is one of the fields CopyMutableFields copies (tracked in copy-fields.json) and one of the fields CardModel.DeepCloneFields re-clones (CardModel.cs:1194-1217, invoked via RebindDeepCloneOwnership \u2014 see StateSnapshot.cs:397-450's doc comment for why the re-clone step is necessary, not just the reference copy).",
+    "type": "MegaCrit.Sts2.Core.Models.ModelId"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CardState.afflictionCount": {
+    "reason": "COVERED INDIRECTLY \u2014 this is AfflictionModel.Amount on the same Affliction sub-object as CardState.affliction, carried across the restore by the same CardModel.DeepCloneFields re-clone (CardModel.cs:1194-1217), not a separately-tracked field.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CardState.card": {
+    "reason": "COVERED INDIRECTLY, via a wholesale copy, not a per-field one: StateSnapshot._cardClones captures a MutableClone() of every card at capture time (StateSnapshot.cs:604-605); RestoreCardFields calls CopyMutableFields(Pristine(clone), card) + RebindDeepCloneOwnership(card) for every live card (StateSnapshot.cs:1041-1052). Individual CardModel fields are tracked, with human-reviewed reasons, in Check 4's ledger (copy-fields.json \u2014 CardModel is one of its 4 root types). That per-field review lives there, not here.",
+    "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableCard"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CardState.energyCost": {
+    "reason": "COVERED INDIRECTLY, and explicitly so: CardModel._energyCost (CardEnergyCost) is the motivating case for RebindDeepCloneOwnership's existence \u2014 see StateSnapshot.cs:397-427's doc comment for the exact bug (CardEnergyCost._card left pointing at a discarded clone, measured on a headless fuzz run as a 964-byte vs 988-byte restore checksum mismatch) this call was added to fix. Tracked in Check 4's ledger (copy-fields.json).",
+    "type": "System.Nullable`1[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CardState.keywords": {
+    "reason": "COVERED INDIRECTLY: CardModel._keywords is one of the fields CardModel.DeepCloneFields re-clones (CardModel.cs:1194-1217) and is tracked in Check 4's ledger (copy-fields.json).",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Cards.CardKeyword, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CombatPileState.cards": {
+    "reason": "COVERED. Captured: PlayerCapture.Piles[pile.Type] = pile.Cards.ToList() (StateSnapshot.cs:603), preserving CardModel identity/order. Restored: RestorePiles clears and rebuilds each live pile's card list from the capture (StateSnapshot.cs:1023-1029). Per-card content: see CardState.card below.",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CardState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CombatPileState.pileType": {
+    "reason": "NOT INDEPENDENTLY CAPTURED \u2014 implicit in the Dictionary<PileType, List<CardModel>> key PlayerCapture.Piles uses (StateSnapshot.cs:127/603); a pile's Type is fixed at construction (PlayerCombatState.cs:60-68, one CardPile per PileType) and never reassigned, so keying by it is sufficient.",
+    "type": "MegaCrit.Sts2.Core.Entities.Cards.PileType"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CreatureState.block": {
+    "reason": "COVERED. Captured: CreatureCapture.Block via FCreatureBlock (Creature._block), StateSnapshot.cs:518. Restored: RestoreCreatures pass 1, FCreatureBlock.SetValue(cap.Ref, cap.Block), StateSnapshot.cs:751.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CreatureState.currentHp": {
+    "reason": "COVERED. Captured: CreatureCapture.Hp via FCreatureHp (Creature._currentHp), StateSnapshot.cs:516. Restored: RestoreCreatures pass 1, FCreatureHp.SetValue(cap.Ref, cap.Hp), StateSnapshot.cs:749.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CreatureState.maxHp": {
+    "reason": "COVERED. Captured: CreatureCapture.MaxHp via FCreatureMaxHp (Creature._maxHp), StateSnapshot.cs:517. Restored: RestoreCreatures pass 1, FCreatureMaxHp.SetValue(cap.Ref, cap.MaxHp), StateSnapshot.cs:750.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CreatureState.monsterId": {
+    "reason": "COVERED INDIRECTLY \u2014 identity preservation, not an explicit field write: StateSnapshot never replaces a Creature or its Monster reference (CreatureCapture.Ref holds the live Creature, StateSnapshot.cs:72/507-550; a revived creature in RestoreCreatures pass 2 reuses that same cap.Ref, StateSnapshot.cs:798-816), so Creature.Monster?.Id is unchanged by a restore by construction.",
+    "type": "MegaCrit.Sts2.Core.Models.ModelId"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CreatureState.playerId": {
+    "reason": "COVERED INDIRECTLY \u2014 same reasoning as monsterId: identity-preserved via CreatureCapture.Ref (the same Creature object, with the same Player back-reference, is kept across a restore) rather than an explicit field write.",
+    "type": "System.Nullable`1[[System.UInt64, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CreatureState.powers": {
+    "reason": "COVERED. Captured: CreatureCapture.Powers, one PowerCapture per Creature.Powers entry (StateSnapshot.cs:523-539). Restored: RestoreCreatures pass 1 clears and rebuilds the live powers list in captured order (StateSnapshot.cs:764-778).",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PowerState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+OrbState.evoke": {
+    "reason": "COVERED INDIRECTLY \u2014 same mechanism as OrbState.passive above: RestoreOrbQueue's CopyMutableFields (StateSnapshot.cs:1064); each orb subclass's concrete backing field (where one exists) is tracked in Check 4's ledger (copy-fields.json).",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+OrbState.id": {
+    "reason": "COVERED INDIRECTLY \u2014 identity preservation: PlayerCapture.Orbs holds the live OrbModel references (StateSnapshot.cs:614) and the same instances are put back by RestoreOrbQueue (StateSnapshot.cs:1067), so Id is unchanged by construction.",
+    "type": "MegaCrit.Sts2.Core.Models.ModelId"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+OrbState.passive": {
+    "reason": "COVERED INDIRECTLY, via a wholesale copy, not a per-field one: RestoreOrbQueue calls CopyMutableFields(Pristine(clone), orb) (StateSnapshot.cs:1064) \u2014 a reflective copy of every non-skip field from the capture-time clone (_orbClones, StateSnapshot.cs:615) back onto the live orb. OrbModel.PassiveVal is abstract; concrete subclasses that back it with a mutable field (e.g. Models/Orbs/DarkOrb.cs _evokeVal, Models/Orbs/GlassOrb.cs _passiveVal \u2014 some subclasses like Models/Orbs/FrostOrb.cs instead compute it from a constant, needing no restore at all) have that field tracked individually, with a human-reviewed reason, in Check 4's ledger (copy-fields.json \u2014 OrbModel is one of its 4 root types). That per-field review lives there, not here.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.characterId": {
+    "reason": "NOT CAPTURED, and correctly so \u2014 write-once state, no restore action needed: Player.Character is `{ get; }`, assigned once in the constructor (Player.cs:44, 260), and the game's own deserialize path explicitly throws 'Character changed for player! This is not allowed' if a mismatch is ever detected (Player.cs:409-411) \u2014 there is no in-combat (or in-run) mutator, so identity preservation alone keeps this correct.",
+    "type": "MegaCrit.Sts2.Core.Models.ModelId"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.energy": {
+    "reason": "COVERED. Captured: PlayerCapture.Energy via FPcsEnergy (PlayerCombatState._energy), StateSnapshot.cs:590. Restored: RestorePlayers, FPcsEnergy.SetValue(pcs, cap.Energy), StateSnapshot.cs:959.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.gold": {
+    "reason": "COVERED. Captured: PlayerCapture.Gold via FPlayerGold (Player._gold), StateSnapshot.cs:592. Restored: RestorePlayers, FPlayerGold.SetValue(player, cap.Gold), StateSnapshot.cs:961.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.maxPotionCount": {
+    "reason": "COVERED. Captured: PlayerCapture.MaxPotionCount = player.MaxPotionCount (StateSnapshot.cs:596). Restored: RestoreMaxPotionCount, via the game's own AddToMaxPotionCount/SubtractFromMaxPotionCount (StateSnapshot.cs:1010-1017) so NPotionContainer resizes correctly; explicitly ordered before RestorePotionSlots (StateSnapshot.cs:975-978) since a belt shrink discards whatever sits in the removed slots.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.orbs": {
+    "reason": "COVERED. Captured: PlayerCapture.Orbs = live OrbModel references from pcs.OrbQueue.Orbs (StateSnapshot.cs:608-617). Restored: RestoreOrbQueue (StateSnapshot.cs:1054-1070), including OrbQueue.Capacity. Per-field orb content: see OrbState.passive/evoke above.",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+OrbState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.phase": {
+    "reason": "COVERED. Captured: PlayerCapture.Phase (StateSnapshot.cs:594). Restored: RestorePlayers sets pcs.Phase = cap.Phase directly, StateSnapshot.cs:966.",
+    "type": "MegaCrit.Sts2.Core.Combat.PlayerTurnPhase"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.piles": {
+    "reason": "COVERED. Captured: PlayerCapture.Piles, one CardModel list per pile from pcs.AllPiles (StateSnapshot.cs:601-606) \u2014 AllPiles is exactly [Hand, DrawPile, DiscardPile, ExhaustPile, PlayPile] (PlayerCombatState.cs:60-78), the same 5 piles NetFullCombatState.FromRun serializes (NetFullCombatState.cs:443-447). Restored: RestorePiles (StateSnapshot.cs:1019-1039). Per-card content: see CardState.card below.",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CombatPileState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.playerId": {
+    "reason": "COVERED INDIRECTLY \u2014 identity preservation: StateSnapshot._players is keyed by the live Player's NetId and RestorePlayers writes fields onto that same live Player object (StateSnapshot.cs:574-663/945-1001); Player.NetId is never reassigned by this mod.",
+    "type": "System.UInt64"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.potions": {
+    "reason": "COVERED. Captured: PlayerCapture.PotionSlots = player.PotionSlots (StateSnapshot.cs:624-639, includes empty slots). Restored: RestorePotionSlots (StateSnapshot.cs:1085-1108), writing FPlayerPotionSlots (Player._potionSlots) directly. Player.Potions (NetFullCombatState.cs:450) is `_potionSlots.Where(p => p != null)` (Player.cs:122) \u2014 the same backing field \u2014 so restoring _potionSlots restores this too.",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PotionState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.relicGrabBag": {
+    "reason": "COVERED. Captured: PlayerCapture.RelicGrabBag = player.RelicGrabBag.ToSerializable() (StateSnapshot.cs:584-585). Restored: RestorePlayers, player.RelicGrabBag.LoadFromSerializable(cap.RelicGrabBag), StateSnapshot.cs:989.",
+    "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableRelicGrabBag"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.relics": {
+    "reason": "COVERED. Captured: PlayerCapture.Relics + RelicOrder (StateSnapshot.cs:641-660). Restored: RestoreRelicList for list membership/order (StateSnapshot.cs:1120-1144) then RestoreRelicStates (StateSnapshot.cs:1146-1173) for StackCount/IsWax/IsMelted/Status/DynamicVars explicitly, PLUS a wholesale per-relic field copy via _relicShadow (a Shadow() clone captured at StateSnapshot.cs:654, applied via CopyMutableFields(Shadow(shadow)!, r.Ref) at StateSnapshot.cs:1169) \u2014 which is what actually covers subclass-specific [SavedProperty] counters that RelicModel.ToSerializable() folds into SerializableRelic.Props (RelicModel.cs:556-564, via SavedProperties.From). Confirmed reachable in ordinary play: Models/Relics/PenNib.cs `[SavedProperty] AttacksPlayed` (incremented on every attack card play, PenNib.cs:97-104/136-152) and Models/Relics/Nunchaku.cs `[SavedProperty] AttacksPlayed` (same pattern) are both tracked, field-by-field, in Check 4's ledger (copy-fields.json \u2014 RelicModel is one of its 4 root types; 49 relic source files use [SavedProperty], 118 Relics.* entries total in that ledger).",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+RelicState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.rngSet": {
+    "reason": "COVERED. Captured: PlayerCapture.PlayerRng = player.PlayerRng.ToSerializable() (StateSnapshot.cs:581-582). Restored: RestorePlayers, player.PlayerRng.LoadFromSerializable(cap.PlayerRng), StateSnapshot.cs:988. Note NetFullCombatState.FromRun strips PlayerRngType.Rewards/Shops from the checksummed copy (NetFullCombatState.cs:439-440) but StateSnapshot restores the full rngSet \u2014 a superset of what's checksummed, not a gap.",
+    "type": "MegaCrit.Sts2.Core.Saves.SerializablePlayerRngSet"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.stars": {
+    "reason": "COVERED. Captured: PlayerCapture.Stars via FPcsStars (PlayerCombatState._stars), StateSnapshot.cs:591. Restored: RestorePlayers, FPcsStars.SetValue(pcs, cap.Stars), StateSnapshot.cs:960.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState.turnNumber": {
+    "reason": "COVERED. Captured: PlayerCapture.TurnNumber (StateSnapshot.cs:595). Restored: RestorePlayers writes FPcsTurnNumber (PlayerCombatState.<TurnNumber>k__BackingField \u2014 no public setter, only IncrementTurnNumber()), StateSnapshot.cs:969.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PotionState.id": {
+    "reason": "COVERED INDIRECTLY \u2014 identity preservation: PlayerCapture.PotionSlots holds the live PotionModel references (StateSnapshot.cs:624-626), restored by slot via RestorePotionSlots (StateSnapshot.cs:1085-1108); a potion's Id is immutable per instance, so slot-membership restoration is sufficient.",
+    "type": "MegaCrit.Sts2.Core.Models.ModelId"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PowerState.amount": {
+    "reason": "COVERED. Captured: PowerCapture.Amount via FPowerAmount (PowerModel._amount), StateSnapshot.cs:533. Restored: RestoreCreatures pass 1, FPowerAmount.SetValue(p.Ref, p.Amount), StateSnapshot.cs:769.",
+    "type": "System.Int32"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PowerState.id": {
+    "reason": "COVERED INDIRECTLY \u2014 identity preservation: PowerCapture.Ref holds the live PowerModel (StateSnapshot.cs:100/530-538) and the same instance is put back on restore (StateSnapshot.cs:776), so its Id is unchanged by construction.",
+    "type": "MegaCrit.Sts2.Core.Models.ModelId"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+RelicState.relic": {
+    "reason": "COVERED \u2014 see PlayerState.relics above for the full capture/restore path (RelicCapture's explicit fields plus the _relicShadow wholesale copy); cited once there rather than duplicated here since it's the exact same mechanism.",
+    "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableRelic"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState.<Creatures>k__BackingField": {
+    "reason": "COVERED. Captured: StateSnapshot._creatures via CaptureCreature (StateSnapshot.cs:507-550). Restored: StateSnapshot.RestoreCreatures (StateSnapshot.cs:716-841), including list membership/order via RestoreCreatureOrder (StateSnapshot.cs:851-876) \u2014 see that method's doc comment for why order specifically matters: NetFullCombatState.FromRun iterates cs.Creatures (= _allies.Concat(_enemies)) and that order is part of the checksummed dump.",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+CreatureState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState.<Players>k__BackingField": {
+    "reason": "COVERED. Captured: StateSnapshot._players, keyed by NetId, via CapturePlayer (StateSnapshot.cs:574-663). Restored: StateSnapshot.RestorePlayers (StateSnapshot.cs:945-1001). The Players list's own order is never touched by StateSnapshot \u2014 the live IRunState.Players list is never replaced or reordered by this mod, only the per-player fields inside it are written.",
+    "type": "System.Collections.Generic.List`1[[MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState+PlayerState, sts2, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState.<Rng>k__BackingField": {
+    "reason": "COVERED. Captured: StateSnapshot._runRngs, one SerializableRng per RunRngType read off runState.Rng via RunRngSet's _rngs field (StateSnapshot.cs:474-476). Restored: StateSnapshot.RestoreRunRng (StateSnapshot.cs:1257-1268).",
+    "type": "MegaCrit.Sts2.Core.Saves.Runs.SerializableRunRngSet"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState.lastExecutedActionId": {
+    "reason": "NOT INDEPENDENTLY RESTORED \u2014 reviewed, and correctly so: this isn't persistent state to restore, it's set fresh at every real checksum from action?.Id (NetFullCombatState.cs:396), where `action` is whichever GameAction ChecksumTracker.GenerateChecksum just finished (ChecksumTracker.cs:160, ObtainAndTrackChecksum calls NetFullCombatState.FromRun(_runState, action); GenerateChecksum(NetFullCombatState) at ChecksumTracker.cs:295-301 hashes the full serialized bytes with XxHash32, so this field genuinely is part of the real cross-peer checksum, not just diagnostics). Its post-restore correctness instead depends entirely on ActionQueueSet's action-id counter, which ChecksumHook.SyncPoint.NextActionId already tracks \u2014 and RestoreTo deliberately does NOT rewind it. See RestoreTo's own extensive comment on NextActionId: rewinding it was MEASURED, on a live 2-instance run, to cause exactly this kind of post-restore mismatch (host nextActionId=9 vs client nextActionId=12 at the same checksum id, diverging at the very next checksum), and leaving it unrewound \u2014 letting each peer's counter keep climbing independently \u2014 was the fix, with the tradeoff explicitly acknowledged: 'the next action after it is checksummed and compared as usual, just under a fresh id, so an asymmetric restore still shows up immediately.' This is the already-reviewed, already-measured design (see also the ChecksumHook.cs SyncPoint.RewardIds field doc comment for the parallel ChoiceIds treatment, and the UndoSync commit history: \"multiplayer undo harness, two real fixes, and one open divergence\" -> \"multiplayer undo verified clean\"), not an unreviewed gap in this ledger's scope.",
+    "type": "System.Nullable`1[[System.UInt32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState.lastExecutedHookId": {
+    "reason": "NOT INDEPENDENTLY RESTORED \u2014 same shape as lastExecutedActionId above: set fresh per-real-checksum from (action as GenericHookGameAction)?.HookId (NetFullCombatState.cs:395), not persistent state. Its post-restore correctness depends on ActionQueueSynchronizer's hook-id counter, which SyncPoint.NextHookId DOES capture and RestoreTo DOES restore, via ActionQueueSynchronizer.FastForwardHookId(sp.NextHookId) \u2014 flagged in RestoreTo's own comment as 'a reading of the code, not a measurement': unlike NextActionId, no live 2-instance run has yet exercised a hook action across a restore to confirm this counter is actually peer-common. Tracked via NextHookId, not independently captured here; the still-open verification is on NextHookId's own comment in ChecksumHook.cs, not a new gap.",
+    "type": "System.Nullable`1[[System.UInt32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState.nextChoiceIds": {
+    "reason": "COVERED. Captured: ChecksumHook.cs SyncPoint.ChoiceIds, populated from RunManager.Instance.PlayerChoiceSynchronizer.ChoiceIds inside TryStoreSyncPoint. Restored: ChecksumHook.RestoreTo calls PlayerChoiceSynchronizer.FastForwardChoiceIds(new List<uint>(sp.ChoiceIds)).",
+    "type": "System.Collections.Generic.List`1[[System.UInt32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+  },
+  "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState.nextRewardIds": {
+    "reason": "COVERED (fixed by this change). Captured: ChecksumHook.cs SyncPoint.RewardIds, populated from RunManager.Instance.RewardsSetSynchronizer.GetNextRewardIds() (RewardsSetSynchronizer.cs:437). Restored: ChecksumHook.RestoreTo calls RewardsSetSynchronizer.FastForwardRewardIds(new List<int>(sp.RewardIds)) (RewardsSetSynchronizer.cs:445). Previously missing entirely \u2014 the mod had no reference to RewardsSetSynchronizer/nextRewardIds/FastForwardRewardIds at all \u2014 which is the bug this Check 5 ledger was written to catch more instances of.",
+    "type": "System.Collections.Generic.List`1[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+  }
+}

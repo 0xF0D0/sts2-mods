@@ -35,6 +35,20 @@ internal sealed class SyncPoint
     public uint NextHookId;
     public List<uint> ChoiceIds = new();
 
+    /// <summary>
+    /// RunManager.Instance.RewardsSetSynchronizer.GetNextRewardIds() (RewardsSetSynchronizer.cs:437)
+    /// at capture time — one per-player next-reward-set-id counter, in player slot order. This is
+    /// the counter RewardsSetSynchronizer.BeginRewardsSet (RewardsSetSynchronizer.cs:170-171)
+    /// post-increments every time a reward set is offered, including mid-combat (RewardsSet.Offer,
+    /// Rewards/RewardsSet.cs:161, handles the CombatRoom case explicitly) via relics like Cauldron
+    /// that call RewardsCmd.OfferCustom. NetFullCombatState.nextRewardIds (NetFullCombatState.cs:
+    /// 371/394) folds it into the game's own checksummed state, so — exactly like ChoiceIds above —
+    /// it must be captured and restored or a peer's post-restore state diverges from what every
+    /// other peer (and the game's own fidelity check) expects. Restored via
+    /// RewardsSetSynchronizer.FastForwardRewardIds(List&lt;int&gt;) (RewardsSetSynchronizer.cs:445).
+    /// </summary>
+    public List<int> RewardIds = new();
+
     /// <summary>Game state dump at capture time (NetFullCombatState.ToString) — for restore fidelity verification.</summary>
     public string StateDump = "";
 
@@ -394,13 +408,19 @@ internal static class ChecksumHook
             NextActionId = rm.ActionQueueSet.NextActionId,
             NextHookId = syncr.NextHookId,
             ChoiceIds = new List<uint>(rm.PlayerChoiceSynchronizer.ChoiceIds),
+            // Copy into a new List rather than storing GetNextRewardIds()'s IEnumerable<int> live
+            // — RewardsSetSynchronizer.GetNextRewardIds (RewardsSetSynchronizer.cs:437-443) is a
+            // yield-return iterator over the synchronizer's own live _rewardStates, so holding the
+            // enumerable itself (instead of copying it out now) would make this field silently
+            // track future mutation instead of the value at capture time.
+            RewardIds = new List<int>(rm.RewardsSetSynchronizer.GetNextRewardIds()),
             StateDump = stateDump,
             StateBytes = SerializeCurrentState(),
         };
         SyncPoints[checksumId] = sp;
         while (SyncPoints.Count > MaxSyncPoints)
             SyncPoints.RemoveAt(0);
-        Log.Write($"[ChecksumHook] Stored sync point id={checksumId} ({context}) | actionId={sp.NextActionId} hookId={sp.NextHookId} choiceIds=[{string.Join(",", sp.ChoiceIds)}] | total={SyncPoints.Count}");
+        Log.Write($"[ChecksumHook] Stored sync point id={checksumId} ({context}) | actionId={sp.NextActionId} hookId={sp.NextHookId} choiceIds=[{string.Join(",", sp.ChoiceIds)}] rewardIds=[{string.Join(",", sp.RewardIds)}] | total={SyncPoints.Count}");
 
         // The first turn-start anchor of a combat is the earliest restorable moment — capture
         // it once and keep it outside SyncPoints (see the field's doc comment) so MaxSyncPoints
@@ -784,10 +804,12 @@ internal static class ChecksumHook
 
             // 2. Synchronizer counters. ChecksumTracker.NextId (step 3, below) is the one we
             //    know for certain is peer-common — see its own comment there for why. Of the
-            //    three counters recorded on the sync point: ChoiceIds is rewound unchanged by
-            //    this fix; NextHookId is still rewound too, but see the caveat on that call
-            //    below; NextActionId is deliberately no longer rewound — see the comment above
-            //    the line where that call used to be, just below.
+            //    four counters recorded on the sync point: ChoiceIds and RewardIds are both
+            //    rewound unchanged (RewardIds by this fix, matching ChoiceIds's existing
+            //    treatment — see the field's own doc comment on SyncPoint for why); NextHookId
+            //    is still rewound too, but see the caveat on that call below; NextActionId is
+            //    deliberately no longer rewound — see the comment above the line where that call
+            //    used to be, just below.
             var rm = RunManager.Instance!;
 
             // Fuzz-only (MpFuzzInstrumentationEnabled): log the counters this sync point recorded
@@ -842,6 +864,9 @@ internal static class ChecksumHook
             // unchanged until it gets the same kind of measurement the action id just got.
             rm.ActionQueueSynchronizer.FastForwardHookId(sp.NextHookId);
             rm.PlayerChoiceSynchronizer.FastForwardChoiceIds(new List<uint>(sp.ChoiceIds));
+            // RewardIds: same treatment as ChoiceIds just above — see the field's doc comment on
+            // SyncPoint (top of this file) for why this counter must be rewound at all.
+            rm.RewardsSetSynchronizer.FastForwardRewardIds(new List<int>(sp.RewardIds));
 
             // 2b. Drop cross-peer message buffers that belong to the timeline this restore
             // discards. Both are safe to clear unconditionally: RestoreTo only ever runs once

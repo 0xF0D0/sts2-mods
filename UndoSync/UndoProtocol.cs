@@ -96,7 +96,19 @@ public record struct UndoVoteMessage : INetMessage
 /// is not a wait loop: Phase 2/3 already proved every peer REACHED and HELD at this exact value, so
 /// there is nothing left to wait for — only whether it has since moved (see CommitAsync's own
 /// "moved-since-agreement" log line, deliberately distinct from a Phase 3 disagreement, for why
-/// conflating the two would repeat a mistake this project has already made once).
+/// conflating the two would repeat a mistake this project has already made once). Iteration 5 (see
+/// the top-of-file iteration list) changed what happens when it HAS moved: rather than that one peer
+/// silently not restoring, it now requests a fresh round through the SAME machinery this message's
+/// own `round` field exists for.
+///
+/// `round` is the quiesce round (see UndoQuiesceRequestMessage's own doc comment) whose unanimous
+/// agreement produced THIS commit — carried here, not just implied, so a peer whose own Phase 4
+/// recheck fails (CommitAsync's moved-since-agreement or never-re-idle branches) can report exactly
+/// which attempt failed via UndoCommitFailedMessage (see that message's own doc comment), and the
+/// host can tell a live report apart from a stale one for an attempt it has already moved past —
+/// the same round-matching discipline RegisterQuiesceReport already applies to
+/// UndoQuiesceReportMessage, reused here for RegisterCommitFailure's own guard
+/// (_commitTargetId/_commitRound below) instead of a parallel bookkeeping scheme.
 /// </summary>
 public record struct UndoCommitMessage : INetMessage
 {
@@ -107,17 +119,78 @@ public record struct UndoCommitMessage : INetMessage
 
     public uint targetChecksumId;
     public uint agreedChecksumId;
+    public int round;
 
     public void Serialize(PacketWriter writer)
     {
         writer.WriteUInt(targetChecksumId);
         writer.WriteUInt(agreedChecksumId);
+        writer.WriteInt(round);
     }
 
     public void Deserialize(PacketReader reader)
     {
         targetChecksumId = reader.ReadUInt();
         agreedChecksumId = reader.ReadUInt();
+        round = reader.ReadInt();
+    }
+}
+
+/// <summary>
+/// Iteration 5 (see the top-of-file iteration list): the counterpart to UndoRestoreAckMessage for a
+/// peer that CANNOT restore. Sent by a peer whose own Phase 4 recheck (CommitAsync, after Phase 2/3
+/// already agreed — see UndoCommitMessage's own doc comment) finds either that its NextId moved past
+/// the agreed clock, or that it never became idle again at all — see CommitAsync's own doc comment
+/// for why both are routed here identically. Before this message existed, a peer in either state
+/// just returned: it never restored (so it never sent UndoRestoreAckMessage either), which left the
+/// host's CheckAllAcked tally permanently one peer short and every peer's barrier
+/// (CombatManager.PlayerActionsDisabled) armed forever — the exact deadlock a live two-instance run
+/// measured (see this file's top-of-file iteration-5 note).
+///
+/// Same shape as UndoQuiesceReportMessage — target id, round, reporter id — and the same "host
+/// tallies, self-report never loops back" pattern every other host-tallied message here uses
+/// (RequestCommitRetryOrGiveUp calls RegisterCommitFailure directly when the reporting peer IS the
+/// host, exactly like SendQuiesceReport/SendRestoreAck do for their own host-self case).
+///
+/// `round` is UndoCommitMessage's own `round` field echoed back — RegisterCommitFailure checks it
+/// against the host-only _commitTargetId/_commitRound below before acting, so a stale report for an
+/// attempt the host has already retried or given up on (e.g. a second peer's own failure for the
+/// SAME round, arriving after the first one already claimed it) is a harmless no-op instead of a
+/// second, duplicate RequestNextQuiesceRound/UndoCancelMessage.
+///
+/// Handling this is NOT "the abort" itself — the host's decision (RegisterCommitFailure ->
+/// AdvanceQuiesceRoundOrGiveUp) either retries via the SAME UndoQuiesceRequestMessage/
+/// RequestNextQuiesceRound machinery Phase 3's own disagreement retry already uses, or, once the
+/// round budget is exhausted, gives up via the SAME UndoCancelMessage broadcast a rejected vote
+/// already uses — see AdvanceQuiesceRoundOrGiveUp's own doc comment. This message only ever gets a
+/// failure IN FRONT of the host so that decision can be made at all; it is not itself broadcast to
+/// other clients doing anything (ShouldBroadcast is true only for parity with every other message in
+/// this file — non-host recipients log it and return, same as OnVoteReceived/OnRestoreAckReceived/
+/// OnQuiesceReportReceived already do for their own host-only tallies).
+/// </summary>
+public record struct UndoCommitFailedMessage : INetMessage
+{
+    public bool ShouldBroadcast => true;
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.Info;
+    public bool ShouldBuffer => true;
+
+    public uint targetChecksumId;
+    public int round;
+    public ulong reporterNetId;
+
+    public void Serialize(PacketWriter writer)
+    {
+        writer.WriteUInt(targetChecksumId);
+        writer.WriteInt(round);
+        writer.WriteULong(reporterNetId);
+    }
+
+    public void Deserialize(PacketReader reader)
+    {
+        targetChecksumId = reader.ReadUInt();
+        round = reader.ReadInt();
+        reporterNetId = reader.ReadULong();
     }
 }
 
@@ -289,7 +362,7 @@ public record struct UndoResumeMessage : INetMessage
 //                 point after their action queue drains AND the shared checksum clock
 //                 catches up (see below). Any reject → UndoCancel.
 //
-// This went through four iterations, each closing a divergence a live two-instance run actually
+// This went through five iterations, each closing a divergence a live two-instance run actually
 // measured:
 //
 //   1. Original: each peer restored independently once idle, with nothing stopping a peer that
@@ -329,9 +402,36 @@ public record struct UndoResumeMessage : INetMessage
 //      ──" section further down for the full propose→vote→quiesce→agree→commit→ack→resume flow this
 //      replaces iteration 2/3's commit step with.
 //
+//   5. Iteration 4's own Phase 4 recheck (CommitAsync's "moved-since-agreement" gate) was, once it
+//      actually fired, WORSE than iteration 4's disease: a live two-instance run's host log showed
+//      quiesce round 0 AGREE at NextId=13, then — in the very same synchronous call, before the
+//      client had even received the commit broadcast — the host's own local NextId had already
+//      ticked to 14. CommitAsync logged "COMMIT ABORTED (phase 4, moved-since-agreement) ... skipping
+//      restore" and returned. Two compounding bugs, not one: (a) that bare `return` never sent
+//      UndoRestoreAckMessage, so the host's own CheckAllAcked tally sat one ack short FOREVER — every
+//      peer's barrier (CombatManager.PlayerActionsDisabled) stayed armed for the rest of combat, the
+//      run dying at turnsPlayed=0; (b) the comment on that abort said to "treat the next checksum
+//      mismatch ... as expected fallout of this peer alone not restoring" — i.e. it accepted exactly
+//      the split-brain (one peer restores, one doesn't) the whole quiesce-quorum handshake exists to
+//      prevent, rather than the transient "stale agreement" it actually was (an action landing between
+//      Phase 3 agreeing and Phase 4 rechecking — the same class of lag Phase 3's own disagreement
+//      retry already tolerates, just one phase later). Fix: a Phase 4 failure (moved-since-agreement,
+//      or the sibling "never re-idle" timeout) no longer returns silently. It reports itself to the
+//      host (UndoCommitFailedMessage, sent directly if the failing peer IS the host — a self-broadcast
+//      never loops back, same as every other message here) and the host retries through the SAME
+//      round machinery Phase 3's own disagreement already uses (AdvanceQuiesceRoundOrGiveUp,
+//      RequestNextQuiesceRound), bounded by the same MaxQuiesceRounds budget — not a second, parallel
+//      retry limit. Only once that budget is exhausted does the host abort the whole proposal, and it
+//      does so on EVERY peer via the same UndoCancelMessage broadcast a rejected vote already uses —
+//      never just locally. A try/finally around CommitAsync's whole body (see its own doc comment)
+//      guarantees one of these two outcomes — an ack, or a failure report — happens on every exit
+//      path, including an unhandled exception, so a peer can no longer vanish from the host's tally
+//      the way this bug did.
+//
 // See "── Cross-peer restore barrier ──" further down for the full arm/release mechanism, including
 // every path that can end a proposal without a commit (rejected vote, proposer cancel, timeout, or —
-// new in iteration 4 — exhausting the quiesce-quorum's own retry budget). See "── Quiescence-quorum
+// since iteration 4 — exhausting the quiesce-quorum's own retry budget, now reachable from a Phase 4
+// failure too, not only a Phase 3 disagreement — see iteration 5 above). See "── Quiescence-quorum
 // handshake ──" for what happens between the vote passing and the final commit.
 internal static class UndoProtocol
 {
@@ -367,6 +467,25 @@ internal static class UndoProtocol
     /// (CheckQuiesceRound). Cleared and rebuilt every round by RequestNextQuiesceRound. Harmless and
     /// unread on non-host peers, same as _acked.</summary>
     private static readonly Dictionary<ulong, uint> _quiesceReports = new();
+
+    /// <summary>Host-only: the target/round of the commit attempt most recently broadcast via
+    /// UndoCommitMessage (set in CheckQuiesceRound's AGREED branch), i.e. the attempt
+    /// RegisterCommitFailure below is currently willing to act on a failure report for. Deliberately
+    /// NOT the same field as _quiesceTargetId/_quiesceRound above: those get reset (ResetQuiesce) the
+    /// instant a commit is decided — CheckQuiesceRound's AGREED branch and OnCommitReceived both call
+    /// it right after kicking off CommitAsync — because Phase 2/3 legitimately consider themselves
+    /// "done" at that point. A Phase 4 failure, though, is discovered AFTER that reset already ran
+    /// (CommitAsync's own recheck happens inside the async call CheckQuiesceRound fires off, and for a
+    /// client it happens after an entire network round trip), so a guard reusing the already-cleared
+    /// _quiesceTargetId/_quiesceRound would reject every legitimate failure report as "stale" and this
+    /// fix would never fire. See RegisterCommitFailure's own doc comment for how this field's guard
+    /// keeps a second peer's failure report for the SAME already-claimed round from triggering a
+    /// second, duplicate retry/give-up.</summary>
+    private static uint? _commitTargetId;
+
+    /// <summary>Paired with _commitTargetId above — see that field's own doc comment. Not reset
+    /// alongside _quiesceRound by ResetQuiesce for the same reason.</summary>
+    private static int _commitRound;
 
     /// <summary>
     /// Fuzz-only auto-accept for the undo vote (MpFuzz step 3, Part A). When true,
@@ -508,13 +627,21 @@ internal static class UndoProtocol
     /// a moment before a legitimate, on-time report would have arrived.</summary>
     private const int QuiesceHostRoundMargin = 60; // ~1s at 60fps
 
-    /// <summary>Bound on how many quiesce rounds Phase 3 will attempt before giving up and cancelling
-    /// the undo (AdvanceQuiesceRoundOrGiveUp) — round 0 plus up to 2 retries. Disagreement is
-    /// measured to be transient and typically a single checksum id's worth of lag (see the
-    /// "── Quiescence-quorum handshake ──" section header for the exact failing stream this retries
-    /// past), so most real runs converge on round 0 or the first retry; a second retry is slack for
-    /// an unlucky repeat, not the expected path. Kept small deliberately — see BarrierTimeoutFrames's
-    /// own doc comment for how this bound feeds into the outer barrier timeout's arithmetic.</summary>
+    /// <summary>Bound on how many quiesce rounds this proposal will attempt before giving up and
+    /// cancelling the undo (AdvanceQuiesceRoundOrGiveUp) — round 0 plus up to 2 retries, SHARED
+    /// across both triggers that can now advance a round: a Phase 3 disagreement (peers settled at
+    /// different values) and, since iteration 5, a Phase 4 commit failure (peers agreed, but one
+    /// peer's own recheck immediately before restoring found it could not safely restore to that
+    /// agreement — see RegisterCommitFailure's own doc comment). Deliberately ONE budget, not a
+    /// separate counter per trigger — see AdvanceQuiesceRoundOrGiveUp's own doc comment for why both
+    /// funnel into the same round-advancing decision. Both causes are measured to be transient and
+    /// typically a single checksum id's worth of lag (see the "── Quiescence-quorum handshake ──"
+    /// section header for the exact failing stream Phase 3's own disagreement retries past, and this
+    /// file's top-of-file iteration-5 note for the equivalent Phase 4 case), so most real runs
+    /// converge on round 0 or the first retry regardless of which trigger caused it; a second retry is
+    /// slack for an unlucky repeat, not the expected path. Kept small deliberately — see
+    /// BarrierTimeoutFrames's own doc comment for how this bound feeds into the outer barrier
+    /// timeout's arithmetic.</summary>
     private const int MaxQuiesceRounds = 3;
 
     /// <summary>Phase 4's own bound (CommitAsync, after Phase 2/3 already agreed on a value): how
@@ -538,27 +665,33 @@ internal static class UndoProtocol
     ///   2. QuiesceWaitFrames + QuiesceHostRoundMargin — round 0 of the quiescence-quorum handshake
     ///      (see that section header), the host's own worst-case bound on it completing at all.
     ///   3. (MaxQuiesceRounds − 1) × (QuiesceRetryIntervalFrames + QuiesceRetryWaitFrames +
-    ///      QuiesceHostRoundMargin) — every retry round Phase 3 is allowed to attempt, each bounded
-    ///      the same way as round 0 but on the much shorter retry budget (see QuiesceRetryWaitFrames's
-    ///      own doc comment for why a retry doesn't need round 0's full budget). This is the ONE term
-    ///      that didn't exist before this handshake — a disagreement used to be impossible to detect
-    ///      at all, let alone retried.
-    ///   4. CommitReidleWaitFrames — Phase 4's own re-idle recheck immediately before RestoreTo.
+    ///      QuiesceHostRoundMargin + CommitReidleWaitFrames) — every retry round this handshake is
+    ///      allowed to attempt, each bounded the same way as round 0 but on the much shorter retry
+    ///      budget (see QuiesceRetryWaitFrames's own doc comment for why a retry doesn't need round
+    ///      0's full budget). The trailing + CommitReidleWaitFrames term is iteration 5 (see the
+    ///      top-of-file iteration list): since a Phase 4 failure (CommitAsync's moved-since-agreement
+    ///      or never-re-idle branches) now ALSO triggers a retry through this same round machinery
+    ///      (RegisterCommitFailure → AdvanceQuiesceRoundOrGiveUp), every retry round budgeted here
+    ///      might ITSELF reach agreement and then fail its own Phase 4 recheck before moving on to the
+    ///      next round — a window this bound has to cover too, not just the FINAL round's (term 4
+    ///      below already covers that one).
+    ///   4. CommitReidleWaitFrames — Phase 4's own re-idle recheck immediately before RestoreTo, for
+    ///      whichever round ends up being the last one attempted.
     ///   5. TimeoutFrames again — margin for the ack/resume round trip once every peer that needed to
     ///      restore actually has, the same margin every earlier design already reserved for this
     ///      phase alone.
-    /// With MaxQuiesceRounds = 3: 1800 + (3600+60) + 2×(30+300+60) + 300 + 1800 = 8340 frames, ~139s
-    /// total from the moment a barrier arms — about 19s more than the ~120s the retired
-    /// hostNextChecksumId design needed, entirely attributable to term 3 (up to 2 retry rounds) plus
-    /// term 4 (Phase 4's short re-idle recheck). The old middle term (a single CommitIdleWaitFrames
-    /// covering one combined idle+clock-catch-up wait) is gone entirely — Phase 2/3 replaces it with
-    /// something bounded but strictly larger, because unlike the old design it can actually RETRY
-    /// instead of silently proceeding through a disagreement it never detected.
+    /// With MaxQuiesceRounds = 3: 1800 + (3600+60) + 2×(30+300+60+300) + 300 + 1800 = 8940 frames,
+    /// ~149s total from the moment a barrier arms — 600 frames (~10s) more than iteration 4's own
+    /// 8340-frame bound, entirely attributable to the new tail of term 3 above (up to 2 retry rounds,
+    /// each now capable of its own Phase 4 failure before the NEXT round even starts). Without this
+    /// margin, a barrier could theoretically be released here — "may now be DIVERGENT", per this
+    /// watchdog's own log line — WHILE a legitimate, still-converging retry sequence was in progress,
+    /// which would defeat the whole point of iteration 5's retry-instead-of-abort fix.
     /// </summary>
     private const int BarrierTimeoutFrames =
         TimeoutFrames
         + (QuiesceWaitFrames + QuiesceHostRoundMargin)
-        + (MaxQuiesceRounds - 1) * (QuiesceRetryIntervalFrames + QuiesceRetryWaitFrames + QuiesceHostRoundMargin)
+        + (MaxQuiesceRounds - 1) * (QuiesceRetryIntervalFrames + QuiesceRetryWaitFrames + QuiesceHostRoundMargin + CommitReidleWaitFrames)
         + CommitReidleWaitFrames
         + TimeoutFrames;
 
@@ -574,6 +707,7 @@ internal static class UndoProtocol
             _registeredService.UnregisterMessageHandler<UndoQuiesceRequestMessage>(OnQuiesceRequestReceived);
             _registeredService.UnregisterMessageHandler<UndoQuiesceReportMessage>(OnQuiesceReportReceived);
             _registeredService.UnregisterMessageHandler<UndoCommitMessage>(OnCommitReceived);
+            _registeredService.UnregisterMessageHandler<UndoCommitFailedMessage>(OnCommitFailedReceived);
             _registeredService.UnregisterMessageHandler<UndoCancelMessage>(OnCancelReceived);
             _registeredService.UnregisterMessageHandler<UndoRestoreAckMessage>(OnRestoreAckReceived);
             _registeredService.UnregisterMessageHandler<UndoResumeMessage>(OnResumeReceived);
@@ -583,6 +717,7 @@ internal static class UndoProtocol
         svc.RegisterMessageHandler<UndoQuiesceRequestMessage>(OnQuiesceRequestReceived);
         svc.RegisterMessageHandler<UndoQuiesceReportMessage>(OnQuiesceReportReceived);
         svc.RegisterMessageHandler<UndoCommitMessage>(OnCommitReceived);
+        svc.RegisterMessageHandler<UndoCommitFailedMessage>(OnCommitFailedReceived);
         svc.RegisterMessageHandler<UndoCancelMessage>(OnCancelReceived);
         svc.RegisterMessageHandler<UndoRestoreAckMessage>(OnRestoreAckReceived);
         svc.RegisterMessageHandler<UndoResumeMessage>(OnResumeReceived);
@@ -881,9 +1016,20 @@ internal static class UndoProtocol
         if (_barrierTargetId != msg.targetChecksumId)
             Log.Write($"[UndoProtocol] OnCommitReceived: barrier target mismatch — armed for {(_barrierTargetId?.ToString() ?? "none")}, commit says {msg.targetChecksumId}. This should be impossible now that the barrier arms at proposal time; investigate if seen.");
         ClosePopup();
-        _ = CommitAsync(msg.targetChecksumId, msg.agreedChecksumId);
+        _ = CommitAsync(msg.targetChecksumId, msg.agreedChecksumId, msg.round);
         ResetPending(); // no-op by now on every peer except a host that somehow reached here (it never does — self-broadcast)
         ResetQuiesce();
+    }
+
+    /// <summary>Host-only: dispatch for UndoCommitFailedMessage — see that message's own doc comment.
+    /// Thin, same shape as OnQuiesceReportReceived/OnRestoreAckReceived: the real staleness/target
+    /// guard lives in RegisterCommitFailure (it also has to run for the host's OWN failure, which
+    /// never arrives as a message — see RequestCommitRetryOrGiveUp).</summary>
+    private static void OnCommitFailedReceived(UndoCommitFailedMessage msg, ulong senderId)
+    {
+        Log.Write($"[UndoProtocol] Commit failure reported by {msg.reporterNetId}: round={msg.round} (target id={msg.targetChecksumId})");
+        if (_registeredService?.Type != NetGameType.Host) return; // host decides retry vs give up
+        RegisterCommitFailure(msg.targetChecksumId, msg.round);
     }
 
     private static void OnCancelReceived(UndoCancelMessage msg, ulong senderId)
@@ -1153,8 +1299,14 @@ internal static class UndoProtocol
         {
             uint agreed = distinctValues[0];
             Log.Write($"[UndoProtocol] Quiesce round {round} AGREED at NextId={agreed} for id={targetId} — committing. Reports: {reportDump}");
-            _registeredService?.SendMessage(new UndoCommitMessage { targetChecksumId = targetId, agreedChecksumId = agreed });
-            _ = CommitAsync(targetId, agreed);
+            // Claim this attempt for RegisterCommitFailure's own guard BEFORE firing off CommitAsync
+            // — see _commitTargetId's own doc comment for why this can't reuse _quiesceTargetId/
+            // _quiesceRound (ResetQuiesce below clears those right after this branch, but a Phase 4
+            // failure for THIS attempt can still be reported well after that reset runs).
+            _commitTargetId = targetId;
+            _commitRound = round;
+            _registeredService?.SendMessage(new UndoCommitMessage { targetChecksumId = targetId, agreedChecksumId = agreed, round = round });
+            _ = CommitAsync(targetId, agreed, round);
             ResetQuiesce();
             return;
         }
@@ -1162,10 +1314,26 @@ internal static class UndoProtocol
     }
 
     /// <summary>
-    /// Host-only: shared tail for CheckQuiesceRound's "reports disagreed" branch AND
-    /// QuiesceRoundTimeoutWatchdog's "never heard from everyone" branch — from the host's point of
-    /// view both are the SAME outcome (this round did not produce a unanimous, complete report set),
-    /// so both retry or give up identically.
+    /// Host-only: shared tail for THREE distinct triggers, all reduced to the same round-budget
+    /// decision — from the host's point of view each means "this attempt did not end in every peer
+    /// provably safe to restore", so all three retry or give up identically:
+    ///   - CheckQuiesceRound's "reports disagreed" branch (a Phase 3 disagreement — peers settled at
+    ///     different NextId values).
+    ///   - QuiesceRoundTimeoutWatchdog's "never heard from everyone" branch (also Phase 3 — one or
+    ///     more peers never reported at all within the round's bound).
+    ///   - RegisterCommitFailure (Phase 4 — added in iteration 5, see the top-of-file iteration list):
+    ///     Phase 2/3 DID agree, but a peer's own recheck immediately before restoring
+    ///     (CommitAsync's moved-since-agreement or never-re-idle branches) found it could not safely
+    ///     restore to that agreement after all.
+    /// `reportDump` is a free-form detail string for the log line, not necessarily a dump of
+    /// _quiesceReports — RegisterCommitFailure passes a Phase-4-specific description instead, since a
+    /// Phase 4 failure has no per-peer settledChecksumId tally to dump. See CommitAsync's own doc
+    /// comment and this file's top-of-file iteration-5 note for why a Phase 4 failure is deliberately
+    /// funnelled into this SAME function rather than a second, parallel retry/give-up mechanism — a
+    /// stale agreement (Phase 4) and a disagreement that never formed (Phase 3) are different CAUSES
+    /// (kept distinct in the log line that calls this — see CommitAsync's own "moved-since-agreement"
+    /// vs this file's "did not converge"/"did not hear from" phase-3 lines) but the SAME remedy: ask
+    /// again, bounded by the same round budget, or give up.
     ///
     /// RETRY (round + 1 &lt; MaxQuiesceRounds): this is the expected, transient case — see the
     /// "── Quiescence-quorum handshake ──" section header. Discards this round's reports and asks
@@ -1177,12 +1345,16 @@ internal static class UndoProtocol
     /// path (releasing the barrier everywhere, the same as a rejected vote) rather than ever
     /// committing to a value the peers never actually agreed on, and logs every peer's LAST reported
     /// value so a genuine divergence (as opposed to ordinary lag) is at least diagnosable afterward.
+    /// AbortedProposalCount (MpFuzz step 3 proof-of-exercise counter — see its own doc comment) is
+    /// incremented here, unconditionally, since this IS "the whole proposal aborted on every peer"
+    /// regardless of which of the three triggers above caused it.
     /// </summary>
     private static void AdvanceQuiesceRoundOrGiveUp(uint targetId, int round, string reportDump)
     {
         if (round + 1 >= MaxQuiesceRounds)
         {
-            Log.Write($"[UndoProtocol] QUIESCE FAILED for id={targetId}: no unanimous, complete report set within {MaxQuiesceRounds} rounds — cancelling. Last reports: {reportDump}");
+            Log.Write($"[UndoProtocol] QUIESCE FAILED for id={targetId}: round budget ({MaxQuiesceRounds}) exhausted — cancelling on every peer. {reportDump}");
+            AbortedProposalCount++;
             _registeredService?.SendMessage(new UndoCancelMessage { targetChecksumId = targetId, byNetId = MyNetId });
             ClosePopup();
             ReleaseBarrierForTarget(targetId);
@@ -1190,7 +1362,7 @@ internal static class UndoProtocol
             ResetQuiesce();
             return;
         }
-        Log.Write($"[UndoProtocol] Quiesce round {round} did not converge for id={targetId} (expected — one or more peers were behind or slow to report): {reportDump}. Retrying round {round + 1} after a short interval.");
+        Log.Write($"[UndoProtocol] Round {round} did not produce a safe-to-restore agreement for id={targetId} (expected — one or more peers were behind or slow): {reportDump}. Retrying round {round + 1} after a short interval.");
         _ = RetryQuiesceRoundAfterInterval(targetId, round + 1);
     }
 
@@ -1205,11 +1377,11 @@ internal static class UndoProtocol
             var tree = NGame.Instance?.GetTree();
             for (int i = 0; i < QuiesceRetryIntervalFrames; i++)
             {
-                if (_quiesceTargetId != targetId) return; // resolved/cancelled/combat ended while waiting
+                if (!ProposalStillLive(targetId)) return; // resolved/cancelled/combat ended while waiting
                 if (tree == null) break;
                 await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
             }
-            if (_quiesceTargetId != targetId) return;
+            if (!ProposalStillLive(targetId)) return;
             RequestNextQuiesceRound(targetId, nextRound);
         }
         catch (Exception ex)
@@ -1217,6 +1389,21 @@ internal static class UndoProtocol
             Log.Write($"[UndoProtocol] RetryQuiesceRoundAfterInterval ERROR: {ex.Message}");
         }
     }
+
+    /// <summary>Host-only liveness check for the wait between AdvanceQuiesceRoundOrGiveUp deciding to
+    /// retry and RequestNextQuiesceRound actually firing (RetryQuiesceRoundAfterInterval's own wait
+    /// above). Deliberately checks _commitTargetId as well as _quiesceTargetId, not just the latter:
+    /// a retry triggered by a Phase 3 disagreement finds _quiesceTargetId still live (Phase 3 never
+    /// resets it mid-round), but a retry triggered by a Phase 4 failure (RegisterCommitFailure) runs
+    /// AFTER CheckQuiesceRound's AGREED branch already called ResetQuiesce — _quiesceTargetId is null
+    /// by then, and _commitTargetId (set in that same AGREED branch, and NOT cleared until the whole
+    /// proposal resolves — see its own doc comment) is the only field still correctly tracking that
+    /// this proposal is alive. Either field matching is "still live"; both clear (or mismatched) at
+    /// once only happens when something else has definitively ended this proposal — a give-up cancel,
+    /// a normal resume, or combat ending (ResetQuiesce/ResetBarrier both run together on every one of
+    /// those paths).</summary>
+    private static bool ProposalStillLive(uint targetId) =>
+        _quiesceTargetId == targetId || _commitTargetId == targetId;
 
     /// <summary>
     /// Host-only: the ABSOLUTE bound on a single round actually completing (CheckQuiesceRound being
@@ -1269,6 +1456,51 @@ internal static class UndoProtocol
         _quiesceTargetId = null;
         _quiesceRound = 0;
         _quiesceReports.Clear();
+    }
+
+    /// <summary>
+    /// Host-only: routes one peer's Phase 4 failure (see UndoCommitFailedMessage's own doc comment —
+    /// reached either via that message, from a client, or directly via RequestCommitRetryOrGiveUp
+    /// when the failing peer IS the host) into the SAME retry-or-give-up decision Phase 3's own
+    /// disagreement handling already uses (AdvanceQuiesceRoundOrGiveUp) — see that method's own doc
+    /// comment for why both causes share one function instead of a second, parallel one.
+    ///
+    /// Guarded against _commitTargetId/_commitRound, NOT _quiesceTargetId/_quiesceRound — see
+    /// _commitTargetId's own doc comment for why. `round` is claimed (advanced to round + 1)
+    /// IMMEDIATELY, before AdvanceQuiesceRoundOrGiveUp is even called, not after it returns: two
+    /// peers can independently fail the SAME attempt (e.g. the host's own CommitAsync fails at the
+    /// same moment a client's does too), and their two failure reports can both reach this function
+    /// before either retry has had a chance to change anything else. Claiming the round up front
+    /// means the SECOND report to arrive sees _commitRound already advanced past what it expected and
+    /// is dropped as stale, rather than triggering a second, duplicate RequestNextQuiesceRound (or, if
+    /// the round budget was already exhausted, a second UndoCancelMessage/ReleaseBarrierForTarget).
+    /// </summary>
+    private static void RegisterCommitFailure(uint targetId, int round)
+    {
+        if (_commitTargetId != targetId || round != _commitRound) return;
+        _commitRound = round + 1;
+        AdvanceQuiesceRoundOrGiveUp(targetId, round,
+            "Phase 4 commit failure reported (see the reporting peer's own COMMIT ABORTED/COMMIT TIMEOUT log line above for the exact cause).");
+    }
+
+    /// <summary>
+    /// The peer-side half of a Phase 4 failure — called from CommitAsync's finally block (see that
+    /// method's own doc comment) once it has determined this peer will NOT be sending
+    /// UndoRestoreAckMessage for this attempt. Mirrors SubmitLocalVote/SendQuiesceReport/
+    /// SendRestoreAck's own "host's own broadcast never loops back to itself" special case: if this
+    /// peer IS the host, RegisterCommitFailure is called directly instead of round-tripping a message
+    /// to itself; otherwise UndoCommitFailedMessage carries the report to the host, which is the only
+    /// peer that can decide to retry (RequestNextQuiesceRound broadcasts UndoQuiesceRequestMessage,
+    /// documented as host-only) or give up (UndoCancelMessage).
+    /// </summary>
+    private static void RequestCommitRetryOrGiveUp(uint targetId, int round)
+    {
+        var svc = _registeredService;
+        if (svc == null) return;
+        if (svc.Type == NetGameType.Host)
+            RegisterCommitFailure(targetId, round);
+        else
+            svc.SendMessage(new UndoCommitFailedMessage { targetChecksumId = targetId, round = round, reporterNetId = MyNetId });
     }
 
     /// <summary>Sends this peer's own restore ack after a successful local restore (called from
@@ -1328,6 +1560,27 @@ internal static class UndoProtocol
     /// — see that method's own doc comment. Read by MpFuzz's step-10 summary; expected to stay zero
     /// for every run.</summary>
     internal static int SelectionPendingViolations;
+
+    /// <summary>Iteration 5 (see the top-of-file iteration list) proof-of-exercise counter.
+    /// Incremented once per peer, every time THAT peer's own CommitAsync finds its NextId moved past
+    /// the agreed clock (the "moved-since-agreement" branch — see CommitAsync's own doc comment) and
+    /// requests a fresh quiesce round instead of the old silent, un-acked return. Runs unconditionally
+    /// on whichever peer detects it, host or client alike, same as CommitCount above — NOT
+    /// host-only, unlike AbortedProposalCount below, since detection itself happens locally on
+    /// whichever peer's own clock moved, before any message to the host is even sent. A fuzz run that
+    /// never advances this counter has not exercised the retry path this fix adds, only the ordinary
+    /// success path — see MpFuzz's own summary line for where this is surfaced.</summary>
+    internal static int CommitRetryAfterClockMoveCount;
+
+    /// <summary>Iteration 5 proof-of-exercise counter, host-only (see AdvanceQuiesceRoundOrGiveUp's
+    /// own doc comment — every caller of the branch that increments this is host-only). Incremented
+    /// once per proposal that the round budget (MaxQuiesceRounds) was exhausted for and that was
+    /// therefore cancelled on every peer via UndoCancelMessage — whether the exhaustion was driven by
+    /// a Phase 3 disagreement (pre-existing) or a Phase 4 commit failure (new in iteration 5). Reads
+    /// zero on a non-host peer, same as _quiesceReports/_acked — that peer only ever learns of the
+    /// abort via OnCancelReceived, which does not (and should not) duplicate the host's own count.
+    /// </summary>
+    internal static int AbortedProposalCount;
 
     /// <summary>
     /// Part C (step 3) proof, not a new guard — the task this was built for asked to verify, not
@@ -1392,19 +1645,39 @@ internal static class UndoProtocol
     ///   2. THIS PEER'S OWN NextId STILL EQUALS agreedChecksumId, re-checked ONCE — not a wait loop
     ///      like gate 1, because by construction NextId cannot still be APPROACHING agreedChecksumId
     ///      here (Phase 2 already proved it reached and held there); it can only have STAYED or
-    ///      MOVED PAST. If it moved, this peer does not restore — logged as "moved-since-agreement",
-    ///      deliberately distinct from a Phase 3 disagreement: a Phase 3 disagreement means peers
-    ///      never agreed in the first place, while this means one peer moved AFTER everyone agreed —
-    ///      a different failure, and this project has already been bitten once by conflating two
-    ///      distinct causes under one message (the old "AHEAD" vs "TIMEOUT" split this replaces).
+    ///      MOVED PAST. If it moved, logged as "moved-since-agreement", deliberately distinct from a
+    ///      Phase 3 disagreement: a Phase 3 disagreement means peers never agreed in the first place,
+    ///      while this means one peer moved AFTER everyone agreed — a different failure, and this
+    ///      project has already been bitten once by conflating two distinct causes under one message
+    ///      (the old "AHEAD" vs "TIMEOUT" split this replaces).
+    ///
+    /// Iteration 5 (see the top-of-file iteration list) changed what happens when gate 2 fails, or
+    /// gate 1 never opens within CommitReidleWaitFrames ("never re-idle"): this peer no longer just
+    /// returns. A live two-instance run measured that the OLD bare-return left this peer's own
+    /// UndoRestoreAckMessage un-sent forever, which left the host's CheckAllAcked tally one ack short
+    /// forever, which left EVERY peer's restore barrier (CombatManager.PlayerActionsDisabled) armed
+    /// for the rest of combat. Both non-restoring branches, and TryGetSyncPoint's own missing-sync-
+    /// point branch, now leave `resolved` false and fall through to the finally block below, which
+    /// reports the failure to the host (RequestCommitRetryOrGiveUp) so it can retry through the SAME
+    /// round machinery Phase 3's own disagreement already uses (AdvanceQuiesceRoundOrGiveUp), bounded
+    /// by the same MaxQuiesceRounds — never a second, parallel retry limit, and never a value this
+    /// peer decides to accept as "expected fallout" the way the retired design's comment used to.
     /// </summary>
-    private static async Task CommitAsync(uint targetId, uint agreedChecksumId)
+    private static async Task CommitAsync(uint targetId, uint agreedChecksumId, int round)
     {
+        // True once this peer has definitely done ONE of: sent UndoRestoreAckMessage (successful
+        // restore), or reached a state some OTHER mechanism already owns the resolution of (combat
+        // ended — ResetOnCombatEnd). Everything else — a missing sync point, moved-since-agreement,
+        // never-re-idle, or an outright exception — must NOT leave the host's tally silently one peer
+        // short, so the finally block below reports it exactly once, from a single place, rather than
+        // a release/report call copied into every early-return branch (and therefore easy to miss
+        // adding to a future one).
+        bool resolved = false;
         try
         {
             if (!ChecksumHook.TryGetSyncPoint(targetId, out var sp))
             {
-                Log.Write($"[UndoProtocol] COMMIT FAILED: missing sync point id={targetId} — peers may diverge!");
+                Log.Write($"[UndoProtocol] COMMIT FAILED: missing sync point id={targetId} for this peer — requesting a retry/give-up decision instead of leaving the host's ack tally short.");
                 return;
             }
             var tree = NGame.Instance?.GetTree();
@@ -1414,6 +1687,14 @@ internal static class UndoProtocol
                 if (cm == null || !cm.IsInProgress)
                 {
                     Log.Write("[UndoProtocol] Commit aborted: combat ended before restore");
+                    // ResetOnCombatEnd (via CombatManager.Reset's Harmony postfix) already owns
+                    // cleanup for this peer's barrier/pending/quiesce bookkeeping without touching
+                    // PlayerActionsDisabled itself (see ResetBarrier's own doc comment) — reporting a
+                    // Phase 4 failure for a proposal whose combat no longer exists would be pointless
+                    // at best (the host may already be resetting for the SAME reason) and risks racing
+                    // a brand new proposal from the NEXT combat at worst, so this is deliberately
+                    // treated as already-resolved rather than routed through RequestCommitRetryOrGiveUp.
+                    resolved = true;
                     return;
                 }
                 if (IsLocallyIdle())
@@ -1422,11 +1703,14 @@ internal static class UndoProtocol
                     if (localNextId != agreedChecksumId)
                     {
                         // See this method's own doc comment for why this is distinct from a Phase 3
-                        // disagreement. Nothing to wait for: Phase 2 already proved every peer
-                        // reached agreedChecksumId, so if this peer's clock has since moved off it,
-                        // waiting longer cannot bring it back (NextId cannot be rewound —
-                        // ChecksumHook.RestoreTo's own step-3 comment).
-                        Log.Write($"[UndoProtocol] COMMIT ABORTED (phase 4, moved-since-agreement) for id={targetId}: local NextId={localNextId} no longer equals the agreed clock={agreedChecksumId} — skipping restore. Treat the next checksum mismatch, if any, as expected fallout of this peer alone not restoring, not a new bug.");
+                        // disagreement, and why it now retries instead of accepting the divergence.
+                        // Nothing to wait for locally: Phase 2 already proved every peer reached
+                        // agreedChecksumId, so if THIS peer's clock has since moved off it, waiting
+                        // longer on this peer alone cannot bring it back (NextId cannot be rewound —
+                        // ChecksumHook.RestoreTo's own step-3 comment) — a FRESH quiesce round is what
+                        // gives every peer a new, current value to agree on instead.
+                        CommitRetryAfterClockMoveCount++;
+                        Log.Write($"[UndoProtocol] COMMIT ABORTED (phase 4, moved-since-agreement) for id={targetId}: local NextId={localNextId} no longer equals the agreed clock={agreedChecksumId} — requesting a fresh quiesce round rather than restoring alone.");
                         return;
                     }
                     // Part C (step 3) proof — see AssertQueueEmptyOrRecordViolation's own doc
@@ -1441,21 +1725,29 @@ internal static class UndoProtocol
                     // missing/threw): the ack means "I finished restoring", independent of whether
                     // the barrier itself is enforcing that on this peer.
                     SendRestoreAck(sp.ChecksumId);
+                    resolved = true;
                     return;
                 }
                 if (tree == null) break;
                 await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
             }
-            Log.Write($"[UndoProtocol] COMMIT TIMEOUT (phase 4, never re-idle) for id={targetId}: did not observe an idle play phase again within {CommitReidleWaitFrames} frames (~{CommitReidleWaitFrames / 60}s) of the final commit — skipping restore. This should be rare: Phase 2 already proved this peer idle moments earlier, and nothing should be able to end that while the barrier is armed.");
-            // No ack is sent — this peer never restored. If combat is still in progress, this
-            // peer's own barrier stays armed and BarrierTimeoutWatchdog's bound is what eventually
-            // frees it; if combat ended, ResetOnCombatEnd (via CombatManager.Reset's Harmony
-            // postfix) clears the barrier bookkeeping instead — see ResetBarrier's own doc comment
-            // for why that path deliberately does not touch PlayerActionsDisabled itself.
+            Log.Write($"[UndoProtocol] COMMIT TIMEOUT (phase 4, never re-idle) for id={targetId}: did not observe an idle play phase again within {CommitReidleWaitFrames} frames (~{CommitReidleWaitFrames / 60}s) of the final commit — requesting a retry/give-up decision. This should be rare: Phase 2 already proved this peer idle moments earlier, and nothing should be able to end that while the barrier is armed.");
         }
         catch (Exception ex)
         {
             Log.Write($"[UndoProtocol] CommitAsync ERROR: {ex}");
+        }
+        finally
+        {
+            // See this method's own doc comment and `resolved`'s own comment above. Deliberately a
+            // single call site outside every branch, not one copied into each early return: a
+            // release/report statement duplicated per-branch is exactly the shape that let the
+            // moved-since-agreement and never-re-idle branches silently diverge from each other
+            // before this fix (one had a comment claiming the resulting divergence was fine; neither
+            // told the host anything). This also fires for the exception path above, which the old
+            // code left with no ack AND no cancel — the same barrier-hang defect by a different route.
+            if (!resolved)
+                RequestCommitRetryOrGiveUp(targetId, round);
         }
     }
 
@@ -1492,10 +1784,22 @@ internal static class UndoProtocol
     //     may never arrive. (This bound only covers the VOTE phase — see OnQuiesceRequestReceived's
     //     own doc comment for why ResetPending at round 0 stops this watchdog before the quiesce
     //     phase's own, longer bounds take over.)
-    //   - the quiescence-quorum handshake EXHAUSTS its retry budget without ever reaching a
-    //     unanimous, complete report set (new in iteration 4 — see AdvanceQuiesceRoundOrGiveUp's own
-    //     doc comment) → the host sends UndoCancelMessage exactly like a rejected vote, releasing its
-    //     own barrier directly; every other peer again releases via OnCancelReceived.
+    //   - the quiescence-quorum handshake EXHAUSTS its retry budget — either because Phase 3 never
+    //     reached a unanimous, complete report set (new in iteration 4), or because Phase 2/3 DID
+    //     agree but a peer's own Phase 4 recheck then failed and every retry this triggered (new in
+    //     iteration 5 — RegisterCommitFailure/RequestCommitRetryOrGiveUp, see their own doc comments)
+    //     also failed to reach a fresh, restorable agreement — see AdvanceQuiesceRoundOrGiveUp's own
+    //     doc comment for why both causes share one give-up branch → the host sends UndoCancelMessage
+    //     exactly like a rejected vote, releasing its own barrier directly; every other peer again
+    //     releases via OnCancelReceived.
+    //   - a Phase 4 failure on some peer does NOT, by itself, release that peer's own barrier — see
+    //     CommitAsync's own doc comment. It only ever resolves through one of the two paths above:
+    //     either a RETRY succeeds and that peer goes on to ack normally, or the round budget above is
+    //     exhausted and the barrier comes down via the SAME UndoCancelMessage broadcast every peer
+    //     gets. A peer releasing itself unilaterally the moment its own Phase 4 recheck fails would
+    //     free it to act while every OTHER peer, still waiting on this peer's now-missing ack, stayed
+    //     barriered — exactly the split-brain (one peer restored, or is free to act, while another
+    //     is not) this whole handshake exists to prevent.
     //   - none of the above ever fires → BarrierTimeoutWatchdog's own bound (BarrierTimeoutFrames,
     //     now sized to cover the vote phase, the quiesce-quorum phase (including its retry budget),
     //     the final commit's own re-idle recheck, AND the ack/resume margin — see that constant's own
@@ -1619,7 +1923,12 @@ internal static class UndoProtocol
     /// state that no longer belongs to this call. Called from every path that can end a proposal
     /// (see the "── Cross-peer restore barrier ──" section header for the full list), which is
     /// exactly why this no-op matters: most of those call sites call it unconditionally, without
-    /// first checking that this peer's barrier is definitely still the one they think it is.</summary>
+    /// first checking that this peer's barrier is definitely still the one they think it is.
+    ///
+    /// Also clears _commitTargetId (host-only; harmless if already null on a client — see that
+    /// field's own doc comment) since every call site here is a point where the WHOLE proposal is
+    /// concluding, one way or another — the same reason _acked.Clear() already lives here rather than
+    /// only in ArmBarrierForProposal.</summary>
     private static void ReleaseBarrierForTarget(uint targetId)
     {
         if (_barrierTargetId != targetId)
@@ -1631,6 +1940,7 @@ internal static class UndoProtocol
         _barrierTargetId = null;
         _barrierGeneration++;
         _acked.Clear();
+        _commitTargetId = null;
     }
 
     /// <summary>
@@ -1865,6 +2175,7 @@ internal static class UndoProtocol
         _barrierGeneration++;
         _barrierPreviousActionsDisabled = null;
         _acked.Clear();
+        _commitTargetId = null; // see ReleaseBarrierForTarget's own comment on the same field
     }
 
     /// <summary>Combat ended — drop any in-flight proposal, its popup, and any in-flight restore

@@ -5,10 +5,11 @@ using System.Text.RegularExpressions;
 
 // SurfaceCheck — verifies, without launching the game, whether a game update breaks UndoSync's assumptions.
 //
-//   dotnet run -- check                 : run all four checks; exit 1 on any finding
+//   dotnet run -- check                 : run all five checks; exit 1 on any finding
 //   dotnet run -- baseline              : regenerate surface-baseline.json from the current game DLL
 //   dotnet run -- coverage-baseline     : top up snapshot-coverage.json with newly-seen fields
 //   dotnet run -- copy-fields-baseline  : top up copy-fields.json with newly-seen fields
+//   dotnet run -- net-state-baseline    : top up net-state-fields.json with newly-seen fields
 //
 // Check 1 (reflection targets): extract every AccessTools.*/[HarmonyPatch] string
 //   reference from the mod source and verify it still exists in the game assembly.
@@ -37,6 +38,24 @@ using System.Text.RegularExpressions;
 //   hit, where CardModel._energyCost kept its name but CardEnergyCost._card ended up
 //   pointing at a discarded clone — and so the 200+ entry backlog can be triaged by risk
 //   instead of reviewed flat.
+// Check 5 (NetFullCombatState field ledger): NetFullCombatState is exactly what
+//   ChecksumTracker hashes and compares across peers (ChecksumTracker.cs:160 calls
+//   NetFullCombatState.FromRun(_runState, action); GenerateChecksum(NetFullCombatState) at
+//   :295-301 serializes it and XxHash32's the bytes) — so its own field surface, plus every
+//   nested IPacketSerializable struct it recursively serializes (CreatureState/PowerState/
+//   OrbState/PlayerState/CombatPileState/CardState/PotionState/RelicState), IS the exact
+//   specification of "what must be identical after a restore." Checks 1-4 answer questions
+//   about the mod's OWN assumptions (reflection targets, state-type surface, snapshot
+//   coverage, copy-field ledger); Check 5 instead starts from the GAME's own authoritative
+//   list of checksummed fields and asks, for each one, "does UndoSync's snapshot/restore (or
+//   Check 3/4's existing ledgers, for fields covered by CardModel/OrbModel/PotionModel/
+//   RelicModel's wholesale reflective copy) actually account for it?" — the question that
+//   would have caught nextRewardIds (NetFullCombatState.cs:371/394) going unrestored: it
+//   was present in Check 2's own surface-baseline.json the whole time, but nothing ever
+//   asked "is this field, specifically, captured and restored somewhere?" Same ledger
+//   shape/mechanics as Check 4 (net-state-fields.json: stale/type-changed/empty-reason all
+//   FAIL; "UNREVIEWED" is a valid non-empty placeholder that shows up in a backlog, not a
+//   silent pass) — see net-state-baseline below for how it's populated.
 
 var mode = args.Length > 0 ? args[0] : "check";
 string gameDataDir = ArgValue("--game") ?? Path.Combine(
@@ -46,6 +65,7 @@ string modSrcDir = ArgValue("--mod") ?? FindUp("UndoSync");
 string baselinePath = ArgValue("--baseline") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "surface-baseline.json");
 string coveragePath = ArgValue("--coverage") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "snapshot-coverage.json");
 string copyFieldsPath = ArgValue("--copy-fields") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "copy-fields.json");
+string netStatePath = ArgValue("--net-state") ?? Path.Combine(FindUp("tools"), "SurfaceCheck", "net-state-fields.json");
 
 string? ArgValue(string name)
 {
@@ -459,6 +479,84 @@ if (mode == "copy-fields-baseline")
     return failures == 0 ? 0 : 1;
 }
 
+// ───────────── Check 5 data: NetFullCombatState's checksummed field surface ─────────────
+//
+// NetFullCombatState.Serialize/Deserialize (NetFullCombatState.cs:469-521) touch exactly its 7
+// declared members (nextChoiceIds, nextRewardIds, lastExecutedActionId, lastExecutedHookId,
+// Creatures, Players, Rng), and each nested IPacketSerializable struct's own Serialize/
+// Deserialize likewise touches exactly that struct's own declared fields (verified by reading
+// NetFullCombatState.cs directly — every nested struct's Serialize method writes every field it
+// declares, no exceptions). So walking every declared field of NetFullCombatState plus its
+// nested IPacketSerializable struct types reconstructs the exact checksummed field surface
+// without needing to parse the hand-written Serialize bodies themselves at runtime. The
+// IPacketSerializable filter (rather than "every nested type") excludes compiler-generated
+// nested types NetFullCombatState.ToString()'s lambdas produce (e.g. an `<>c` cached-delegate
+// holder) that aren't part of the wire format.
+string netStateRootTypeName = "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState";
+const string IPacketSerializableFullName = "MegaCrit.Sts2.Core.Multiplayer.Serialization.IPacketSerializable";
+var netStateFieldsLive = new SortedDictionary<string, string>(StringComparer.Ordinal); // key -> field type full name
+var netStateRoot = Resolve(netStateRootTypeName);
+int netStateTypeCount = 0;
+if (netStateRoot == null)
+{
+    Console.WriteLine($"  WARN  Check 5 root type unresolved: {netStateRootTypeName}");
+}
+else
+{
+    var netStateTypes = new List<Type> { netStateRoot };
+    netStateTypes.AddRange(netStateRoot.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
+        .Where(t => t.GetInterfaces().Any(i => i.FullName == IPacketSerializableFullName)));
+    netStateTypeCount = netStateTypes.Count;
+
+    foreach (var t in netStateTypes)
+        foreach (var f in t.GetFields(InstanceDeclared))
+            netStateFieldsLive[$"{t.FullName}.{f.Name}"] = f.FieldType.FullName ?? f.FieldType.Name;
+}
+
+// Same ledger shape as copy-fields.json (Type + Reason), minus the risk bucket: that field
+// exists there to flag CopyMutableFields' aliasing risk, which has no equivalent here — this
+// ledger's only question per field is "is its post-restore value accounted for", so a reason
+// string covers it.
+SortedDictionary<string, NetStateFieldEntry> LoadNetStateFields(string path)
+{
+    if (!File.Exists(path)) return new SortedDictionary<string, NetStateFieldEntry>(StringComparer.Ordinal);
+    return JsonSerializer.Deserialize<SortedDictionary<string, NetStateFieldEntry>>(File.ReadAllText(path))!;
+}
+
+if (mode == "net-state-baseline")
+{
+    var netStateFields = LoadNetStateFields(netStatePath);
+
+    // Drop stale entries: named in the ledger but no longer part of the live checksummed
+    // surface (renamed/removed field on NetFullCombatState or one of its nested structs).
+    int droppedNs = 0;
+    foreach (var staleKey in netStateFields.Keys.Where(k => !netStateFieldsLive.ContainsKey(k)).ToList())
+    {
+        netStateFields.Remove(staleKey);
+        droppedNs++;
+    }
+
+    // PRESERVE every remaining entry's reason AND recorded type verbatim — a real type change
+    // (e.g. nextRewardIds widening from List<int> to List<long>) must surface as a `check`
+    // failure below, not be silently absorbed by re-running this. Only ever fill in a blank
+    // type (first-time baseline) or add a brand-new key, as UNREVIEWED.
+    int addedNs = 0;
+    foreach (var (key, typeFullName) in netStateFieldsLive)
+    {
+        if (netStateFields.TryGetValue(key, out var existing))
+        {
+            if (existing.Type.Length == 0) existing.Type = typeFullName;
+            continue;
+        }
+        netStateFields[key] = new NetStateFieldEntry { Type = typeFullName, Reason = "UNREVIEWED" };
+        addedNs++;
+    }
+
+    File.WriteAllText(netStatePath, JsonSerializer.Serialize(netStateFields, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    Console.WriteLine($"\nnet-state-fields baseline updated: {netStatePath} ({netStateFields.Count} field(s), {addedNs} newly marked UNREVIEWED, {droppedNs} stale dropped)");
+    return failures == 0 ? 0 : 1;
+}
+
 Console.WriteLine($"\n── Check 2: field surface of {surface.Count} state types vs baseline ──");
 if (!File.Exists(baselinePath))
 {
@@ -646,7 +744,74 @@ else
         : $"  Check 4: {copyFieldFailures} failure(s) — a game update added a copied field the ledger doesn't know about, changed a copied field's type, or a ledger entry is stale");
 }
 
-return failures + diffs + coverageFailures + copyFieldFailures == 0 ? 0 : 1;
+// ───────────── Check 5: NetFullCombatState checksummed-field ledger ─────────────
+
+int netStateFailures = 0;
+
+if (!File.Exists(netStatePath))
+{
+    Console.WriteLine($"\n── Check 5: NetFullCombatState field ledger — no ledger file at {netStatePath}; skipping (generate one with `dotnet run -- net-state-baseline`) ──");
+}
+else
+{
+    var netStateFields = LoadNetStateFields(netStatePath);
+    Console.WriteLine($"\n── Check 5: NetFullCombatState field ledger — is every field the game checksums accounted for by UndoSync's snapshot/restore? ──");
+    Console.WriteLine($"  {netStateFieldsLive.Count} live field(s) across {netStateTypeCount} type(s) (NetFullCombatState + its nested IPacketSerializable structs)");
+
+    // Stale: named in the ledger but no longer part of the live checksummed surface.
+    foreach (var stale in netStateFields.Keys.Where(k => !netStateFieldsLive.ContainsKey(k)))
+    {
+        Console.WriteLine($"  FAIL  {stale}: stale ledger entry (field no longer part of NetFullCombatState's serialized surface)");
+        netStateFailures++;
+    }
+
+    // Type changed: still checksummed, but the ledger's recorded type no longer matches the
+    // live build's — same "name unchanged, shape changed" risk Check 4 already guards against.
+    foreach (var (key, entry) in netStateFields)
+    {
+        if (entry.Type.Length == 0) continue;
+        if (!netStateFieldsLive.TryGetValue(key, out var liveType)) continue; // already reported as stale
+        if (entry.Type != liveType)
+        {
+            Console.WriteLine($"  FAIL  {key}: type changed ({entry.Type} -> {liveType}) — re-review and update the ledger");
+            netStateFailures++;
+        }
+    }
+
+    // Every non-empty reason is required — "UNREVIEWED" counts (see the backlog below); a
+    // truly blank reason does not. This is what turns "deliberately not restored" into a
+    // recorded, auditable decision instead of a silent gap.
+    foreach (var (key, entry) in netStateFields)
+        if (string.IsNullOrWhiteSpace(entry.Reason))
+        {
+            Console.WriteLine($"  FAIL  {key}: empty justification");
+            netStateFailures++;
+        }
+
+    // Unaccounted: the game checksums it, but the ledger says nothing at all — the case that
+    // would have caught nextRewardIds going unrestored (it was already visible in Check 2's
+    // surface-baseline.json, but nothing had ever asked this specific question about it).
+    var accountedNs = new HashSet<string>(netStateFields.Keys);
+    var unaccountedNs = netStateFieldsLive.Keys.Where(k => !accountedNs.Contains(k)).ToList();
+    foreach (var key in unaccountedNs)
+    {
+        Console.WriteLine($"  FAIL  {key}: unaccounted for (game checksums it, no ledger entry) [{netStateFieldsLive[key]}]");
+        netStateFailures++;
+    }
+
+    var unreviewedNs = netStateFields.Where(kv => kv.Value.Reason == "UNREVIEWED").Select(kv => kv.Key).ToList();
+    Console.WriteLine($"  {netStateFieldsLive.Count} live field(s), {netStateFields.Count - unreviewedNs.Count} reviewed, {unreviewedNs.Count} unreviewed, {unaccountedNs.Count} unaccounted");
+
+    Console.WriteLine($"\n── Check 5 UNREVIEWED backlog: {unreviewedNs.Count} field(s) nobody has judged yet ──");
+    if (unreviewedNs.Count == 0) Console.WriteLine("  none");
+    else foreach (var key in unreviewedNs.OrderBy(k => k, StringComparer.Ordinal)) Console.WriteLine($"  UNREVIEWED  {key}");
+
+    Console.WriteLine(netStateFailures == 0
+        ? "  Check 5: every checksummed field is accounted for"
+        : $"  Check 5: {netStateFailures} failure(s) — a game update added checksummed state UndoSync doesn't know about, changed a field's type, or a ledger entry is stale");
+}
+
+return failures + diffs + coverageFailures + copyFieldFailures + netStateFailures == 0 ? 0 : 1;
 
 sealed class TypeCoverage
 {
@@ -677,6 +842,20 @@ sealed class CopyFieldEntry
 
     [System.Text.Json.Serialization.JsonPropertyName("risk")]
     public string Risk { get; set; } = "";
+
+    [System.Text.Json.Serialization.JsonPropertyName("reason")]
+    public string Reason { get; set; } = "";
+}
+
+// One net-state-fields.json ledger entry (Check 5). Type is a derived fact about the current
+// build (filled in by net-state-baseline); Reason is the only human-owned field — either a
+// citation of the code that captures/restores this field, or a justification for why it is
+// deliberately not independently restored. "UNREVIEWED" is a valid placeholder Reason (shows
+// up in Check 5's backlog, does not fail the check); an EMPTY Reason does fail it.
+sealed class NetStateFieldEntry
+{
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
+    public string Type { get; set; } = "";
 
     [System.Text.Json.Serialization.JsonPropertyName("reason")]
     public string Reason { get; set; } = "";

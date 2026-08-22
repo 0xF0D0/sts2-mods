@@ -6,9 +6,14 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.DevConsole;
+using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Factories;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Map;
@@ -16,7 +21,10 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Checksums;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Debug.Multiplayer;
+using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace UndoSync;
@@ -330,15 +338,59 @@ internal static class MpFuzz
     /// to happen at all.</summary>
     private static readonly TimeSpan DivergenceWatchAfterCommit = TimeSpan.FromSeconds(5);
 
+    /// <summary>Bound for <see cref="WatchCardSelectionLoopAsync"/>'s own wait — via the file's
+    /// EXISTING <see cref="WaitForConditionAsync"/> helper (Stopwatch + PollInterval, no new timer) —
+    /// for NPlayerHand.IsInCardSelection to actually clear after this file has answered a prompt
+    /// through NPlayerHand's own per-card/confirm methods (AnswerPendingCardSelection). Expected to
+    /// resolve near-instantly in practice: once OnSelectModeConfirmButtonPressed/
+    /// CheckIfSelectionComplete calls _selectionCompletionSource.SetResult (NPlayerHand.cs:1248/1255),
+    /// the `await _selectionCompletionSource.Task` continuation inside SelectCards (NPlayerHand.cs:986)
+    /// has nothing left to wait on — this never crosses the network the way MapVoteTimeout/
+    /// LobbyConnectTimeout above do. Kept generous anyway purely so a genuine stall here — the exact
+    /// GatheringPlayerChoice deadlock shape the original step-9 addendum exists to prevent
+    /// (ActionQueueSet.GetReadyAction silently skipping a parked action forever, ActionQueueSet.cs:223)
+    /// — is reported as its own clearly-labelled failure well before UndoFuzz's own ~3-minute
+    /// MultiplayerIdleWaitTimeout would otherwise blame it on a generic "stuck waiting for idle player
+    /// Play phase", which would misdirect an investigation away from card selection entirely. See
+    /// WatchCardSelectionLoopAsync's own doc comment for why a silent hang here must never look like
+    /// nothing happened.</summary>
+    private static readonly TimeSpan CardSelectionResolveTimeout = TimeSpan.FromSeconds(10);
+
     // --- Reflection handles onto NMultiplayerTest's PRIVATE members -----------------------------
     // Every one of these is in the design note's own "verified members" list; SurfaceCheck's
     // Check 1 re-verifies each string against the shipped assembly at build time.
     private static readonly FieldInfo? FIdField = AccessTools.Field(typeof(NMultiplayerTest), "_idField");
     private static readonly FieldInfo? FIpField = AccessTools.Field(typeof(NMultiplayerTest), "_ipField");
     private static readonly FieldInfo? FLobby = AccessTools.Field(typeof(NMultiplayerTest), "_lobby");
+    private static readonly FieldInfo? FCharacterPaginator = AccessTools.Field(typeof(NMultiplayerTest), "_characterPaginator");
     private static readonly MethodInfo? MHostButtonPressed = AccessTools.Method(typeof(NMultiplayerTest), "HostButtonPressed");
     private static readonly MethodInfo? MJoinButtonPressed = AccessTools.Method(typeof(NMultiplayerTest), "JoinButtonPressed");
     private static readonly MethodInfo? MReadyButtonPressed = AccessTools.Method(typeof(NMultiplayerTest), "ReadyButtonPressed");
+
+    // --- Reflection handles onto NPlayerHand's PRIVATE members (card-selection driving) ----------
+    // Used by WatchCardSelectionLoopAsync/AnswerPendingCardSelection (below) to drive the REAL
+    // in-hand card-selection UI the same way a human player would, rather than the earlier
+    // CardSelectCmd.UseSelector approach — see DriveOurCombatAsync's own doc comment ("IN-COMBAT
+    // CARD-SELECTION PROMPTS") for why that approach had to be abandoned. All five names verified
+    // directly against decompiled/.../Nodes/Combat/NPlayerHand.cs (line citations on each field/
+    // method below); SurfaceCheck's Check 1 re-verifies each string against the shipped assembly at
+    // build time, same as the block above.
+    private static readonly FieldInfo? FPlayerHandPrefs = AccessTools.Field(typeof(NPlayerHand), "_prefs"); // NPlayerHand.cs:396
+    private static readonly FieldInfo? FPlayerHandSelectedCards = AccessTools.Field(typeof(NPlayerHand), "_selectedCards"); // NPlayerHand.cs:394
+    private static readonly MethodInfo? MSelectCardInSimpleMode = AccessTools.Method(typeof(NPlayerHand), "SelectCardInSimpleMode"); // NPlayerHand.cs:1159
+    private static readonly MethodInfo? MCheckIfSelectionComplete = AccessTools.Method(typeof(NPlayerHand), "CheckIfSelectionComplete"); // NPlayerHand.cs:1251
+    private static readonly MethodInfo? MOnSelectModeConfirmButtonPressed = AccessTools.Method(typeof(NPlayerHand), "OnSelectModeConfirmButtonPressed"); // NPlayerHand.cs:1246
+
+    /// <summary>Number of debug characters <see cref="NMultiplayerTestCharacterPaginator"/> offers —
+    /// its private `_characters` array is a fixed 5-element Ironclad/Silent/Regent/Necrobinder/Defect
+    /// set (NMultiplayerTestCharacterPaginator.cs:47-54), verified directly against source rather
+    /// than reflected off the array's own (also-private) Length at runtime — same "cite the verified
+    /// literal" discipline as ExpectedPlayerCount above. If a future game update resizes that array,
+    /// RandomizeCharacter's own rng.Next(0, CharacterCount) would under- or over-shoot it; NPaginator.
+    /// SetIndex's own Mathf.Clamp (NPaginator.cs:171) makes an over-shoot merely clamp to the last
+    /// character rather than throw, so this is a silent skew, not a crash — worth re-checking this
+    /// constant if character coverage in the mpfuzz logs ever looks suspiciously uneven.</summary>
+    private const int CharacterCount = 5;
 
     // ==================================================================================
     // Entry point
@@ -604,13 +656,19 @@ internal static class MpFuzz
         {
             // Fail fast and specifically if a game update renamed/removed anything this file
             // reflects onto, rather than an opaque NullReferenceException three steps later.
-            if (FIdField == null || FIpField == null || FLobby == null
-                || MHostButtonPressed == null || MJoinButtonPressed == null || MReadyButtonPressed == null)
+            if (FIdField == null || FIpField == null || FLobby == null || FCharacterPaginator == null
+                || MHostButtonPressed == null || MJoinButtonPressed == null || MReadyButtonPressed == null
+                || FPlayerHandPrefs == null || FPlayerHandSelectedCards == null || MSelectCardInSimpleMode == null
+                || MCheckIfSelectionComplete == null || MOnSelectModeConfirmButtonPressed == null)
             {
-                Log.Write("[MpFuzz] FAIL: one or more reflection handles onto NMultiplayerTest failed to resolve "
+                Log.Write("[MpFuzz] FAIL: one or more reflection handles onto NMultiplayerTest/NPlayerHand failed to resolve "
                     + $"(idField={FIdField != null} ipField={FIpField != null} lobby={FLobby != null} "
-                    + $"hostBtn={MHostButtonPressed != null} joinBtn={MJoinButtonPressed != null} readyBtn={MReadyButtonPressed != null}) "
-                    + "— the game likely changed NMultiplayerTest's private surface.");
+                    + $"characterPaginator={FCharacterPaginator != null} "
+                    + $"hostBtn={MHostButtonPressed != null} joinBtn={MJoinButtonPressed != null} readyBtn={MReadyButtonPressed != null} "
+                    + $"playerHandPrefs={FPlayerHandPrefs != null} playerHandSelectedCards={FPlayerHandSelectedCards != null} "
+                    + $"selectCardInSimpleMode={MSelectCardInSimpleMode != null} checkIfSelectionComplete={MCheckIfSelectionComplete != null} "
+                    + $"onSelectModeConfirmButtonPressed={MOnSelectModeConfirmButtonPressed != null}) "
+                    + "— the game likely changed NMultiplayerTest's or NPlayerHand's private surface.");
                 return;
             }
 
@@ -661,8 +719,18 @@ internal static class MpFuzz
                     + (lobbyNow == null ? "" : $" players={lobbyNow.Players.Count}") + ").");
                 return;
             }
+            // Step 4b: pick a random one of the paginator's 5 debug characters, independently per
+            // peer, BEFORE readying — see RandomizeCharacter's own doc comment for exactly how this
+            // is wired through the game's own code (not a shortcut) and for why NO loadout
+            // (deck/relic/potion) injection accompanies it. ReadyButtonPressed itself is still
+            // invoked unmodified right after, exactly as before this change — only the character
+            // selected when it runs is now randomized instead of always defaulting to index 0
+            // (Ironclad).
+            string characterId = RandomizeCharacter(scene, role);
+
             MReadyButtonPressed.Invoke(scene, null);
-            Log.Write($"[MpFuzz] invoked ReadyButtonPressed() with {lobby.Players.Count} players in the lobby.");
+            Log.Write($"[MpFuzz] invoked ReadyButtonPressed() with {lobby.Players.Count} players in the lobby "
+                + $"(character={characterId}).");
 
             // Step 5: wait for the run to actually start. This needs no further action from this
             // file — StartRunLobby.BeginRunForAllPlayersIfAllReady fires the callback chain on its
@@ -753,15 +821,62 @@ internal static class MpFuzz
                 return;
             }
 
+            // Step 8b (new): host-only encounter switch, THEN per-peer loadout injection — see that
+            // section's own top-of-block comment (right above SwitchToRandomEncounterAsync, below) for
+            // the full design, including why the encounter switch stays single-authority (host-only)
+            // while the loadout injection that follows it is safe to run on both peers. A failed
+            // encounter switch is fatal (see SwitchToRandomEncounterAsync's own doc comment for why); a
+            // failed individual relic/potion/card/upgrade is not (see InjectLoadoutAsync's own doc
+            // comment). Both peers reach SwitchToRandomEncounterAsync and both wait out its settle
+            // check below BEFORE either one starts injecting its own loadout — that ordering (not just
+            // "both eventually call InjectLoadoutAsync") is what keeps loadout injection from landing in
+            // a combat that the host's 'fight' command is still in the process of tearing down and
+            // rebuilding; see SwitchToRandomEncounterAsync's own doc comment for the settle check itself.
+            if (!await SwitchToRandomEncounterAsync(role, me))
+            {
+                return; // already logged FAIL inside SwitchToRandomEncounterAsync
+            }
+            string encounterIdUsed = UndoSyncMod.GetCombatState()?.Encounter?.Id.Entry ?? "<unknown>";
+            RoomType roomTypeUsed = UndoSyncMod.GetCombatState()?.Encounter?.RoomType ?? RoomType.Monster;
+
+            var loadoutResult = await InjectLoadoutAsync(role, me, roomTypeUsed);
+
             int restoreSectionFailuresBefore = StateSnapshot.RestoreSectionFailureCount;
             int uiRefreshFailuresBefore = UiRefresh.UiRefreshFailureCount;
             int orbInvariantViolationsBefore = UiRefresh.OrbInvariantViolationCount;
+            int staleIsEmptyBefore = UndoSyncMod.StaleIsEmptyObservations;
 
-            var outcome = await DriveOurCombatAsync(role, me);
+            var outcome = await DriveOurCombatAsync(role, me, characterId);
+
+            // outcome.EncounterId/RoomTypeName/RelicsInjected/PotionsInjected/DeckCardsInjected/
+            // CardsUpgraded all already exist on UndoFuzz.CombatOutcome (populated the analogous way by
+            // SetUpRandomLoadoutAsync on the headless path) but are never written by DriveOurCombatAsync
+            // or UndoFuzz.DriveCombatAsync on this path — safe to backfill here, after the fact, so a
+            // failing iteration's own loop result file carries what was actually injected (counts and
+            // the encounter id) without needing to open logs. Both peers record encounterIdUsed/
+            // roomTypeUsed (read back from state, not from whatever the host merely intended to pick) —
+            // useful cross-peer, since "did both peers land in the same encounter" is itself a cheap
+            // sanity check. Both peers' own loadoutResult is expected to be non-zero now (each peer
+            // injects into its OWN `me` — see InjectLoadoutAsync's own doc comment and this section's
+            // top-of-block comment for why that is safe: a client-issued command resolves to the
+            // CLIENT's own Player on both copies of state, never the host's, so there is no
+            // double-application to guard against by keeping this host-only the way the 'fight' switch
+            // above still must be).
+            outcome.EncounterId = encounterIdUsed;
+            outcome.RoomTypeName = roomTypeUsed.ToString();
+            outcome.RelicsInjected = loadoutResult.RelicsInjected;
+            outcome.PotionsInjected = loadoutResult.PotionsInjected;
+            outcome.DeckCardsInjected = loadoutResult.DeckCardsInjected;
+            outcome.CardsUpgraded = loadoutResult.CardsUpgraded;
 
             int restoreSectionFailureDelta = StateSnapshot.RestoreSectionFailureCount - restoreSectionFailuresBefore;
             int uiRefreshFailureDelta = UiRefresh.UiRefreshFailureCount - uiRefreshFailuresBefore;
             int orbInvariantViolationDelta = UiRefresh.OrbInvariantViolationCount - orbInvariantViolationsBefore;
+            // See UndoSyncMod.IsActionQueueIdle's doc comment for the mechanism this counts: a
+            // combat where this is nonzero proves ActionQueueSet.IsEmpty actually went stale (not
+            // just that the fix code path exists) — see this file's own top-of-file design note and
+            // UndoSyncMod.StaleIsEmptyObservations for the full citation chain.
+            int staleIsEmptyDelta = UndoSyncMod.StaleIsEmptyObservations - staleIsEmptyBefore;
 
             // Step 10: summary (Part C) — one block per instance. The SUCCESS line requires
             // divergenceCount == 0 — see this file's own top-of-file "WHY DIVERGENCE DETECTION IS THE
@@ -800,18 +915,33 @@ internal static class MpFuzz
             ChecksumHook.DumpDivergenceRing(role);
 
             Log.Write($"[MpFuzz] ==================== summary: role={role} ====================");
-            Log.Write($"[MpFuzz] role={role} netId={myNetId} combatCompleted={outcome.Completed} "
+            Log.Write($"[MpFuzz] role={role} netId={myNetId} characterId={outcome.CharacterId} "
+                + $"encounterId={outcome.EncounterId} roomType={outcome.RoomTypeName} "
+                + $"combatCompleted={outcome.Completed} "
                 + $"turnsPlayed={outcome.TurnsPlayed} cardsPlayed={outcome.CardsPlayed} "
+                + $"relicsInjected={outcome.RelicsInjected} potionsInjected={outcome.PotionsInjected} "
+                + $"deckCardsInjected={outcome.DeckCardsInjected} cardsUpgraded={outcome.CardsUpgraded} "
                 + $"divergenceCount={_divergenceCount} "
                 + $"restoresProposed={outcome.RestoresProposed} "
                 + $"restoresCommitted={outcome.RestoresCommitted} "
                 + $"fidelityFailures={outcome.FidelityFailures} "
                 + $"divergencesAfterRestore={outcome.DivergencesAfterRestore} "
+                + $"cardSelectionsAnswered={outcome.CardSelectionsAnswered} "
                 + $"selectionViolations={UndoProtocol.SelectionPendingViolations} "
+                // UndoProtocol iteration 5 (see that file's top-of-file iteration list) proof-of-
+                // exercise counters — see UndoProtocol.CommitRetryAfterClockMoveCount/
+                // AbortedProposalCount's own doc comments. Neither is a pass/fail signal on its own
+                // (a non-zero retry count is the FIX working, not a bug); they exist so a run can
+                // prove the retry-then-abort-broadcast path actually ran rather than merely not being
+                // hit. abortedProposals is host-only bookkeeping and reads 0 on a client role — see
+                // AbortedProposalCount's own doc comment.
+                + $"commitRetryAfterClockMove={UndoProtocol.CommitRetryAfterClockMoveCount} "
+                + $"abortedProposals={UndoProtocol.AbortedProposalCount} "
                 + $"stuckAfterRestoreCount={(outcome.StuckAfterRestore ? 1 : 0)} "
                 + $"restoreSectionFailureDelta={restoreSectionFailureDelta} "
                 + $"uiRefreshFailureDelta={uiRefreshFailureDelta} "
-                + $"orbInvariantViolationDelta={orbInvariantViolationDelta}"
+                + $"orbInvariantViolationDelta={orbInvariantViolationDelta} "
+                + $"staleIsEmptyDelta={staleIsEmptyDelta}"
                 + (outcome.DriveError != null ? $" driveError=\"{outcome.DriveError}\"" : "")
                 + (outcome.StuckAfterRestore ? $" stuckAfterRestore=\"{outcome.StuckAfterRestoreDetail}\"" : ""));
 
@@ -834,7 +964,8 @@ internal static class MpFuzz
             if (zeroDivergences && combatActuallyCompleted && madeRealProgress && restoresActuallyCommitted
                 && zeroFidelityFailures && zeroOrbInvariantViolations && zeroSelectionViolations)
             {
-                Log.Write($"[MpFuzz] SUCCESS role={role} netId={myNetId} — combat driven with "
+                Log.Write($"[MpFuzz] SUCCESS role={role} netId={myNetId} characterId={outcome.CharacterId} "
+                    + $"— combat driven with "
                     + $"{outcome.RestoresCommitted} restore(s) committed, zero checksum divergences, "
                     + "zero fidelity failures, zero orb invariant violations, and zero selection "
                     + "violations. See the summary line above for the full counts.");
@@ -885,7 +1016,8 @@ internal static class MpFuzz
                     reasons.Add($"{UndoProtocol.SelectionPendingViolations} card-selection-pending "
                         + "violation(s) — see the \"[UndoProtocol] SELECTION VIOLATION\" line(s) above");
                 }
-                Log.Write($"[MpFuzz] FAILURE role={role} netId={myNetId} — THIS IS NOT A PASS — "
+                Log.Write($"[MpFuzz] FAILURE role={role} netId={myNetId} characterId={outcome.CharacterId} "
+                    + "— THIS IS NOT A PASS — "
                     + string.Join("; ", reasons) + ".");
             }
         }
@@ -909,6 +1041,559 @@ internal static class MpFuzz
                 Log.Write($"[MpFuzz] --{NoQuitArg} set — staying open.");
             }
         }
+    }
+
+    // ==================================================================================
+    // Character randomization (step 4b)
+    // ==================================================================================
+
+    /// <summary>
+    /// Picks one of <see cref="NMultiplayerTestCharacterPaginator"/>'s 5 debug characters (Ironclad/
+    /// Silent/Regent/Necrobinder/Defect, NMultiplayerTestCharacterPaginator.cs:47-54) independently
+    /// per peer and selects it via the game's own code path — <see cref="NPaginator.SetIndex"/>
+    /// (NPaginator.cs:167-173) — rather than writing the paginator's private `_currentIndex` field
+    /// directly, so the real NMultiplayerTestCharacterPaginator.CharacterChanged event
+    /// (NMultiplayerTestCharacterPaginator.cs:71-76) and NMultiplayerTest.OnCharacterChanged
+    /// (NMultiplayerTest.cs:642-651) both run exactly as they would for a human clicking the
+    /// paginator's arrows. Called from RunAsync's step 4, after the lobby has reached
+    /// ExpectedPlayerCount but BEFORE ReadyButtonPressed (NMultiplayerTest.cs:319-329) runs, so
+    /// ReadyButtonPressed's own `_characterPaginator.Character.StartingDeck`/`StartingRelics` reads
+    /// pick up our choice instead of always defaulting to index 0 (Ironclad, the paginator's initial
+    /// _currentIndex) — every prior run of this harness used Ironclad vs Ironclad every time.
+    ///
+    /// WHY THIS IS SAFE WITHOUT AN EXPLICIT WAIT, TRACED FROM SOURCE RATHER THAN ASSUMED:
+    /// NPaginator.SetIndex(int) (NPaginator.cs:167-173) is a plain synchronous `void` method — it
+    /// sets _currentIndex and calls OnIndexChanged(_currentIndex) on the same call stack, no
+    /// Task/await anywhere. NMultiplayerTestCharacterPaginator.OnIndexChanged
+    /// (NMultiplayerTestCharacterPaginator.cs:71-76) is the override actually invoked (C# virtual
+    /// dispatch), also synchronous `void`, and synchronously invokes the CharacterChanged event —
+    /// wired by NMultiplayerTest._Ready() (NMultiplayerTest.cs:264) to OnCharacterChanged
+    /// (NMultiplayerTest.cs:642-651), itself synchronous `void`, which calls
+    /// _lobby.SetLocalCharacter(model) (StartRunLobby.cs:635-643) — also synchronous `void` — which
+    /// calls ChangeCharacter(NetService.NetId, character) FIRST (StartRunLobby.cs:424-439,
+    /// synchronously mutating THIS peer's own Players[num].character entry in the local
+    /// _lobby.Players list) and only THEN sends LobbyPlayerChangedCharacterMessage (fire-and-forget
+    /// from this call's perspective, StartRunLobby.cs:638-641). So by the instant SetIndex(...)
+    /// returns below, both `paginator.Character` and our own slot in `_lobby.Players` already reflect
+    /// the pick — there is no async gap here to wait out for OUR OWN copy of that state.
+    ///
+    /// (Cross-peer visibility — the OTHER peer's copy of _lobby.Players seeing our pick before that
+    /// peer's own ready flag lands — rides LobbyPlayerChangedCharacterMessage's Reliable delivery
+    /// (StartRunLobby.cs:635-643, `NetTransferMode.Reliable`) ahead of this peer's own later
+    /// LobbyPlayerSetReadyMessage (also Reliable, StartRunLobby.cs:701-722), sent only after
+    /// ReadyButtonPressed runs below. That is the SAME ordering property real human players picking
+    /// two different characters in the shipped character-select screen already depend on
+    /// (NCharacterSelectScreen.cs:787 reaches the identical NGame.StartNewMultiplayerRun /
+    /// StartRunLobbyPlayer.character path this harness does) — this method introduces no new
+    /// requirement on it, and re-deriving ENet's own channel-ordering guarantees is out of scope
+    /// here.)
+    ///
+    /// The paginator's Character is still read back AFTER SetIndex, not merely assumed from the
+    /// index passed in, and logged — not a defensive poll loop (nothing here is async, so a loop
+    /// would only ever run its body once), but "confirm what actually happened" over "trust what
+    /// should have happened", matching this file's existing style (see ProposeRestoreIfDue's own
+    /// CanUndoRedo() re-check for the same discipline applied to a different invariant).
+    ///
+    /// WHY NO LOADOUT (DECK/RELIC/POTION) INJECTION ACCOMPANIES THIS: _localPlayerData
+    /// (NMultiplayerTest.cs:225, populated at ReadyButtonPressed :321-328) is write-only in this
+    /// build — grepping the whole decompiled tree for "_localPlayerData" turns up only those
+    /// assignments (plus OnCharacterChanged's own CurrentHp/MaxHp/MaxEnergy/Gold writes at :645-650),
+    /// never a read, anywhere. StartRunLobbyPlayer — the ONLY thing actually replicated through the
+    /// lobby — carries `id/slotId/character/unlockState/maxMultiplayerAscensionUnlocked/isModded/
+    /// isReady` (StartRunLobbyPlayer.cs:9-21) and has no Deck/Relics/Potions field at all. A new
+    /// multiplayer run's players are built by NGame.StartNewMultiplayerRun (NGame.cs:1156-1162 — the
+    /// SAME method the real character-select screen's NCharacterSelectScreen.cs:787 uses, not a
+    /// debug-only shortcut) via `Player.CreateForNewRun(p.character, unlockState, p.id)`
+    /// (Player.cs:305-310), whose PopulateStartingInventory() sources the deck/relics purely from the
+    /// canonical CharacterModel's own StartingDeck/StartingRelics — never from any SerializablePlayer.
+    /// The only method that DOES read a SerializablePlayer's Deck/Relics/Potions/Rng/Odds/
+    /// RelicGrabBag/ExtraFields is Player.FromSerializable(SerializablePlayer) (Player.cs:318-326),
+    /// used for loading an EXISTING save/run (LoadRunLobby, SyncPlayerDataMessage,
+    /// CombatStateSynchronizer) — and nothing in StartRunLobby's NEW-run path calls it. Writing
+    /// randomized extras into _localPlayerData here would therefore compile, log, and have ZERO
+    /// effect on either peer's actual starting kit: a "counter incremented, mechanism never ran"
+    /// failure this project has already been burned by once (see this mod's own verification-first
+    /// discipline). Anyone adding relic/potion/deck diversity to this harness later has to change HOW
+    /// THE RUN IS CONSTRUCTED (e.g. route new-run creation through Player.FromSerializable, or inject
+    /// after combat entry the way UndoFuzz.SetUpRandomLoadoutAsync does — independently per peer,
+    /// exactly as this method already does for character choice — once each peer's own Player is
+    /// resolved in step 9) — not just add more writes to a field nothing reads.
+    ///
+    /// DONE (step 8b/9's own loadout injection, below): not via _localPlayerData or
+    /// Player.FromSerializable after all — via the dev console's own replicated GameAction path
+    /// instead, which sidesteps this whole problem because it runs the SAME production code
+    /// (RelicCmd.Obtain/PotionCmd.TryToProcure/CardPileCmd.Add/CardCmd.Upgrade) a human typing into
+    /// the console — or a real reward screen — would, on BOTH peers, via ConsoleCmdGameAction
+    /// (ConsoleCmdGameAction.cs) enqueued through RunManager.Instance.ActionQueueSynchronizer.
+    /// RequestEnqueue, exactly like VoteForNextMapCoordAsync already does for the map vote. See
+    /// SwitchToRandomEncounterAsync and InjectLoadoutAsync below for the full design, including
+    /// why picking WHICH relic/card to inject can't reuse UndoFuzz.SetUpRandomLoadoutAsync's own
+    /// factory calls verbatim on this live, replicated Player.
+    /// </summary>
+    /// <param name="scene">The live NMultiplayerTest scene instance to reflect into.</param>
+    /// <param name="role">"host" or "client" — folded into the RNG seed below so the two peers in
+    /// the SAME run never pick off the same sequence, and logged alongside the pick.</param>
+    /// <returns>The picked character's ModelId.Entry (e.g. "Ironclad"), for RunAsync to thread into
+    /// DriveOurCombatAsync's CombatOutcome.CharacterId and from there into the step-10 summary.</returns>
+    private static string RandomizeCharacter(NMultiplayerTest scene, string role)
+    {
+        var paginator = (NMultiplayerTestCharacterPaginator)FCharacterPaginator!.GetValue(scene)!;
+        var before = paginator.Character;
+
+        // Seeded from `role` + System.Environment.ProcessId + a wall-clock tick reading, rather than a bare
+        // `new Random()`, so divergence between host and client never depends on .NET's own
+        // parameterless-Random seeding behaviour (version-dependent, and not something this file
+        // should have to re-verify to trust). `role` alone already guarantees host and client pick
+        // from different sequences even in the (practically impossible, since host/client are always
+        // separate OS processes here) case ProcessId and the tick reading both collided; ProcessId
+        // guards two peers launched in the same tick; the tick reading adds run-to-run variety so
+        // repeated invocations of the same role do not keep landing on the same character.
+        int seed = HashCode.Combine(role, System.Environment.ProcessId, DateTime.UtcNow.Ticks);
+        var rng = new Random(seed);
+        int index = rng.Next(0, CharacterCount);
+
+        paginator.SetIndex(index);
+        var picked = paginator.Character;
+
+        Log.Write($"[MpFuzz] role={role} randomized character: index={index}/{CharacterCount} "
+            + $"picked={picked.Id.Entry} (was {before.Id.Entry}) "
+            + $"seed={seed} (from role={role}, pid={System.Environment.ProcessId}, ticks).");
+
+        return picked.Id.Entry;
+    }
+
+    // ==================================================================================
+    // Encounter variety (host-only) + per-peer loadout injection (step 8b, new)
+    // ==================================================================================
+    // Inserted between step 8 ("combat entered" milestone) and step 9 (drive combat) in RunAsync:
+    // both peers are already in a combat and each peer's own Player has just been resolved (RunAsync's
+    // own `me`) by the time these run. See RandomizeCharacter's own doc comment, "DONE (step 8b/9's
+    // own loadout injection, below)", for why this exists and why it goes through the dev console's
+    // replicated GameAction path instead of _localPlayerData/Player.FromSerializable.
+    //
+    // TWO DIFFERENT AUTHORITY MODELS IN THIS SECTION, ON PURPOSE:
+    //   - SwitchToRandomEncounterAsync (the 'fight' command) stays HOST-ONLY, in one sentence: it
+    //     replaces the ONE SHARED combat both peers are in, so if both peers independently picked and
+    //     issued it, two different encounters would race to tear down and rebuild the SAME
+    //     CombatManager.Instance state on each side, exactly the "two authorities deciding the same
+    //     shared thing" hazard ProposeRestoreIfDue's own "Only the host proposes" paragraph already
+    //     guards against for step 3's restore proposals. One authority (the host) picks; both peers wait
+    //     for it to settle (see that method's own doc comment).
+    //   - InjectLoadoutAsync (relics/potions/deck cards/upgrades) is PER-PEER: called from RunAsync on
+    //     BOTH roles, only after SwitchToRandomEncounterAsync has settled on both (see the call site in
+    //     RunAsync). This does NOT reintroduce the double-issue hazard above, because a relic/potion/
+    //     card/upgrade command only ever mutates the ONE Player it targets, and — verified below — a
+    //     command built from `me` always resolves back to the ISSUING peer's own Player, on every peer's
+    //     copy of state, never the other peer's. So host and client each inject into a disjoint target:
+    //     no command is ever applied twice to the same Player, and nothing here races even though both
+    //     peers' own InjectLoadoutAsync calls run concurrently.
+    //
+    // VERIFIED MECHANISM — A COMMAND BUILT FROM `me` ALWAYS LANDS ON THE ISSUING PEER'S OWN PLAYER, ON
+    // BOTH PEERS' COPIES OF STATE, REGARDLESS OF WHICH ROLE ISSUES IT (this corrects an earlier version
+    // of this comment, which read only the host branch below and concluded — wrongly — that a
+    // ConsoleCmdGameAction's owner could NEVER resolve to anyone but the host's own Player):
+    // ConsoleCmdGameAction.ToNetAction() (ConsoleCmdGameAction.cs:44-51) serializes only {cmd, inCombat}
+    // into NetConsoleCmdGameAction — the constructor's own `Player` reference is never part of the wire
+    // format, so it cannot survive replication on its own; NetConsoleCmdGameAction.ToGameAction(Player
+    // player) (NetConsoleCmdGameAction.cs:26-29) reconstructs the executing action from whatever `player`
+    // it is handed. Which `player` that is depends on the issuing peer's own role in RequestEnqueue
+    // (ActionQueueSynchronizer.cs:146-172):
+    //   - Host/singleplayer branch (:167-169): EnqueueAction(action, _netService.NetId) — the HOST's
+    //     own NetId.
+    //   - Client branch (:156-165): does NOT enqueue locally at all — it sends
+    //     RequestEnqueueActionMessage{action = action.ToNetAction(), ...} to the host. The host's
+    //     HandleRequestEnqueueActionMessage(message, senderId) (:297-306) — senderId being ENet's own
+    //     identification of WHICH CLIENT sent the message, never the host itself — calls
+    //     NetActionToGameAction(message.action, senderId), then EnqueueAction(action, senderId).
+    //     NetActionToGameAction(INetAction, ulong actionOwnerId) (:367-375) resolves
+    //     `Player player = _playerCollection.GetPlayer(actionOwnerId)` — i.e. the CLIENT's own Player,
+    //     read off the HOST's own copy of the player collection — before calling
+    //     `action.ToGameAction(player)`. EnqueueAction then re-broadcasts
+    //     ActionEnqueuedMessage{playerId = senderId, ...} to clients, and the ORIGINATING client's own
+    //     HandleActionEnqueuedMessage(message, _) (:308-316) re-resolves that SAME senderId against ITS
+    //     OWN player collection — again the client's own Player.
+    // So a client-issued command resolves to the CLIENT's own Player on BOTH peers' copies of state, via
+    // the same actionOwnerId/senderId thread end to end — never the host's, and not by luck. This is the
+    // exact mechanism VoteForNextMapCoordAsync already relies on for the client's own map-coord vote
+    // (both roles already run identical vote logic there, unmodified by this section); InjectLoadoutAsync
+    // below simply reuses it for a second, independent command type.
+    //
+    // WHY PICKING WHICH RELIC/CARD TO OFFER CANNOT REUSE UndoFuzz.SetUpRandomLoadoutAsync's OWN FACTORY
+    // CALLS VERBATIM ON THIS LIVE, REPLICATED `me` — APPLIES IDENTICALLY REGARDLESS OF WHICH PEER IS
+    // DOING THE INJECTING:
+    // RelicFactory.PullNextRelicFromFront(player, rng) — SetUpRandomLoadoutAsync's own relic source —
+    // mutates player.RelicGrabBag (removes the pulled relic, RelicGrabBag.PullFromFront) AND
+    // player.RunState.SharedRelicGrabBag (RelicFactory.cs:47-48). player.RelicGrabBag is REPLICATED,
+    // tracked state: NetFullCombatState.PlayerState.relicGrabBag = player.RelicGrabBag.ToSerializable()
+    // (NetFullCombatState.cs:437) is part of what ChecksumTracker.ObtainAndTrackChecksum hashes on every
+    // action (ChecksumTracker.cs:158-167, NetFullCombatState.FromRun). Calling that factory LOCALLY, on
+    // whichever peer's own process happens to be injecting, would silently desync that Player's grab bag
+    // from the OTHER peer's still-unmutated copy of the SAME Player, and the very next checksum
+    // compare would report a divergence this harness's OWN loadout injection manufactured, not a game
+    // bug — precisely the class of self-inflicted false positive this mod's own verification-first
+    // discipline exists to catch before it gets mistaken for one. CardFactory.CreateForReward has the
+    // analogous problem one level down: merely calling it creates and OWNS a CardModel as a side effect
+    // (CardFactory.cs's private per-card overload -> player.RunState.CreateCard -> RunState.AddCard ->
+    // _allCards.Add, RunState.cs:383-407) before this file ever decides whether to keep it. Both
+    // problems are avoided below by picking from the READ-ONLY half of each pipeline instead —
+    // RelicGrabBag.ToSerializable() and CardCreationOptions.GetPossibleCards — never the mutating
+    // pull/create call. PotionFactory.CreateRandomPotionOutOfCombat has neither problem (verified
+    // below, at its own call site) and IS called directly, exactly as SetUpRandomLoadoutAsync does.
+
+    /// <summary>Bound for SwitchToRandomEncounterAsync's settle-wait. A 'fight' command's execution
+    /// (FightConsoleCmd.cs -> RunManager.EnterRoomDebug, RunManager.cs:1091) fully exits the current
+    /// room (ExitCurrentRoom) and re-enters a new one, including a real CombatStateSynchronizer.
+    /// StartSync()/WaitForSync() round trip and a FadeIn — the same class of real, asset-loading,
+    /// network-synchronized room transition as the very first combat entry this file already waits
+    /// minutes for (see CombatStartTimeout's own reasoning, which this constant reuses unchanged).</summary>
+    private static readonly TimeSpan EncounterSwitchTimeout = CombatStartTimeout;
+
+    /// <summary>Bound for each individual relic/potion/card/upgrade command's settle-wait in
+    /// InjectLoadoutAsync. Same reasoning as MapVoteTimeout, reused unchanged: one lightweight
+    /// command on an already-connected, already-running session (no asset load, no scene transition),
+    /// so a healthy settle is expected in well under this bound — unlike EncounterSwitchTimeout above,
+    /// which spans a full room transition.</summary>
+    private static readonly TimeSpan LoadoutCommandTimeout = MapVoteTimeout;
+
+    /// <summary>Modest per-combat caps on how much loadout variety InjectLoadoutAsync injects —
+    /// deliberately far smaller than UndoFuzz.SetUpRandomLoadoutAsync's own headless ranges (0-4
+    /// relics, 0-(MaxPotionCount+1) potions, 0-9 cards), because every single item here costs a real
+    /// network round trip (RequestEnqueue -> host tally/broadcast -> execute -> settle-poll), unlike
+    /// the headless path's synchronous same-process calls. Keeping these modest bounds how long step
+    /// 8b can take without needing its own multi-minute timeout budget.</summary>
+    private const int MaxRelicsToInject = 2;
+
+    private const int MaxPotionsToInject = 2;
+
+    private const int MaxCardsToInject = 3;
+
+    private const int MaxUpgradesToInject = 2;
+
+    /// <summary>Result of InjectLoadoutAsync — merged into DriveOurCombatAsync's own
+    /// UndoFuzz.CombatOutcome after the fact (RunAsync writes outcome.RelicsInjected/PotionsInjected/
+    /// DeckCardsInjected/CardsUpgraded/EncounterId/RoomTypeName once DriveOurCombatAsync returns) rather
+    /// than threading this into CombatOutcome's own constructor, since CombatOutcome is constructed
+    /// INSIDE DriveOurCombatAsync (see that method's own body) — after this section, not before it.
+    /// CombatOutcome already has all four counter fields (UndoFuzz.cs, populated the analogous way by
+    /// SetUpRandomLoadoutAsync on the headless path), so this struct exists only to carry counts out of
+    /// InjectLoadoutAsync until they can be copied onto the real outcome object. Populated by BOTH
+    /// peers' own calls now (one LoadoutInjectionResult instance per call, never shared across peers),
+    /// so each peer's own outcome ends up carrying only what THAT peer itself injected.</summary>
+    private sealed class LoadoutInjectionResult
+    {
+        public int RelicsInjected;
+        public int PotionsInjected;
+        public int DeckCardsInjected;
+        public int CardsUpgraded;
+    }
+
+    /// <summary>
+    /// Step 8b, part 1: replaces whatever encounter the map vote (step 6) happened to land the party on
+    /// with a specific, randomly-picked one from the current act's own encounter pool — see this
+    /// section's own top-of-block comment for the host-only reasoning (in one sentence: this changes the
+    /// ONE SHARED combat both peers are in, unlike InjectLoadoutAsync below, which only ever mutates the
+    /// issuing peer's own Player, so it can safely run on both peers without racing). Picks via
+    /// UndoFuzz.ResolveEncounterPool() (was `private`, now `internal` — see its own doc comment), the
+    /// SAME act-scoped Monster/Weak/Elite/Boss pool the headless path already uses, never
+    /// ModelDb.AllEncounters (see that method's own doc comment for why that distinction matters: an
+    /// act/encounter pairing the game itself can never produce otherwise).
+    ///
+    /// Issues `fight &lt;id&gt;` via a ConsoleCmdGameAction(me, cmd, inCombat: true), enqueued through
+    /// RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue — NEVER NDevConsole.ProcessCommand/
+    /// ProcessNetCommand directly, which is the RECEIVING end (ConsoleCmdGameAction.ExecuteAction's own
+    /// call, ConsoleCmdGameAction.cs:39-42) and would apply the fight locally on one peer only, exactly
+    /// the desync class this whole harness exists to catch. `inCombat: true` matches
+    /// DevConsole.ProcessCommand's own local-issue call site (`CombatManager.Instance.IsInProgress`,
+    /// DevConsole.cs), which is true here since this runs after step 8's "combat entered" milestone;
+    /// FightConsoleCmd.IsNetworked is verified true (FightConsoleCmd.cs), and its argument format is
+    /// verified directly: `ModelId modelId = new ModelId(ModelId.SlugifyCategory&lt;EncounterModel&gt;(),
+    /// args[0].ToUpperInvariant())` (FightConsoleCmd.cs's own Process) — a single positional id,
+    /// case-insensitive, exactly `picked.Id.Entry`.
+    ///
+    /// BOTH PEERS WAIT, even though only the host issues: the client reaches this same combat and must
+    /// not start driving (DriveOurCombatAsync, called by RunAsync right after this) while the fight
+    /// command might still be in flight on ITS side too — the command is replicated, so the client's own
+    /// copy of NDevConsole/FightConsoleCmd runs EnterRoomDebug locally as well, tearing down and
+    /// rebuilding ITS OWN CombatManager.Instance state. Settling is confirmed the same way this file
+    /// already confirms every other replicated effect (see VoteForNextMapCoordAsync's own GetVote(me)
+    /// round-trip check): by OBJECT-REFERENCE change of CombatManager.Instance.DebugOnlyGetState()
+    /// (CombatManager.cs:306) — not by comparing the resulting Encounter's id string, since the pool
+    /// pick could coincidentally re-pick the SAME encounter id the party was already fighting, in which
+    /// case an id-based check would falsely read "nothing changed" even though EnterRoomDebug fully
+    /// exited and rebuilt the room (and the CombatState object) regardless.
+    ///
+    /// A timeout here is FATAL to this run (unlike every per-item loadout command below): a 'fight'
+    /// command that is still in flight when DriveCombatAsync starts driving (e.g. deferred in
+    /// ActionQueueSynchronizer._requestedActionsWaitingForPlayerTurn until this combat's own PlayPhase,
+    /// RequestEnqueue's own deferral branch, ActionQueueSynchronizer.cs) could still land and tear the
+    /// room out from under the drive loop mid-drive, which DriveCombatAsync is not designed to survive —
+    /// failing loudly here, before driving starts, is safer than risking that ambush later. An empty
+    /// encounter pool (ModelDb.Acts resolving no acts — see ResolveEncounterPool's own log line) is
+    /// treated the SAME way, not as a softer failure mode: the host simply never issues a command, the
+    /// wait below times out after EncounterSwitchTimeout exactly as if the command had gone missing, and
+    /// this run fails the same way either case would have to be diagnosed the same way.
+    /// </summary>
+    private static async Task<bool> SwitchToRandomEncounterAsync(string role, Player me)
+    {
+        var beforeState = CombatManager.Instance.DebugOnlyGetState();
+
+        if (role == "host")
+        {
+            var pool = UndoFuzz.ResolveEncounterPool();
+            if (pool.Count == 0)
+            {
+                Log.Write("[MpFuzz] role=host WARNING: encounter pool is empty (UndoFuzz.ResolveEncounterPool "
+                    + "found no acts via ModelDb.Acts.FirstOrDefault()) — cannot issue a 'fight' command. The "
+                    + $"wait below will time out after {EncounterSwitchTimeout.TotalMinutes}m and this run will "
+                    + "FAIL, same as a genuine settle failure — see this method's own doc comment for why an "
+                    + "empty pool is not treated as a separate, softer failure mode.");
+            }
+            else
+            {
+                var rng = new Random();
+                var picked = pool[rng.Next(pool.Count)];
+                string cmd = $"fight {picked.Id.Entry}";
+                RunManager.Instance!.ActionQueueSynchronizer.RequestEnqueue(new ConsoleCmdGameAction(me, cmd, inCombat: true));
+                Log.Write($"[MpFuzz] role=host picked encounter '{picked.Id.Entry}' (RoomType={picked.RoomType}) "
+                    + $"from a {pool.Count}-encounter act pool and issued '{cmd}' — enqueued via RequestEnqueue, "
+                    + "awaiting settle on both peers.");
+            }
+        }
+
+        bool switched = await WaitForConditionAsync(() =>
+                CombatManager.Instance.IsInProgress
+                && CombatManager.Instance.DebugOnlyGetState() is { Encounter: not null } newState
+                && !ReferenceEquals(newState, beforeState),
+            EncounterSwitchTimeout);
+
+        if (!switched)
+        {
+            Log.Write($"[MpFuzz] role={role} FAIL: encounter switch step — CombatManager's combat state never "
+                + $"changed within {EncounterSwitchTimeout.TotalMinutes}m of the host's 'fight' command "
+                + $"(CombatManager.Instance.IsInProgress={CombatManager.Instance.IsInProgress}). Not proceeding "
+                + "to drive combat — see this method's own doc comment for why an in-flight 'fight' command "
+                + "makes that unsafe rather than merely disappointing.");
+            return false;
+        }
+
+        string encounterId = UndoSyncMod.GetCombatState()?.Encounter?.Id.Entry ?? "<unknown>";
+        Log.Write($"[MpFuzz] role={role} confirmed encounter switch settled: Encounter={encounterId}.");
+        return true;
+    }
+
+    /// <summary>
+    /// Step 8b, part 2: per-peer, best-effort injection of a small random relic/potion/deck-card/upgrade
+    /// set into the CALLING peer's own `me` — see this section's own top-of-block comment ("VERIFIED
+    /// MECHANISM") for why a command built from `me` always lands back on the issuing peer's own Player,
+    /// on both peers' copies of state, and never the other peer's; and why relic/card picking reads a
+    /// POOL rather than calling UndoFuzz.SetUpRandomLoadoutAsync's own mutating factory calls on this
+    /// live Player. Called from RunAsync on BOTH roles now, right after SwitchToRandomEncounterAsync
+    /// confirms the new encounter settled on both peers (so `roomType` here is that ENCOUNTER's own
+    /// RoomType, read back from state — "confirm what actually happened", same discipline as
+    /// RandomizeCharacter's own doc comment — rather than threading through whatever
+    /// SwitchToRandomEncounterAsync happened to pick).
+    ///
+    /// `role` is folded into this method's own RNG seed below, exactly the way RandomizeCharacter's own
+    /// doc comment already establishes for character choice ("so divergence between host and client
+    /// never depends on .NET's own parameterless-Random seeding behaviour") — this method previously ran
+    /// host-only, so its own `rng` was a bare, unseeded `new Random()` (fine when only one process ever
+    /// called it); now that both peers call it, a bare `new Random()` would risk the two peers'
+    /// sequences merely happening to differ by process-start timing rather than being guaranteed to, so
+    /// it is seeded the same deliberate way RandomizeCharacter's own `rng` already is.
+    ///
+    /// UNLIKE SwitchToRandomEncounterAsync, a settle timeout on any ONE item here is never fatal to the
+    /// run: it is logged and counted as "not injected" (see IssueLoadoutCommandAndWaitAsync's own doc
+    /// comment for why), and the loop moves on to the next item — same per-item try/skip philosophy
+    /// UndoFuzz.SetUpRandomLoadoutAsync's own headless equivalent already uses for exactly this reason
+    /// (one relic/potion/card failing to apply must never take the rest of the loadout, or the combat,
+    /// down with it).
+    /// </summary>
+    /// <param name="role">"host" or "client" — folded into the RNG seed below (so the two peers never
+    /// draw from the same pick sequence) and into every log line in this method and
+    /// IssueLoadoutCommandAndWaitAsync.</param>
+    /// <param name="me">THIS peer's own resolved Player (RunAsync's own `me` — the same one
+    /// SwitchToRandomEncounterAsync was called with), never the other peer's.</param>
+    /// <param name="roomType">The just-settled encounter's own RoomType, read back from state by the
+    /// caller.</param>
+    private static async Task<LoadoutInjectionResult> InjectLoadoutAsync(string role, Player me, RoomType roomType)
+    {
+        var result = new LoadoutInjectionResult();
+
+        // Seeded from `role` + System.Environment.ProcessId + a wall-clock tick reading, HashCode.
+        // Combine'd with a "loadout" salt — the exact same discipline RandomizeCharacter's own `rng`
+        // uses (see that method's own doc comment), plus the salt so this Random's own seed can never
+        // collide with RandomizeCharacter's even on the (practically impossible) chance role/ProcessId/
+        // ticks all matched between the two call sites. NOT a bare `new Random()`: this method now runs
+        // on both peers, in two separate OS processes, in the SAME run, and this file should not have to
+        // trust .NET's own parameterless-Random seeding behaviour to keep those two sequences apart —
+        // see RandomizeCharacter's own doc comment for the identical reasoning applied to character
+        // choice.
+        int seed = HashCode.Combine("loadout", role, System.Environment.ProcessId, DateTime.UtcNow.Ticks);
+        var rng = new Random(seed);
+        Log.Write($"[MpFuzz] role={role} loadout rng seed={seed} (from role={role}, "
+            + $"pid={System.Environment.ProcessId}, ticks).");
+
+        // --- Relics ------------------------------------------------------------------------------
+        // Picked from RelicGrabBag.ToSerializable().RelicIdLists (RelicGrabBag.cs) — a FRESH,
+        // read-only Dictionary<RelicRarity, List<ModelId>> snapshot of the bag's current (already
+        // unlock-filtered at Populate() time, already depleted of whatever this run has pulled so far)
+        // contents. Unlike RelicFactory.PullNextRelicFromFront, reading ToSerializable() never touches
+        // the bag's own private _deques — see this section's own top-of-block comment for exactly why
+        // that mutation would be unsafe here. Already-owned relics (e.g. a starting relic that happens
+        // to still be listed) are filtered out via me.GetRelicById, the same dedupe
+        // SetUpRandomLoadoutAsync's own relic block performs.
+        int relicCount = rng.Next(0, MaxRelicsToInject + 1);
+        for (int i = 0; i < relicCount; i++)
+        {
+            var available = me.RelicGrabBag.ToSerializable().RelicIdLists.Values
+                .SelectMany(ids => ids)
+                .Where(id => me.GetRelicById(id) == null)
+                .ToList();
+            if (available.Count == 0)
+            {
+                Log.Write($"[MpFuzz] role={role} loadout: relic grab bag has nothing left to offer (or "
+                    + "everything left is already owned) — stopping relic injection early.");
+                break;
+            }
+            var pickedId = available[rng.Next(available.Count)];
+            string cmd = $"relic {pickedId.Entry}";
+            int before = me.Relics.Count(r => r.Id.Entry == pickedId.Entry);
+            bool ok = await IssueLoadoutCommandAndWaitAsync(role, me, cmd,
+                () => me.Relics.Count(r => r.Id.Entry == pickedId.Entry) > before);
+            if (ok) result.RelicsInjected++;
+        }
+
+        // --- Potions -------------------------------------------------------------------------------
+        // PotionFactory.CreateRandomPotionOutOfCombat is safe to call directly on the live `me`, unlike
+        // RelicFactory above: GetPotionOptions(player) (PotionFactory.cs) reads only
+        // player.Character.PotionPool / ModelDb.PotionPool&lt;SharedPotionPool&gt;() / player.UnlockState
+        // — all read-only — and there is no persistent "already offered" bag to mutate (repeats are
+        // legitimate; a real potion reward can offer the same potion twice). The only state it consumes
+        // is player.PlayerRng.Rewards, and NetFullCombatState's own doc comment says plainly that Rewards
+        // (and Shop) RNG counters are "stripped out in FromRun" (NetFullCombatState.cs, PlayerState's own
+        // summary) — i.e. excluded from the hashed checksum — so consuming it locally, on whichever
+        // peer's own process calls this, cannot desync anything. This is the exact call
+        // SetUpRandomLoadoutAsync itself makes.
+        int potionCap = Math.Min(MaxPotionsToInject, me.MaxPotionCount);
+        int potionCount = rng.Next(0, potionCap + 1);
+        for (int i = 0; i < potionCount; i++)
+        {
+            var model = PotionFactory.CreateRandomPotionOutOfCombat(me, me.PlayerRng.Rewards);
+            string cmd = $"potion {model.Id.Entry}";
+            int before = me.Potions.Count(p => p.Id.Entry == model.Id.Entry);
+            bool ok = await IssueLoadoutCommandAndWaitAsync(role, me, cmd,
+                () => me.Potions.Count(p => p.Id.Entry == model.Id.Entry) > before);
+            // A false result here is expected, not a bug, whenever the potion belt is already full —
+            // PotionConsoleCmd.cs's own PotionCmd.TryToProcure call can fail for exactly that reason.
+            if (ok) result.PotionsInjected++;
+        }
+
+        // --- Deck cards ----------------------------------------------------------------------------
+        // Picked from CardCreationOptions.ForRoom(me, roomType).GetPossibleCards(me)
+        // (CardCreationOptions.cs) — the READ-ONLY half of the same pipeline
+        // UndoFuzz.SetUpRandomLoadoutAsync's own CardFactory.CreateForReward uses internally
+        // (CardPools.SelectMany(p => p.GetUnlockedCards(...))), i.e. exactly this character's own
+        // unlock-filtered CardPool for this RoomType — never ModelDb.AllCards. Skipping
+        // CreateForReward itself avoids its side effect of creating-and-owning a CardModel merely by
+        // being called (see this section's own top-of-block comment); the tradeoff is losing
+        // CreateForReward's rarity-odds weighting and within-reward no-duplicate bookkeeping, which
+        // this harness does not need — a uniform pick over the authentic pool is enough to exercise
+        // deck diversity. Cards land in PileType.Deck (`card &lt;id&gt; Deck`), matching
+        // SetUpRandomLoadoutAsync's own deck-injection target, not the console command's own default
+        // (Hand) — CardConsoleCmd.cs's own Process defaults `result` to PileType.Hand only when no
+        // second argument is given.
+        int cardCount = rng.Next(0, MaxCardsToInject + 1);
+        if (cardCount > 0)
+        {
+            var cardPool = CardCreationOptions.ForRoom(me, roomType).GetPossibleCards(me).ToList();
+            if (cardPool.Count == 0)
+            {
+                Log.Write($"[MpFuzz] role={role} loadout: card pool for RoomType={roomType} is empty — "
+                    + "skipping deck card injection.");
+            }
+            else
+            {
+                for (int i = 0; i < cardCount; i++)
+                {
+                    var model = cardPool[rng.Next(cardPool.Count)];
+                    string cmd = $"card {model.Id.Entry} Deck";
+                    int before = PileType.Deck.GetPile(me).Cards.Count(c => c.Id.Entry == model.Id.Entry);
+                    bool ok = await IssueLoadoutCommandAndWaitAsync(role, me, cmd,
+                        () => PileType.Deck.GetPile(me).Cards.Count(c => c.Id.Entry == model.Id.Entry) > before);
+                    if (ok) result.DeckCardsInjected++;
+                }
+            }
+        }
+
+        // --- Upgrades ------------------------------------------------------------------------------
+        // Targets whatever is CURRENTLY in me's hand — the fresh encounter's own dealt starting hand,
+        // already in place by this point since SwitchToRandomEncounterAsync (called before this method)
+        // already waited for the new CombatState to exist. UpgradeCardConsoleCmd.cs addresses cards by
+        // Hand index only (`upgrade &lt;hand-index:int&gt;`, 0 = left most) — it has no by-id form, so
+        // the deck cards injected above (which land in Deck, not Hand) are never eligible targets here;
+        // this only ever touches cards the character started the encounter with. Snapshots each target
+        // CardModel reference (not just its index) before issuing, since CardCmd.Upgrade mutates the
+        // CardModel in place — the settle check reads CurrentUpgradeLevel off that same reference, not a
+        // fresh pile lookup by index, so it stays correct even if the hand's own ordering happened to
+        // change in between (it should not, since nothing else touches this player's hand during this
+        // method — see this section's own top-of-block comment, "VERIFIED MECHANISM", for why the OTHER
+        // peer's own concurrent InjectLoadoutAsync call, running at the same time, can only ever touch
+        // THAT peer's own hand via ITS OWN `me`, never this peer's).
+        var hand = PileType.Hand.GetPile(me).Cards;
+        int upgradeCount = Math.Min(rng.Next(0, MaxUpgradesToInject + 1), hand.Count);
+        if (upgradeCount > 0)
+        {
+            var indices = Enumerable.Range(0, hand.Count).OrderBy(_ => rng.Next()).Take(upgradeCount);
+            foreach (int index in indices)
+            {
+                var target = hand[index];
+                int beforeLevel = target.CurrentUpgradeLevel;
+                string cmd = $"upgrade {index}";
+                bool ok = await IssueLoadoutCommandAndWaitAsync(role, me, cmd,
+                    () => target.CurrentUpgradeLevel > beforeLevel);
+                if (ok) result.CardsUpgraded++;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Shared per-peer helper for every relic/potion/card/upgrade injection command in
+    /// InjectLoadoutAsync: constructs a ConsoleCmdGameAction(me, cmd, inCombat: true) and enqueues
+    /// it via RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue — NEVER NDevConsole.
+    /// ProcessCommand/ProcessNetCommand directly, which is the RECEIVING end and would apply the effect
+    /// on this one process only, exactly the desync class this harness exists to catch (see
+    /// VoteForNextMapCoordAsync's own "WHY THIS GOES THROUGH ... NOT A DIRECT ... CALL" paragraph for
+    /// the same mistake already made twice in this project: MapSelectionSynchronizer.
+    /// PlayerVotedForMapCoord, PlayerCmd.EndTurn) — then waits, bounded, for <paramref name="settled"/>
+    /// to read true, using the SAME WaitForConditionAsync helper every other settle-wait in this file
+    /// already relies on rather than a blind Task.Delay. Callable from either role: `me` is whichever
+    /// peer's own Player called this (InjectLoadoutAsync always passes its own caller's `me`), and — per
+    /// this section's own top-of-block "VERIFIED MECHANISM" paragraph — the ConsoleCmdGameAction built
+    /// from it resolves back to that SAME peer's own Player on both copies of state, so `role` here is
+    /// purely for logging, not for deciding anything.
+    ///
+    /// A timeout here is logged and returns false; it is NEVER fatal to the run (unlike
+    /// SwitchToRandomEncounterAsync's own timeout) — a missed relic/potion/card/upgrade only means less
+    /// injected variety this iteration, not a risk of a stray action ambushing the drive loop later, so
+    /// InjectLoadoutAsync's own callers simply skip counting it and move on to the next item, same
+    /// per-item try/continue philosophy UndoFuzz.SetUpRandomLoadoutAsync's own headless equivalent
+    /// already uses.
+    /// </summary>
+    private static async Task<bool> IssueLoadoutCommandAndWaitAsync(string role, Player me, string cmd, Func<bool> settled)
+    {
+        RunManager.Instance!.ActionQueueSynchronizer.RequestEnqueue(new ConsoleCmdGameAction(me, cmd, inCombat: true));
+        Log.Write($"[MpFuzz] role={role} issued '{cmd}' — enqueued via RequestEnqueue, awaiting settle.");
+
+        bool ok = await WaitForConditionAsync(settled, LoadoutCommandTimeout);
+        if (ok)
+            Log.Write($"[MpFuzz] role={role} confirmed '{cmd}' settled.");
+        else
+            Log.Write($"[MpFuzz] role={role} WARNING: '{cmd}' never settled within "
+                + $"{LoadoutCommandTimeout.TotalSeconds}s — skipping (not fatal; see "
+                + "IssueLoadoutCommandAndWaitAsync's own doc comment).");
+        return ok;
     }
 
     // ==================================================================================
@@ -961,15 +1646,64 @@ internal static class MpFuzz
     /// choice to keep in sync, and step 2's goal (prove divergence detection works against two
     /// independently-acting real peers) is better served by genuinely independent choices on each side
     /// than by a shared seed that could mask a desync behind identical decisions.
+    ///
+    /// STEP 9 ADDENDUM — IN-COMBAT CARD-SELECTION PROMPTS (fixes the Survivor stall), REVISED — a
+    /// measured multiplayer run stalled forever with the action queue reporting one PlayCardAction
+    /// (CARD.SURVIVOR) parked in GameActionState.GatheringPlayerChoice on both peers — Survivor's
+    /// discard (Survivor.cs:27, `CardSelectCmd.FromHandForDiscard(choiceContext, base.Owner, ...)`) has
+    /// no UI to answer it headless, and ActionQueueSet.GetReadyAction (ActionQueueSet.cs:223) skips a
+    /// GatheringPlayerChoice action silently forever rather than erroring.
+    ///
+    /// AN EARLIER VERSION of this addendum installed UndoFuzz.FuzzCardSelector via
+    /// CardSelectCmd.UseSelector, reused from UndoFuzz's own single-process headless/UI paths. THAT
+    /// APPROACH WAS WRONG AND HAS BEEN REMOVED — traced from source, not assumed: every CardSelectCmd
+    /// choice path (FromHand, used by Survivor via FromHandForDiscard) checks `Selector != null` BEFORE
+    /// it checks ownership. Concretely, in FromHand (CardSelectCmd.cs:817-870): the choice id is only
+    /// ever reserved when `Selector == null` (:829); the `Selector != null` branch (:844) resolves the
+    /// pick from `Selector.GetSelectedCards(...)` directly and returns, WITHOUT ever reaching
+    /// ShouldSelectLocalCard(player) (:848) or WaitForRemoteChoice (:861-862) — i.e. a non-localOnly
+    /// selector makes EVERY peer answer EVERY choice from its own local Selector, for every player, not
+    /// only the one its own local player owns, entirely bypassing PlayerChoiceSynchronizer. Since a
+    /// replicated GameAction (PlayCardAction, here) executes independently on both peers' own copies of
+    /// combat state, FromHandForDiscard runs on BOTH peers for the SAME Survivor play; with each peer's
+    /// FuzzCardSelector seeded independently per role, any prompt with more than one eligible option was
+    /// expected to be answered DIFFERENTLY by the two peers' independent Fisher-Yates picks — a real,
+    /// self-inflicted checksum divergence, not a false alarm and not a genuine cross-peer bug.
+    /// `localOnly: true` does not fix this either: CardSelectCmd.FromHand's `LocalSelector != null`
+    /// branch (:850-853) returns the picked cards WITHOUT ever calling SyncLocalChoice — only the
+    /// `LocalSelector == null` branch (:855-857) does — so a local-only selector leaves the non-owning
+    /// peer waiting inside WaitForRemoteChoice (:861) forever. Both shapes are self-inflicted harness
+    /// bugs, not findings about the game.
+    ///
+    /// THE APPROACH THAT ACTUALLY WORKS: when no selector is installed at all, CardSelectCmd.FromHand's
+    /// `ShouldSelectLocalCard(player)` branch (:848, only true for the peer that owns the choice —
+    /// ShouldSelectLocalCard itself is `LocalContext.IsMe(player) &amp;&amp; NetService.Type !=
+    /// NetGameType.Replay`, CardSelectCmd.cs:216-223) drives the REAL selection UI —
+    /// `NCombatRoom.Instance.Ui.Hand.SelectCards(prefs, filter, source)` (:856, i.e.
+    /// NPlayerHand.Instance.SelectCards, NPlayerHand.cs:956) — and immediately afterward calls
+    /// `PlayerChoiceSynchronizer.SyncLocalChoice(player, choiceId.Value, ...)` (:857). So if this file
+    /// drives that real UI selection the way a player would, the choice replicates correctly through
+    /// PlayerChoiceSynchronizer and the non-owning peer's WaitForRemoteChoice resolves normally — no
+    /// selector, no bypass, no self-inflicted divergence. Only the owning peer ever reaches this branch
+    /// at all, so both peers can run the identical <see cref="WatchCardSelectionLoopAsync"/> loop with
+    /// zero risk of double-answering the same prompt; see that method's own doc comment for the full
+    /// mechanism, and <see cref="AnswerPendingCardSelection"/> for exactly which NPlayerHand members
+    /// drive the pick (all reflected privates verified against decompiled/.../NPlayerHand.cs, cited by
+    /// line on each field/method declaration near the top of this file).
     /// </summary>
-    private static async Task<UndoFuzz.CombatOutcome> DriveOurCombatAsync(string role, Player me)
+    private static async Task<UndoFuzz.CombatOutcome> DriveOurCombatAsync(string role, Player me, string characterId)
     {
         UndoFuzz._activeIdleWaitTimeout = UndoFuzz.MultiplayerIdleWaitTimeout;
         UndoFuzz._activeCombatWallClockTimeout = UndoFuzz.MultiplayerCombatWallClockTimeout;
         UndoFuzz.RestoresAllowed = false;
         UndoFuzz._useMultiplayerIdleGate = true;
 
-        var outcome = new UndoFuzz.CombatOutcome { CombatIndex = 0, BaseSeed = $"mpfuzz-{role}", Seed = $"mpfuzz-{role}" };
+        // CharacterId: set from the RandomizeCharacter pick threaded in via RunAsync, not read back
+        // off `me`/CombatState here — same field UndoFuzz's own headless CombatOutcome already
+        // defines for its own per-combat random character pick (UndoFuzz.cs), just populated from
+        // this file's own step 4b instead. Carried through so RunAsync's step-10 summary can report
+        // which character this iteration actually used without a separate lookup.
+        var outcome = new UndoFuzz.CombatOutcome { CombatIndex = 0, BaseSeed = $"mpfuzz-{role}", Seed = $"mpfuzz-{role}", CharacterId = characterId };
         var rng = new Random();
         var proposeRng = new Random();
 
@@ -997,7 +1731,28 @@ internal static class MpFuzz
         // mod already relies on — see e.g. UndoFuzz's own "_gameErrors" doc comment).
         _ = WatchCommitsLoopAsync(role, outcome);
 
+        // Step 9 addendum, REVISED — see this method's own doc comment ("IN-COMBAT CARD-SELECTION
+        // PROMPTS") for why the earlier CardSelectCmd.UseSelector install was abandoned and replaced
+        // with WatchCardSelectionLoopAsync, which drives the REAL NPlayerHand selection UI instead.
+        // Seeded per-role, same discipline as RandomizeCharacter/InjectLoadoutAsync's own rng seeding
+        // (role + ProcessId + a tick reading), salted "cardselect" so this seed can never collide with
+        // either of those two call sites' own salts even in the practically-impossible case
+        // role/ProcessId/ticks all matched. Safe to seed independently per role here — unlike the
+        // abandoned selector — because CardSelectCmd.FromHand's real-UI branch (:848,:856-857) is only
+        // ever reached by the peer that actually owns the choice (see this method's own doc comment),
+        // so there is only ever one picker per prompt, and its pick is what gets REPLICATED via
+        // PlayerChoiceSynchronizer.SyncLocalChoice — not compared against an independent guess the way
+        // two Selectors' picks would have been.
+        int cardSelectSeed = HashCode.Combine("cardselect", role, System.Environment.ProcessId, DateTime.UtcNow.Ticks);
+        var cardSelectRng = new Random(cardSelectSeed);
+        Log.Write($"[MpFuzz] role={role} starting WatchCardSelectionLoopAsync for this combat "
+            + $"(seed={cardSelectSeed}) to drive real NPlayerHand selection prompts (e.g. Survivor's "
+            + "discard) via the game's own per-card/confirm methods — see DriveOurCombatAsync's own "
+            + "doc comment for why this replaced the earlier CardSelectCmd.UseSelector approach.");
+        _ = WatchCardSelectionLoopAsync(role, outcome, cardSelectRng);
+
         await UndoFuzz.DriveCombatAsync(0, me, rng, outcome);
+
         return outcome;
     }
 
@@ -1198,6 +1953,167 @@ internal static class MpFuzz
         {
             Log.Write($"[MpFuzz] WatchForDivergenceAfterCommitAsync ERROR: {ex.Message}");
         }
+    }
+
+    // ==================================================================================
+    // Card selection (step 9 addendum, REVISED) — drives the REAL NPlayerHand selection UI instead
+    // of a CardSelectCmd.Selector. See DriveOurCombatAsync's own doc comment ("IN-COMBAT
+    // CARD-SELECTION PROMPTS") for why the selector approach was abandoned.
+    // ==================================================================================
+
+    /// <summary>
+    /// Started (fire-and-forget) by DriveOurCombatAsync alongside WatchCommitsLoopAsync, running for as
+    /// long as CombatManager.Instance.IsInProgress — same shape, and same single-threaded,
+    /// cooperative-interleaving-via-await safety reasoning, as that method (see its own doc comment).
+    /// Every PollInterval tick (this file's own existing real-time poll cadence — reused as-is, no new
+    /// timer), checks NPlayerHand.Instance?.IsInCardSelection (NPlayerHand.cs:489 — true while
+    /// CurrentMode is SimpleSelect or UpgradeSelect, NPlayerHand.cs:491-497).
+    ///
+    /// SAFE ON BOTH PEERS: CardSelectCmd.FromHand only ever reaches the real-UI branch
+    /// (`NCombatRoom.Instance.Ui.Hand.SelectCards(...)`, CardSelectCmd.cs:856, i.e.
+    /// NPlayerHand.Instance.SelectCards) when ShouldSelectLocalCard(player) is true
+    /// (CardSelectCmd.cs:848, 216-223 — `LocalContext.IsMe(player)` and NOT NetGameType.Replay) — i.e.
+    /// only on the peer that actually owns this specific choice. The non-owning peer's own
+    /// NPlayerHand.IsInCardSelection never goes true for that choice at all (its NPlayerHand instead
+    /// sits in CardSelectCmd's WaitForRemoteChoice path, :862, which this loop never touches), so both
+    /// peers can run this identical loop with zero risk of double-answering the same prompt.
+    ///
+    /// Once a prompt is detected, hands off to <see cref="AnswerPendingCardSelection"/> — synchronous,
+    /// since every NPlayerHand method it calls is a private, non-async method — then bounds the wait
+    /// for IsInCardSelection to actually clear via THIS FILE'S OWN EXISTING <see
+    /// cref="WaitForConditionAsync"/> helper (<see cref="CardSelectionResolveTimeout"/>) — the same
+    /// Stopwatch+PollInterval mechanism every other bounded wait in this file already uses (e.g.
+    /// VoteForNextMapCoordAsync's confirm wait, SwitchToRandomEncounterAsync's settle wait), not a new
+    /// one. If it never clears, this is exactly the GatheringPlayerChoice deadlock shape the original
+    /// step-9 addendum was written to fix (a PlayCardAction parked forever,
+    /// ActionQueueSet.GetReadyAction silently skipping it rather than erroring, ActionQueueSet.cs:223)
+    /// — logged as its own unambiguous failure, with the diagnostic detail this task's own design
+    /// explicitly calls for (IsInCardSelection, MinSelect, MaxSelect, eligible holder count,
+    /// _selectedCards.Count), rather than left to surface, unexplained, up to ~3 minutes later as
+    /// UndoFuzz's generic "stuck waiting for idle player Play phase" — WaitForIdleOurTurnAsync's own
+    /// CanUndoRedo() check (UndoSyncMod.cs:290-312) reads the action queue as non-idle for the entire
+    /// time a PlayCardAction sits in GatheringPlayerChoice, so DriveCombatAsync's own drive loop is
+    /// already blocked, not racing this one, while a selection is pending — confirmed from source, not
+    /// assumed. outcome.DriveError is also set on that bounded-wait failure so RunAsync's step-10
+    /// summary reports FAILURE for a reason this file itself named, even if UndoFuzz's own eventual
+    /// timeout later overwrites the message with its own generic one.
+    /// </summary>
+    private static async Task WatchCardSelectionLoopAsync(string role, UndoFuzz.CombatOutcome outcome, Random rng)
+    {
+        try
+        {
+            while (CombatManager.Instance is { IsInProgress: true })
+            {
+                await Task.Delay(PollInterval);
+
+                var hand = NPlayerHand.Instance;
+                if (hand == null || !hand.IsInCardSelection)
+                    continue;
+
+                AnswerPendingCardSelection(role, hand, outcome, rng);
+
+                bool cleared = await WaitForConditionAsync(
+                    () => NPlayerHand.Instance?.IsInCardSelection != true, CardSelectionResolveTimeout);
+                if (cleared)
+                {
+                    outcome.CardSelectionsAnswered++;
+                    continue;
+                }
+
+                var prefsNow = (CardSelectorPrefs)FPlayerHandPrefs!.GetValue(hand)!;
+                var selectedNow = (System.Collections.IList?)FPlayerHandSelectedCards!.GetValue(hand);
+                Log.Write($"[MpFuzz] role={role} FAIL: card selection still pending "
+                    + $"{CardSelectionResolveTimeout.TotalSeconds}s after this file answered it — "
+                    + $"IsInCardSelection={hand.IsInCardSelection} minSelect={prefsNow.MinSelect} "
+                    + $"maxSelect={prefsNow.MaxSelect} eligibleHolders={hand.ActiveHolders.Count} "
+                    + $"selectedCards={selectedNow?.Count.ToString() ?? "null"} — this is the exact "
+                    + "GatheringPlayerChoice deadlock shape the card-selection addendum exists to "
+                    + "prevent; see WatchCardSelectionLoopAsync's own doc comment.");
+                outcome.DriveError = "card selection detected but never cleared after being answered "
+                    + "via NPlayerHand's own per-card/confirm methods — see the [MpFuzz] FAIL line above";
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz] WatchCardSelectionLoopAsync ERROR: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Answers exactly one pending NPlayerHand card-selection prompt through the game's own per-card
+    /// and confirm methods — NEVER by mutating NPlayerHand's private `_selectedCards` list directly and
+    /// NEVER by calling `_selectionCompletionSource.SetResult` directly, both of which would skip UI
+    /// bookkeeping the real path performs (RefreshSelectModeConfirmButton's enable/disable,
+    /// SelectCardInSimpleMode's own RemoveCardHolder reparenting into _selectedHandCardContainer, etc.).
+    ///
+    /// Reads NPlayerHand's private `_prefs` field (NPlayerHand.cs:396, type CardSelectorPrefs) via
+    /// reflection for MinSelect/MaxSelect — both PUBLIC on the struct itself (CardSelectorPrefs.cs:25,
+    /// 27); only the FIELD holding the struct on NPlayerHand is private.
+    ///
+    /// Eligible holders come from the PUBLIC NPlayerHand.ActiveHolders (NPlayerHand.cs:521), not the
+    /// PRIVATE `Holders` list it wraps (NPlayerHand.cs:523, verified private — reflecting into it would
+    /// have been unnecessary and would also include ineligible cards): SelectCards's own
+    /// UpdateSelectModeCardVisibility (NPlayerHand.cs:1001-1027) sets `holder.Visible =
+    /// filter(holder.CardNode.Model)` for exactly THIS selection's own filter, so ActiveHolders's
+    /// `Where(h => h.IsVisibleInTree())` (NPlayerHand.cs:521) already IS "the holders eligible for this
+    /// prompt" — no separate filter re-derivation needed. Filtered again here on `CardNode != null` to
+    /// match the same guard the real click handler uses (NPlayerHand.OnHolderPressed, NPlayerHand.cs:
+    /// 1084): UpdateSelectModeCardVisibility only touches `Visible` INSIDE its own `holder.CardNode !=
+    /// null` check (NPlayerHand.cs:1009), so a CardNode-less placeholder holder could in principle stay
+    /// visible from before selection mode began.
+    ///
+    /// Picks a genuinely random count in [MinSelect, MaxSelect] (clamped to however many are actually
+    /// eligible) rather than always maxing out, for pick-count coverage across combats/prompts. `rng`
+    /// is seeded per-role by the caller (DriveOurCombatAsync) — see that method's own doc comment for
+    /// why per-role seeding is safe here, unlike the abandoned selector approach: only the owning peer
+    /// ever reaches this method (see WatchCardSelectionLoopAsync's own doc comment), and its pick is
+    /// what gets replicated via PlayerChoiceSynchronizer.SyncLocalChoice (CardSelectCmd.cs:857), not
+    /// independently re-guessed by the other peer.
+    ///
+    /// Selects one card at a time via NPlayerHand.SelectCardInSimpleMode(NHandCardHolder)
+    /// (NPlayerHand.cs:1159, private — the exact method OnHolderPressed calls for a mouse click in
+    /// Mode.SimpleSelect, NPlayerHand.cs:1097), re-reading ActiveHolders between picks since each
+    /// successful pick removes that holder from it (SelectCardInSimpleMode's own RemoveCardHolder call,
+    /// NPlayerHand.cs:1167). Afterward calls NPlayerHand.CheckIfSelectionComplete() (NPlayerHand.cs:
+    /// 1251) — VERIFIED (by grepping the whole file) to have NO live caller anywhere else in
+    /// NPlayerHand.cs; only Godot's generated reflection-dispatch scaffolding
+    /// (InvokeGodotClassMethod-style code, NPlayerHand.cs:1724-1726) ever names it there. It is NOT
+    /// wired to fire automatically after SelectCardInSimpleMode the way sibling screen classes wire the
+    /// same-named method (e.g. NSimpleCardSelectScreen.cs:254) — calling it ourselves is what completes
+    /// the prompt when our random pick count happened to land on MaxSelect; nothing else in NPlayerHand
+    /// would do it for us. If that alone did not finish the prompt (picked fewer than MaxSelect, which
+    /// is expected whenever our random count landed below it), falls back to
+    /// NPlayerHand.OnSelectModeConfirmButtonPressed(NButton) (NPlayerHand.cs:1246) — the real confirm
+    /// button's own click handler. Valid to call unconditionally here because
+    /// RefreshSelectModeConfirmButton (NPlayerHand.cs:1259-1270, called from inside
+    /// SelectCardInSimpleMode itself) only enables that button once `_selectedCards.Count` is within
+    /// [MinSelect, MaxSelect] — exactly the range our own clamped pick count is constructed to land in.
+    /// </summary>
+    private static void AnswerPendingCardSelection(string role, NPlayerHand hand, UndoFuzz.CombatOutcome outcome, Random rng)
+    {
+        var prefs = (CardSelectorPrefs)FPlayerHandPrefs!.GetValue(hand)!;
+        int eligibleCount = hand.ActiveHolders.Count(h => h.CardNode != null);
+        int maxPick = Math.Min(prefs.MaxSelect, eligibleCount);
+        int minPick = Math.Min(prefs.MinSelect, maxPick);
+        int pickCount = maxPick <= minPick ? maxPick : minPick + rng.Next(maxPick - minPick + 1);
+
+        Log.Write($"[MpFuzz] role={role} card selection detected (minSelect={prefs.MinSelect}, "
+            + $"maxSelect={prefs.MaxSelect}, eligibleHolders={eligibleCount}) — picking {pickCount} "
+            + "card(s) via NPlayerHand.SelectCardInSimpleMode.");
+
+        for (int i = 0; i < pickCount; i++)
+        {
+            var eligible = hand.ActiveHolders.Where(h => h.CardNode != null).ToList();
+            if (eligible.Count == 0)
+                break; // shouldn't happen given the clamp above, but never index past what's actually there
+            var holder = eligible[rng.Next(eligible.Count)];
+            MSelectCardInSimpleMode!.Invoke(hand, new object[] { holder });
+        }
+
+        MCheckIfSelectionComplete!.Invoke(hand, null);
+        if (hand.IsInCardSelection)
+            MOnSelectModeConfirmButtonPressed!.Invoke(hand, new object?[] { null });
     }
 
     // ==================================================================================
