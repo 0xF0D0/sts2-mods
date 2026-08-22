@@ -127,6 +127,8 @@ internal static class UndoPicker
                     ["UNDOSYNC.PICKER_BODY"] = "",
                     ["UNDOSYNC.CANCEL"] = "취소",
                     ["UNDOSYNC.RESTART_COMBAT"] = "전투 처음부터",
+                    ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "전투 재시작",
+                    ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "지금까지의 전투 진행이 모두 사라지고 첫 턴으로 돌아갑니다.",
                 }
                 : new Dictionary<string, string>
                 {
@@ -134,6 +136,8 @@ internal static class UndoPicker
                     ["UNDOSYNC.PICKER_BODY"] = "",
                     ["UNDOSYNC.CANCEL"] = "Cancel",
                     ["UNDOSYNC.RESTART_COMBAT"] = "restart combat",
+                    ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "Restart Combat",
+                    ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "This discards everything that happened in this fight and returns to its first turn.",
                 });
         }
         catch (Exception ex)
@@ -147,9 +151,11 @@ internal static class UndoPicker
     /// first, before either of these can fire). Yes button ("Cancel") → result true
     /// (NGenericPopup.cs:111-115) → just close, as before this method handled anything else.
     /// No button ("restart combat", only wired up when <paramref name="combatStart"/> is
-    /// non-null — see Open()) → result false (:117-119) → close, then propose the combat-start
-    /// checksum id the same way a card-tile click does (UndoProtocol.ProposeTarget), so
-    /// singleplayer restores immediately and multiplayer opens the normal unanimous vote.
+    /// non-null — see Open()) → result false (:117-119) → close, then hand off to
+    /// <see cref="ConfirmRestartCombat"/> for one more yes/no before anything is proposed.
+    /// Unlike a card-tile click (still UndoProtocol.ProposeTarget straight away, unchanged —
+    /// stepping back one card is cheap), restarting throws away the whole fight, so this path
+    /// alone gets a second chance to back out before it reaches ProposeTarget.
     /// </summary>
     private static async Task HandlePopupResult(Task<bool> task, NGenericPopup popup, SyncPoint? combatStart)
     {
@@ -172,7 +178,67 @@ internal static class UndoPicker
             return;
         }
         Log.Write($"[UndoPicker] restart-combat button pressed, targetId={combatStart.ChecksumId}");
-        UndoProtocol.ProposeTarget(combatStart.ChecksumId);
+        _ = ConfirmRestartCombat(combatStart.ChecksumId);
+    }
+
+    /// <summary>
+    /// Second, plain yes/no confirmation before discarding the whole fight — the picker itself
+    /// has already fully closed by the time this runs (HandlePopupResult's own <see cref="Close"/>
+    /// call above), so NModalContainer's modal slot is guaranteed empty before this opens a new one.
+    ///
+    /// This is a fresh <see cref="NGenericPopup"/>, not a reuse of the just-closed one — a popup's
+    /// buttons resolve its TaskCompletionSource exactly once (NGenericPopup.cs:111-121) and free the
+    /// node on press, so there is nothing left to reopen. Follows <c>UndoProtocol.ShowVotePopup</c>'s
+    /// shape (UndoProtocol.cs:1196-1213) rather than this file's own <see cref="Open"/>: that popup is
+    /// a plain body+title+reject+accept confirm, the closest existing match to a yes/no dialog, where
+    /// <see cref="Open"/>'s "Cancel"/"restart combat" pair is inverted (Cancel is the safe yes-slot,
+    /// restart-combat the no-slot) to fit its card-strip picker UI — not what a second confirmation
+    /// should read like. <c>Close()</c> is called again here (a no-op today, since HandlePopupResult
+    /// already cleared it) purely to keep the same Create-then-clear-then-Add ordering ShowVotePopup
+    /// uses, so this stays correct even if a future caller reaches this method without already having
+    /// cleared the modal.
+    ///
+    /// Confirm (yes, NGenericPopup.cs:111-115) → <see cref="UndoProtocol.ProposeTarget"/> with the
+    /// combat-start id, same call a card-tile click makes. Cancel (no, :117-121), a closed dialog, or
+    /// a mid-confirm force-close (e.g. combat ending) all fall through to close-and-return: no
+    /// proposal, no restore.
+    /// </summary>
+    private static async Task ConfirmRestartCombat(uint targetChecksumId)
+    {
+        EnsureLocEntries();
+        var popup = NGenericPopup.Create();
+        if (popup == null || NModalContainer.Instance == null)
+        {
+            Log.Write("[UndoPicker] ConfirmRestartCombat: NGenericPopup.Create() failed or NModalContainer.Instance is null — no proposal sent");
+            return;
+        }
+        Close(); // guarantees a clear modal slot before Add(); no-op here, see doc comment above.
+        _popup = popup;
+        NModalContainer.Instance.Add(popup);
+
+        bool confirmed;
+        try
+        {
+            confirmed = await popup.WaitForConfirmation(
+                new LocString(LocTableName, "UNDOSYNC.RESTART_CONFIRM_BODY"),
+                new LocString(LocTableName, "UNDOSYNC.RESTART_CONFIRM_TITLE"),
+                new LocString(LocTableName, "UNDOSYNC.CANCEL"),
+                new LocString(LocTableName, "UNDOSYNC.RESTART_COMBAT"));
+        }
+        catch
+        {
+            return;
+        }
+        if (!ReferenceEquals(_popup, popup)) return; // force-closed elsewhere (e.g. combat ended mid-confirm)
+        Close();
+
+        if (!confirmed)
+        {
+            Log.Write("[UndoPicker] restart-combat confirmation cancelled, closing without proposing");
+            return;
+        }
+        Log.Write($"[UndoPicker] restart-combat confirmed, targetId={targetChecksumId}");
+        UndoProtocol.ProposeTarget(targetChecksumId);
     }
 
     /// <summary>
