@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
+using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Multiplayer.Transport;
 using MegaCrit.Sts2.Core.Nodes;
@@ -437,6 +438,38 @@ internal static class UndoProtocol
 {
     private static INetGameService? _registeredService;
 
+    /// <summary>The RunLobby (RunLobby.cs, `MegaCrit.Sts2.Core.Multiplayer.Game.Lobby`) this peer's
+    /// OnPeerDisconnected is currently subscribed to, or null if none — see "── Departure-aware quorum
+    /// ──" further down for what that subscription buys, and EnsureRunLobbySubscribed's own doc comment
+    /// for why this is tracked and re-checked separately from _registeredService above rather than being
+    /// folded into the same svc-changed guard.</summary>
+    private static RunLobby? _registeredRunLobby;
+
+    /// <summary>Proof-of-exercise: incremented unconditionally on EVERY call to EnsureRunLobbySubscribed,
+    /// before that method's own early-return check — see its doc comment for the trap this exists to
+    /// catch. A live fuzz run proved the trap real: MpFuzz.ProposeRestoreIfDue calls
+    /// UndoProtocol.ProposeTarget directly (MpFuzz.cs:1920), never through RequestUndo, so
+    /// EnsureRunLobbySubscribed's only caller for that peer was the Harmony postfix on
+    /// RunManager.InitializeShared (ChecksumHook.cs:1023) — which always runs before
+    /// RunManager.Instance.RunLobby is set (see EnsureRunLobbySubscribed's own doc comment on that
+    /// ordering) and therefore always hit the `ReferenceEquals(null, null)` early return. That run's log
+    /// never printed a single "RunLobby subscription updated" line, which was ambiguous on its own
+    /// between "this method never ran for this peer" and "it ran repeatedly but the lobby just wasn't
+    /// ready yet". This counter resolves that ambiguity even without any log line at all (0 means never
+    /// called); _loggedRunLobbyPending below additionally puts a one-time, non-spamming line in the log
+    /// itself for the same distinction — see that field's own doc comment.</summary>
+    private static int _ensureRunLobbySubscribedCallCount;
+
+    /// <summary>Guards EnsureRunLobbySubscribed's "lobby is still null" no-op branch so it logs exactly
+    /// ONCE per such episode instead of once per call — that branch can be hit many times in a row (every
+    /// EnsureHandlersRegistered/ProposeTarget/OnProposalReceived call) during the real window between
+    /// process start and RunManager.Instance.RunLobby actually being set (InitializeRunLobby,
+    /// RunManager.cs:509-514). Reset to false the moment a non-null lobby is actually subscribed (see the
+    /// method body), so a LATER episode of the same no-op state (e.g. a fresh run in the same process,
+    /// between InitializeShared and InitializeRunLobby again) gets its own one-time log line rather than
+    /// staying permanently silenced by an earlier run's episode.</summary>
+    private static bool _loggedRunLobbyPending;
+
     private static uint? _pendingTargetId;
     private static int _pendingGeneration;
     private const int TimeoutFrames = 30 * 60; // ~30s at 60fps
@@ -511,6 +544,70 @@ internal static class UndoProtocol
     /// </summary>
     internal static bool AutoAcceptForFuzz;
 
+    /// <summary>
+    /// Fuzz-only: when true, THIS peer SCHEDULES RunManager.Instance.NetService.Disconnect(NetError.Quit)
+    /// — see MaybeLeaveAfterVoteForFuzz's own doc comment for exactly where and why it is scheduled
+    /// rather than called directly — the moment it has voted on the first proposal it receives while
+    /// this flag is set. Exists to simulate a real player quitting a multiplayer run mid-proposal, for
+    /// "── Departure-aware quorum ──" (further down) to react to.
+    ///
+    /// WHY THIS CALL SPECIFICALLY: verified against decompiled source, not invented — it is the exact
+    /// call the game's own "Disconnect" pause-menu button makes when a human confirms leaving a run in
+    /// progress: NDisconnectConfirmPopup.OnYesButtonPressed does
+    /// `RunManager.Instance.NetService.Disconnect(NetError.Quit);` (NDisconnectConfirmPopup.cs:137,
+    /// reached from NPauseMenu's own Disconnect button, NPauseMenu.cs:299-304). INetGameService.Disconnect
+    /// itself (INetGameService.cs:94, `void Disconnect(NetError reason, bool now = false)`) is documented
+    /// as sending a real disconnect notification to the remote end ("now: false ... allowed to wait until
+    /// messages are finished sending" — the graceful default, unchanged here), unlike a killed process,
+    /// which notifies nobody and leaves the host to notice only via its own connection timeout.
+    ///
+    /// WHY NOT `kill -9`: a live test confirmed a killed client process sends nothing — neither the mod
+    /// nor the game logged any disconnect on the host within the run's own lifetime — because there is no
+    /// ENet-level notification for the host's NetHostGameService.ClientDisconnected
+    /// (RunLobby.cs:76/:217-231's own subscription) to react to promptly; it would only fire once the
+    /// transport's own timeout elapses, well outside any bounded phase this protocol waits through
+    /// (BarrierTimeoutFrames, ~149s — see that constant's own doc comment). Disconnect(NetError.Quit)
+    /// instead drives the SAME code path a graceful human quit does, so the host's OnPeerDisconnected
+    /// (further down) fires promptly and deterministically, not "eventually if at all".
+    ///
+    /// WHY `now: false` (the default) IS KEPT, NOT `now: true`: a live fuzz run measured this call firing
+    /// synchronously from inside NetMessageBus.SendMessageToAllHandlers's dispatch of UndoProposalMessage
+    /// (OnProposalReceived → MaybeLeaveAfterVoteForFuzz, the same frame) throwing mid-unwind — see
+    /// DeferredLeaveForFuzz's own doc comment for the full crash and the fix (deferring the call itself,
+    /// not switching `now`). Reading ENetClient.DisconnectFromHost (ENetClient.cs:204-226) shows WHY
+    /// `now: false` was never the actual problem: its else-branch (ENetClient.cs:211-217) builds and sends
+    /// the application-level Disconnection packet carrying the real `reason` (NetError.Quit here), and
+    /// `_connection?.Flush()` (ENetClient.cs:219) pushes it to the socket — both BEFORE the
+    /// `_handler.OnDisconnectedFromHost` callback (ENetClient.cs:223) that was throwing. The crash could
+    /// only ever have cost the cleanup at ENetClient.cs:224 (`_connection?.Destroy()`), not delivery of the
+    /// reason-carrying packet, which was already in flight. `now: true` skips that whole else-branch —
+    /// `_peer?.PeerDisconnectNow()` (ENetClient.cs:208) uses ENet's own low-level disconnect instead, so
+    /// the host would see a raw ENet disconnect instead of a NetError.Quit-tagged one, changing exactly
+    /// the semantic this flag exists to test, for no delivery benefit `now: false` didn't already have.
+    /// Switching would only be justified by live evidence that a DEFERRED `now: false` attempt (i.e. after
+    /// this fix) still fails to notify the host — no such evidence exists.
+    ///
+    /// Only ever written by MpFuzz.MaybeStart, behind --undosync-mpfuzz-leave-on-vote, gated behind that
+    /// file's own --undosync-mpfuzz entry point — the same "only the currently-active fuzz path's own
+    /// setup ever writes this" discipline AutoAcceptForFuzz above uses. Meaningful only on a peer that
+    /// actually RECEIVES a proposal (the client, in this harness's own host/client split — only the host
+    /// proposes, see MpFuzz.ProposeRestoreIfDue's own doc comment) — passing it on the host is harmless
+    /// but inert, since the host's own OnProposalReceived is never reached by its own proposal.
+    /// </summary>
+    internal static bool LeaveOnVoteForFuzz;
+
+    /// <summary>Guards LeaveOnVoteForFuzz so it SCHEDULES the deferred disconnect (DeferredLeaveForFuzz)
+    /// at most once per process — see LeaveOnVoteForFuzz's own doc comment for the call it eventually
+    /// makes. Set the instant MaybeLeaveAfterVoteForFuzz decides to leave, before the deferred task is
+    /// even started — unlike the old synchronous design (where the disconnect, and this peer's own
+    /// NetClientGameService teardown, NetClientGameService.cs:126-132, both completed within the SAME
+    /// call), there is now a real multi-frame window between scheduling and the disconnect actually
+    /// running (see DeferredLeaveForFuzz's own doc comment) during which a SECOND UndoProposalMessage
+    /// could arrive and re-enter OnProposalReceived/MaybeLeaveAfterVoteForFuzz. This flag is what stops
+    /// that from scheduling a second, redundant deferred disconnect — no longer merely defensive, as it
+    /// was when the teardown was synchronous, but load-bearing now that the window exists.</summary>
+    private static bool _hasLeftForFuzz;
+
     private const string LocTableName = "main_menu_ui";
 
     // ── Cross-peer restore barrier: reflection onto CombatManager.PlayerActionsDisabled ──
@@ -570,6 +667,17 @@ internal static class UndoProtocol
     /// shape as _accepted above (a HashSet&lt;ulong&gt; checked against AllPlayerIds().All(...)) by
     /// design — see UndoRestoreAckMessage's own doc comment. Harmless and unread on non-host peers.</summary>
     private static readonly HashSet<ulong> _acked = new();
+
+    /// <summary>Host-only: true once at least one peer has departed (RunLobby.RemotePlayerDisconnected —
+    /// see "── Departure-aware quorum ──" further down) while THIS barrier (_barrierTargetId) has been
+    /// armed. Reset to false by ArmBarrierForProposal (a fresh barrier lifecycle begins) and by
+    /// ResetBarrier (a hard reset — see that method's own doc comment); read and consumed exactly once,
+    /// by ReleaseBarrierForTarget, to attribute a resolution to ProposalsResolvedAfterDepartureCount
+    /// below. Deliberately keyed to the BARRIER's lifecycle (propose→...→ack, the broadest span any stage
+    /// of a single proposal runs across — see BarrierArmed's own doc comment) rather than to any one
+    /// stage, since a departure observed during, say, the vote phase can still be what let a LATER stage
+    /// (quiesce or ack) complete once the remaining peers reach it.</summary>
+    private static bool _departureAffectedCurrentBarrier;
 
     /// <summary>True while this peer's own barrier is armed — i.e. a commit has been received (or,
     /// on the host, decided) and this peer has not yet processed the matching UndoResume. Used to
@@ -697,6 +805,13 @@ internal static class UndoProtocol
 
     internal static void EnsureHandlersRegistered()
     {
+        // Checked on EVERY call, independent of the svc-changed early return just below — see
+        // EnsureRunLobbySubscribed's own doc comment for why RunLobby specifically cannot share that
+        // guard (RunManager sets NetService before RunLobby, so the first call for a fresh run — the
+        // Harmony postfix on RunManager.InitializeShared, ChecksumHook.cs:1023 — would otherwise
+        // permanently latch onto a null or stale RunLobby).
+        EnsureRunLobbySubscribed();
+
         var svc = RunManager.Instance?.NetService;
         if (svc == null || ReferenceEquals(svc, _registeredService))
             return;
@@ -765,12 +880,49 @@ internal static class UndoProtocol
 
     private static ulong MyNetId => _registeredService?.NetId ?? 0;
 
+    /// <summary>
+    /// Every quorum stage below (CheckAllAccepted/CheckQuiesceRound/CheckAllAcked) requires a response
+    /// from every id this yields — so this method excluding a departed peer is the load-bearing half of
+    /// "── Departure-aware quorum ──" (see that section header further down for the full design and the
+    /// OTHER half, OnPeerDisconnected, which re-triggers those checks promptly instead of leaving this
+    /// exclusion to be noticed only whenever some other message next arrives).
+    ///
+    /// RunManager.Instance.DebugOnlyGetState()?.Players (RunState.Players, RunState.cs:60) is NEVER enough
+    /// on its own: verified by reading RunState.cs directly, its backing field _players (RunState.cs:25)
+    /// is only ever grown (AddRange at :342, Insert/Add at :608/:612) and never Remove*'d anywhere in that
+    /// file, so it keeps every peer that ever joined this run, connected or not. RunLobby.PlayerIds
+    /// (RunLobby.cs:35, `Players.Select(p => p.id)`) is the deliberate opposite — RunLobby.Players's own
+    /// doc comment (RunLobby.cs:29-32) states the split explicitly: "RunState.Players contains all
+    /// players that have ever been connected to the session, i.e. it may contain disconnected players.
+    /// This set contains only players who are currently connected to the session." Cross-referencing
+    /// against it here is not a new pattern invented for this fix — it is exactly what
+    /// CombatStateSynchronizer.CheckSyncCompleted already does for its own quorum (`foreach (ulong
+    /// playerId in _runLobby.PlayerIds)`, CombatStateSynchronizer.cs:221) instead of iterating
+    /// _runState.Players.
+    ///
+    /// A rejoined peer needs no separate handling: RunLobby.Players (and therefore PlayerIds) already
+    /// re-adds them the moment they reconnect (HandleClientRejoinRequestMessage -> Players.Add,
+    /// RunLobby.cs:124; HandlePlayerRejoinedMessage -> Players.Add, RunLobby.cs:164 — reachable during a
+    /// live run, not just in theory: RunLobby.PlayerRejoined is consumed elsewhere at
+    /// NMultiplayerPlayerState.cs:453/492). Because this method re-reads RunLobby.PlayerIds fresh on every
+    /// call instead of caching a departed-peer set, a rejoin is picked up automatically for the NEXT
+    /// proposal, with no risk of a stale exclusion outliving the disconnect that caused it.
+    ///
+    /// A null RunLobby means singleplayer (RunManager.cs:509's own `if (netService.Type.IsMultiplayer())`
+    /// guard — RunLobby is never created otherwise) or, briefly, a multiplayer run whose RunLobby hasn't
+    /// been created yet (see EnsureRunLobbySubscribed's own doc comment on that ordering) — either way,
+    /// trusting every id here is correct: singleplayer never reaches any of the barrier/vote/quiesce
+    /// machinery this filters for at all (ProposeTarget's own singleplayer branch returns first), and the
+    /// brief pre-RunLobby window is before any real gameplay (and therefore any proposal) can exist.
+    /// </summary>
     private static IEnumerable<ulong> AllPlayerIds()
     {
         var players = RunManager.Instance?.DebugOnlyGetState()?.Players;
         if (players == null) yield break;
+        var lobby = RunManager.Instance?.RunLobby;
         foreach (var p in players)
-            yield return p.NetId;
+            if (lobby == null || lobby.PlayerIds.Contains(p.NetId))
+                yield return p.NetId;
     }
 
     // ── Entry point (Left Arrow) ──
@@ -809,9 +961,29 @@ internal static class UndoProtocol
         UndoPicker.Open();
     }
 
-    /// <summary>Called by the picker with the chosen sync point id.</summary>
+    /// <summary>Called by the picker with the chosen sync point id — but NOT only by the picker; see the
+    /// EnsureRunLobbySubscribed call immediately below for the other caller this matters for.</summary>
     internal static void ProposeTarget(uint targetChecksumId)
     {
+        // Guarantees "── Departure-aware quorum ──" (further down) is actually subscribed before THIS
+        // peer's own proposal goes out, regardless of how ProposeTarget was reached. Relying solely on
+        // RequestUndo's own EnsureHandlersRegistered call (RequestUndo, above) to have already covered it
+        // was exactly the bug a live fuzz run found: RequestUndo is the REAL-PLAYER entry point (Left
+        // Arrow -> UndoPicker.Open -> eventual ProposeTarget callback, UndoPicker.cs:258/:438), but
+        // MpFuzz.ProposeRestoreIfDue calls UndoProtocol.ProposeTarget directly (MpFuzz.cs:1920) — it never
+        // goes through RequestUndo at all, so for that peer EnsureRunLobbySubscribed's only prior call was
+        // the Harmony postfix on RunManager.InitializeShared (ChecksumHook.cs:1023), which always fires
+        // before RunManager.Instance.RunLobby is even set (see EnsureRunLobbySubscribed's own doc comment)
+        // and therefore always no-ops. That run's log never printed "RunLobby subscription updated" or
+        // "Peer ... disconnected.", and its proposal resolved via the ordinary vote-stage timeout instead
+        // of via OnPeerDisconnected. A single call point (RequestUndo) for a subscription every
+        // proposal-starting path depends on is fragile precisely because "starts a proposal" has more than
+        // one entry point — calling this here, in the one function EVERY proposal (UI or fuzz-direct)
+        // funnels through before a message ever goes out, removes that dependency on caller order.
+        // EnsureRunLobbySubscribed is idempotent (a single reference comparison in the common case), so
+        // this is cheap even on the real-player path where RequestUndo already covered it moments earlier.
+        EnsureRunLobbySubscribed();
+
         var svc = _registeredService;
         if (svc == null) return;
         if (_pendingTargetId != null) return;
@@ -884,6 +1056,15 @@ internal static class UndoProtocol
 
     private static void OnProposalReceived(UndoProposalMessage msg, ulong senderId)
     {
+        // Closes a gap EnsureHandlersRegistered's own top-of-function call to EnsureRunLobbySubscribed
+        // doesn't: a peer that never personally calls RequestUndo (e.g. a host that only ever RECEIVES
+        // proposals from other players) would otherwise only ever run that check once, from the Harmony
+        // postfix on RunManager.InitializeShared — before RunManager.Instance.RunLobby is actually set
+        // (see EnsureRunLobbySubscribed's own doc comment) — and never again for the rest of the run.
+        // Calling it here, the first point at which THIS peer becomes actively involved in a NEW
+        // proposal, guarantees the "── Departure-aware quorum ──" subscription is live before this
+        // peer's own _pendingTargetId/_accepted/barrier bookkeeping for the proposal even starts.
+        EnsureRunLobbySubscribed();
         Log.Write($"[UndoProtocol] Proposal received from {senderId}: target id={msg.targetChecksumId}");
         if (_pendingTargetId != null)
         {
@@ -936,12 +1117,117 @@ internal static class UndoProtocol
             // message and host tally are completely unmodified; only the popup UI is skipped.
             Log.Write($"[UndoProtocol] --undosync-mpfuzz auto-accept: target id={msg.targetChecksumId}");
             SubmitLocalVote(accept: true);
+            MaybeLeaveAfterVoteForFuzz(msg.targetChecksumId);
         }
         else
         {
             ShowVotePopup(msg.targetChecksumId, msg.proposerNetId);
         }
         _ = TimeoutWatchdog(_pendingGeneration, msg.targetChecksumId);
+    }
+
+    /// <summary>
+    /// LeaveOnVoteForFuzz's actual trigger — see that field's own doc comment for the full design and
+    /// exactly which call this eventually makes and why. Called from OnProposalReceived immediately
+    /// after this peer's own SubmitLocalVote(accept: true), i.e. once this peer "has voted on ... a
+    /// proposal" (the moment a real graceful departure is most useful to inject: the vote itself has
+    /// already been sent, so the proposal is genuinely in flight and the remaining quorum stages —
+    /// quiesce, ack — are what need to prove they can resolve without this peer, not merely the vote
+    /// tally itself).
+    ///
+    /// DETERMINISTIC, NOT RANDOM: fires on the FIRST proposal this peer votes on while
+    /// LeaveOnVoteForFuzz is set, every time, with no dice roll involved — a fuzz run either passes
+    /// --undosync-mpfuzz-leave-on-vote (departs on proposal #1, always) or doesn't (never departs), so a
+    /// reader diffing two runs' logs knows exactly which proposal to line up against the host's own "Peer
+    /// ... disconnected." line (OnPeerDisconnected, further down).
+    ///
+    /// ONLY SCHEDULES — does not disconnect here. This method itself still runs synchronously inside
+    /// OnProposalReceived, which NetMessageBus.SendMessageToAllHandlers is still mid-dispatch of
+    /// (UndoProposalMessage) when this is called — so the actual Disconnect(NetError.Quit) call is
+    /// deferred to DeferredLeaveForFuzz, which does not run until at least one SceneTree ProcessFrame
+    /// signal after this dispatch has fully unwound. See DeferredLeaveForFuzz's own doc comment for the
+    /// crash this avoids. Logs the SCHEDULING here; DeferredLeaveForFuzz logs a second line immediately
+    /// before the disconnect itself actually happens, so a reader can tell "asked to leave" apart from
+    /// "actually left" in the log.
+    /// </summary>
+    private static void MaybeLeaveAfterVoteForFuzz(uint targetChecksumId)
+    {
+        if (!LeaveOnVoteForFuzz || _hasLeftForFuzz) return;
+        _hasLeftForFuzz = true;
+        Log.Write($"[UndoProtocol] [FUZZ] --undosync-mpfuzz-leave-on-vote: this peer voted on proposal "
+            + $"id={targetChecksumId} and has SCHEDULED a graceful disconnect "
+            + "(RunManager.Instance.NetService.Disconnect(NetError.Quit) — the same call the game's own "
+            + "Disconnect pause-menu button makes, NDisconnectConfirmPopup.cs:137) for a later frame, to "
+            + "simulate a real mid-proposal departure without running it from inside this message "
+            + "dispatch — see DeferredLeaveForFuzz's own doc comment for why. Line the DISCONNECTING "
+            + "log line that follows, once DeferredLeaveForFuzz actually fires, up against the host's own "
+            + "\"Peer ... disconnected.\" log line (OnPeerDisconnected) to confirm promptness.");
+        _ = DeferredLeaveForFuzz(targetChecksumId);
+    }
+
+    /// <summary>
+    /// MaybeLeaveAfterVoteForFuzz's actual disconnect, deferred one (or more) SceneTree ProcessFrame
+    /// signal past the message dispatch that scheduled it — the SAME await-based deferral this file
+    /// already uses to move work off a synchronous call stack (e.g. BeginQuiesceRound's idle-wait loop,
+    /// BarrierTimeoutWatchdog's timeout loop, both further up/down in this file), applied here instead
+    /// of a new timer or a thread.
+    ///
+    /// WHY DEFERRED AT ALL: a live fuzz run measured MaybeLeaveAfterVoteForFuzz's OLD synchronous
+    /// `RunManager.Instance?.NetService?.Disconnect(NetError.Quit)` call — made directly from
+    /// OnProposalReceived, itself running INSIDE NetMessageBus.SendMessageToAllHandlers's dispatch of
+    /// UndoProposalMessage — unwind synchronously into ENetClient.DisconnectFromHost's own
+    /// `_handler.OnDisconnectedFromHost` callback (ENetClient.cs:223) → StartRunLobby.OnDisconnected →
+    /// NMultiplayerTest.LocalPlayerDisconnected → Godot.CanvasItem.SetVisible on an already-freed
+    /// NMultiplayerTestCharacterPaginator node, throwing an ObjectDisposedException-class error. Because
+    /// that throw happened mid-dispatch, NetMessageBus logged "[ERROR] [NetMessageBus] Exception
+    /// encountered while processing message UndoProposalMessage" and abandoned the rest of that
+    /// dispatch — the debug scene's own stale node reference, not this protocol, is what breaks, but it
+    /// breaks BECAUSE this call ran from inside a message handler instead of from an input handler like
+    /// the real pause-menu path does (NDisconnectConfirmPopup.OnYesButtonPressed, called from a button
+    /// press, never from inside SendMessageToAllHandlers). A real player quitting never hits this frame
+    /// timing. Awaiting a ProcessFrame signal first lets this dispatch (and the rest of this frame's own
+    /// engine/scene bookkeeping) finish unwinding before the disconnect — and everything it
+    /// synchronously triggers — ever runs, so it observes the same settled, non-mid-dispatch state a
+    /// real button press would.
+    ///
+    /// `now` IS DELIBERATELY LEFT AT ITS DEFAULT (false), matching NDisconnectConfirmPopup.cs:137 exactly
+    /// — see LeaveOnVoteForFuzz's own doc comment for the full ENetClient.DisconnectFromHost
+    /// (ENetClient.cs:204-226) reading that justifies this: the reason-carrying Disconnection packet is
+    /// already built, sent, and flushed (ENetClient.cs:211-219) BEFORE the callback that was crashing
+    /// (ENetClient.cs:223), so the crash was never actually a delivery problem `now: true` would fix —
+    /// only a connection-cleanup step (ENetClient.cs:224) the crash prevented from running, which
+    /// deferral fixes at the source instead.
+    ///
+    /// Defensive on every exit path, per this file's own house style for every other awaited loop
+    /// (BeginQuiesceRound, BarrierTimeoutWatchdog, etc.): if NGame.Instance or its SceneTree is
+    /// unavailable, this logs and returns instead of throwing, and the whole body is wrapped in
+    /// try/catch so no exception can escape into the fire-and-forget caller (MaybeLeaveAfterVoteForFuzz
+    /// discards this Task with `_ =`, so an unobserved exception here would otherwise be silently lost
+    /// at best or crash the process on an unhandled-task-exception policy at worst).
+    /// </summary>
+    private static async Task DeferredLeaveForFuzz(uint targetChecksumId)
+    {
+        try
+        {
+            var tree = NGame.Instance?.GetTree();
+            if (tree == null)
+            {
+                Log.Write("[UndoProtocol] [FUZZ] DeferredLeaveForFuzz: NGame.Instance or its SceneTree "
+                    + "is unavailable — skipping the scheduled disconnect rather than risking a crash or "
+                    + "a hang.");
+                return;
+            }
+            await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+            Log.Write($"[UndoProtocol] [FUZZ] --undosync-mpfuzz-leave-on-vote: DISCONNECTING now (one "
+                + $"frame after proposal id={targetChecksumId}'s OnProposalReceived dispatch scheduled "
+                + "this) via RunManager.Instance.NetService.Disconnect(NetError.Quit) — the same call "
+                + "the game's own Disconnect pause-menu button makes, NDisconnectConfirmPopup.cs:137.");
+            RunManager.Instance?.NetService?.Disconnect(NetError.Quit);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[UndoProtocol] DeferredLeaveForFuzz ERROR: {ex.Message}");
+        }
     }
 
     private static void OnVoteReceived(UndoVoteMessage msg, ulong senderId)
@@ -1582,6 +1868,32 @@ internal static class UndoProtocol
     /// </summary>
     internal static int AbortedProposalCount;
 
+    /// <summary>Proof-of-exercise counter for "── Departure-aware quorum ──" (further down): incremented
+    /// once per RunLobby.RemotePlayerDisconnected observed on THIS peer while a proposal was in flight
+    /// (_barrierTargetId != null — see OnPeerDisconnected's own doc comment for why that field alone is
+    /// the right "in flight" test). Runs on every peer, not host-only — unlike AbortedProposalCount above,
+    /// this is about what THIS peer observed, not a decision only the host makes; every remaining peer
+    /// independently receives the same RemotePlayerDisconnected broadcast (RunLobby.HandlePlayerLeftMessage
+    /// / OnDisconnectedFromClientAsHost both invoke it), so a healthy multi-peer run should see this
+    /// counter agree across every remaining peer's own log. A run where nobody ever disconnects mid-
+    /// proposal reads 0 here — see ProposalsResolvedAfterDepartureCount below for the counter that
+    /// distinguishes "a departure happened" from "that departure is what let a proposal finish".</summary>
+    internal static int DeparturesDuringProposalCount;
+
+    /// <summary>Proof-of-exercise counter for "── Departure-aware quorum ──" (further down), host-only —
+    /// like AbortedProposalCount above, every trigger for this counter (CheckAllAccepted/CheckQuiesceRound/
+    /// CheckAllAcked deciding a stage is satisfied) only ever runs on the host, so a client's own copy
+    /// never advances past 0. Incremented exactly once per proposal whose barrier
+    /// (ReleaseBarrierForTarget) released while _departureAffectedCurrentBarrier was true — i.e. a
+    /// proposal that reached its terminal outcome (committed-and-fully-acked, or cancelled) with at least
+    /// one peer's departure, and this section's own exclusion of them from AllPlayerIds(), among the
+    /// reasons it got there. NOT incremented for every departure (DeparturesDuringProposalCount above
+    /// already counts those) — only for the subset that actually mattered to a resolution, so a reader can
+    /// tell "N peers left mid-proposal" apart from "M proposals actually needed that exclusion to finish"
+    /// (M &lt;= N: a departure that happens to land on a proposal the remaining peers were ALREADY about to
+    /// finish on their own contributes to N but not necessarily to M).</summary>
+    internal static int ProposalsResolvedAfterDepartureCount;
+
     // ── Fuzz-only fault injection (MpFuzz, --undosync-mpfuzz-inject-clock-move) ──
     //
     // 24 live two-instance peer-runs (see this file's top-of-file iteration-5 note and f893325's own
@@ -1991,6 +2303,7 @@ internal static class UndoProtocol
         _barrierTargetId = targetId;
         _barrierGeneration++;
         _acked.Clear();
+        _departureAffectedCurrentBarrier = false; // fresh barrier lifecycle — see that field's own doc comment
         ArmActionBarrier();
         _ = BarrierTimeoutWatchdog(_barrierGeneration, targetId);
     }
@@ -2016,11 +2329,21 @@ internal static class UndoProtocol
             Log.Write($"[UndoProtocol] ReleaseBarrierForTarget: ignoring id={targetId} — this peer's armed target is {(_barrierTargetId?.ToString() ?? "none")} (stale message or already released).");
             return;
         }
+        // Proof-of-exercise: see ProposalsResolvedAfterDepartureCount's own doc comment for exactly what
+        // this attributes and why it's counted here specifically (the single canonical point every
+        // resolution path — commit-and-fully-acked, or any of the cancel/timeout paths — funnels through).
+        if (_departureAffectedCurrentBarrier)
+        {
+            ProposalsResolvedAfterDepartureCount++;
+            Log.Write($"[UndoProtocol] Proposal id={targetId} resolved with at least one peer having "
+                + $"departed mid-proposal — ProposalsResolvedAfterDepartureCount={ProposalsResolvedAfterDepartureCount}.");
+        }
         ReleaseActionBarrier();
         _barrierTargetId = null;
         _barrierGeneration++;
         _acked.Clear();
         _commitTargetId = null;
+        _departureAffectedCurrentBarrier = false;
     }
 
     /// <summary>
@@ -2070,6 +2393,260 @@ internal static class UndoProtocol
         {
             Log.Write($"[UndoProtocol] BarrierTimeoutWatchdog ERROR: {ex.Message}");
         }
+    }
+
+    // ── Departure-aware quorum: a player leaving mid-proposal must not freeze everyone else ──
+    //
+    // THE DEFECT: every quorum stage above waits for ALL players —
+    // AllPlayerIds().All(id => _accepted.Contains(id)) for the vote, the same shape for _quiesceReports
+    // (CheckQuiesceRound) and _acked (CheckAllAcked). AllPlayerIds() itself, before this section existed,
+    // was backed ONLY by RunState.Players — verified by reading RunState.cs directly: its backing field
+    // _players (RunState.cs:25) is only ever grown (AddRange at :342, Insert/Add at :608/:612), never
+    // Remove*'d anywhere in that file — so it NEVER shrinks when a peer disconnects. If that peer was
+    // still owed a vote/report/ack, every REMAINING peer's input stayed frozen
+    // (CombatManager.PlayerActionsDisabled, forced true by the barrier) until BarrierTimeoutWatchdog's own
+    // ~149s bound gave up and logged that the session "may now be DIVERGENT".
+    //
+    // THE FIX has two independent halves:
+    //   1. AllPlayerIds() (see its own doc comment) now cross-references RunLobby.PlayerIds (RunLobby.cs:35,
+    //      a live `Players.Select`) and excludes anyone not in it — RunLobby.Players's own doc comment
+    //      (RunLobby.cs:29-32) states the split explicitly: "RunState.Players contains all players that
+    //      have ever been connected... it may contain disconnected players. This set contains only players
+    //      who are currently connected." Not a new pattern invented for this fix — it is exactly what
+    //      CombatStateSynchronizer.CheckSyncCompleted already does for its own quorum (`foreach (ulong
+    //      playerId in _runLobby.PlayerIds)`, CombatStateSynchronizer.cs:221) instead of iterating
+    //      _runState.Players. Because it re-reads RunLobby.PlayerIds fresh on every call, this half is
+    //      correct immediately, independent of whether (or when) OnPeerDisconnected below has run for a
+    //      given departure — a real ordering question this file verified rather than assumed (see
+    //      EnsureRunLobbySubscribed's own doc comment for the specific hazard: RunManager.Instance.RunLobby
+    //      is not always set by the time this file first wires itself up).
+    //   2. OnPeerDisconnected below, subscribed to RunLobby.RemotePlayerDisconnected (RunLobby.cs:49,
+    //      `public event Action<ulong>?`), is what makes an already-stuck quorum resolve PROMPTLY instead
+    //      of merely "eventually, once some other message happens to arrive". AllPlayerIds() excluding the
+    //      departed peer is not enough by itself: nothing else re-invokes CheckAllAccepted/
+    //      CheckQuiesceRound/CheckAllAcked once the LAST outstanding response was theirs, so a host that's
+    //      otherwise done tallying would just sit there without an explicit trigger. This mirrors two
+    //      existing precedents for the exact same problem shape, both checked directly rather than assumed:
+    //        - RestSiteSynchronizer subscribes the same way (RestSiteSynchronizer.cs:73 subscribe, :84
+    //          unsubscribe) and its own OnPeerDisconnected (RestSiteSynchronizer.cs:144-162) has a doc
+    //          comment (:139-143) stating the exact same failure mode this section fixes: "Otherwise a room
+    //          exit that is waiting on AfterAllRestSitesCompleted would hang forever." Its handler calls
+    //          _playerCollection.GetPlayer(peerId) and gets a NON-null Player back
+    //          (RestSiteSynchronizer.cs:146) — confirmed by reading the method, not assumed — proving the
+    //          departed peer is NOT removed from IPlayerCollection (RunState.Players) at the moment this
+    //          event fires, exactly as AllPlayerIds()'s own citation above establishes independently.
+    //        - CombatStateSynchronizer subscribes the same way too (CombatStateSynchronizer.cs:48/:58) and
+    //          its own OnPeerDisconnected (:103-111) re-invokes CheckSyncCompleted — the SAME "re-use the
+    //          existing check function, don't duplicate its decision logic" shape OnPeerDisconnected below
+    //          uses for CheckAllAccepted/CheckQuiesceRound/CheckAllAcked.
+    //
+    // COMPLETE, NEVER CANCEL, ON A DEPARTURE ALONE. When a stage's only outstanding requirement was the
+    // departed peer's, this fix always lets the proposal proceed without them (via AllPlayerIds() excluding
+    // them), never manufactures a synthetic reject/cancel on their behalf. Reasoning:
+    //   - A departure carries no information that could make completing UNSAFE, unlike an explicit reject
+    //     (RegisterVote) or an explicit conflicting checksum (CheckQuiesceRound's disagreement branch). The
+    //     departed peer will never call ChecksumHook.RestoreTo, so whatever state they held is already
+    //     irrelevant to the two things this whole protocol protects: every REMAINING peer restoring to the
+    //     same point, and every remaining peer's checksum clock agreeing. Both stay fully enforced —
+    //     AllPlayerIds() (now filtered) still requires unanimous agreement among everyone still actually
+    //     playing; only the requirement that can structurally never be satisfied (a message from someone
+    //     who left) is dropped.
+    //   - Cancelling instead would not reduce any risk that completing avoids: the remaining peers' risk of
+    //     diverging from EACH OTHER is gated by the exact same unanimous-among-survivors check either way.
+    //     Cancelling would only tax the remaining players' own, already-unanimous undo for an unrelated
+    //     peer leaving.
+    //   - For the ack/barrier stage specifically, refusing to release the barrier because a peer who will
+    //     NEVER send an ack has left would freeze every remaining peer's input for the rest of combat —
+    //     precisely the defect this section exists to fix, and strictly worse than BarrierTimeoutWatchdog's
+    //     own last-resort "may now be DIVERGENT" release, which this section exists to make unnecessary,
+    //     not to imitate.
+    //   - Checked before deciding this, not assumed: MegaCrit's own precedents for this exact problem shape
+    //     never cancel a room/sync on a disconnect either. RestSiteSynchronizer.OnPeerDisconnected FORCE-
+    //     COMPLETES the departed player's own outstanding rest-site task
+    //     (playerRestSite.completionTaskSource.SetResult(), RestSiteSynchronizer.cs:159) rather than failing
+    //     the room exit; CombatStateSynchronizer.CheckSyncCompleted quorums against the shrinking
+    //     RunLobby.PlayerIds instead of the never-shrinking RunState.Players. Neither manufactures a
+    //     rejection on a departed player's behalf. This section follows the same philosophy: exclude a
+    //     PROVEN-gone peer from a quorum they can never satisfy, don't invent an accept or reject they never
+    //     gave.
+    //
+    // RECONNECTION IS NOT SPECIAL-CASED, because it doesn't need to be — see AllPlayerIds()'s own doc
+    // comment for why re-reading RunLobby.PlayerIds fresh on every call, rather than caching a
+    // departed-peer set here, means a rejoin (RunLobby.PlayerRejoined — a real, live path, consumed
+    // elsewhere at NMultiplayerPlayerState.cs:453/492) is picked up automatically with nothing for this
+    // section to separately track or clear.
+    //
+    // Guarded degenerate cases (see this section's own methods for how each is handled without throwing or
+    // stranding the barrier): the departing peer being the host, a departure with no proposal in flight, a
+    // departure between quiesce rounds, and two peers departing in succession.
+
+    /// <summary>
+    /// Idempotent — a single reference comparison in the common case (RunManager.Instance.RunLobby hasn't
+    /// changed since we last checked). Deliberately NOT folded into EnsureHandlersRegistered's own
+    /// svc-changed early return: RunManager sets NetService (InitializeShared, RunManager.cs:470) BEFORE
+    /// RunLobby (InitializeRunLobby, RunManager.cs:509-514 — called by every SetUp* entry point immediately
+    /// after its own InitializeShared call). This method's first caller for a fresh run is the Harmony
+    /// postfix on RunManager.InitializeShared (ChecksumHook.cs:1023), which therefore fires while
+    /// RunManager.Instance.RunLobby is still null (this process's first-ever run) or still pointing at a
+    /// PREVIOUS run's already-disposed RunLobby — RunManager.Instance is a permanent singleton
+    /// (RunManager.cs:78, `= new RunManager()`), and its RunLobby property is only ever reassigned inside
+    /// InitializeRunLobby, which skips the reassignment entirely for a non-multiplayer netService
+    /// (RunManager.cs:509's own `if (netService.Type.IsMultiplayer())` guard) — so even a singleplayer run
+    /// started after a multiplayer one, in the same process, would otherwise see a stale RunLobby. Gating
+    /// this subscription behind the svc-changed guard would therefore latch onto the wrong (or no) RunLobby
+    /// for the rest of a run: the NEXT call to EnsureHandlersRegistered with the SAME svc reference (e.g.
+    /// RequestUndo, UndoProtocol.cs:780) returns before ever reaching that guard's body again. Called
+    /// unconditionally, every time, from EnsureHandlersRegistered's own top, OnProposalReceived's, and
+    /// ProposeTarget's (the last two each close the same gap for a peer that reaches the protocol without
+    /// going through RequestUndo first — see each call site's own comment for which peer that is: a host
+    /// that only ever RECEIVES proposals for OnProposalReceived, and MpFuzz's own direct
+    /// UndoProtocol.ProposeTarget call (MpFuzz.cs:1920), which bypasses RequestUndo entirely, for
+    /// ProposeTarget). Relying on RequestUndo alone to cover every proposal-starting path was exactly
+    /// this fragility: a live fuzz run proved it — no "RunLobby subscription updated" line ever appeared,
+    /// no "Peer ... disconnected." line, and OnPeerDisconnected never got the chance to resolve a
+    /// proposal, because ProposeTarget was the ONLY entry point that run's proposer ever used.
+    ///
+    /// A null RunLobby (singleplayer, or not yet initialized) is a legitimate steady state, not an error:
+    /// unsubscribes from whatever was previously registered and leaves _registeredRunLobby null, matching
+    /// AllPlayerIds()'s own null-RunLobby handling. See _ensureRunLobbySubscribedCallCount's own doc
+    /// comment for the specific trap in this branch (a null lobby matching a null _registeredRunLobby on
+    /// the very first call, silently early-returning with no log at all) and how the counter plus
+    /// _loggedRunLobbyPending below make that distinguishable from "never called" without spamming a line
+    /// on every repeat no-op call.
+    /// </summary>
+    private static void EnsureRunLobbySubscribed()
+    {
+        // Counted BEFORE the early return below, unconditionally — see this field's own doc comment for
+        // why: it is what lets a reader tell "this peer never called EnsureRunLobbySubscribed at all"
+        // (count stays 0 for the whole run) apart from "it was called, but every call so far hit the
+        // null-lobby no-op branch" (count > 0, yet no "subscribed"/"none" log line may have printed yet —
+        // see _loggedRunLobbyPending immediately below for that line).
+        _ensureRunLobbySubscribedCallCount++;
+
+        var lobby = RunManager.Instance?.RunLobby;
+        if (ReferenceEquals(lobby, _registeredRunLobby))
+        {
+            // THE TRAP: on the very first call of a fresh run, `lobby` and `_registeredRunLobby` are BOTH
+            // null (RunManager sets NetService before RunLobby — see this method's own header comment),
+            // so ReferenceEquals matches here and this early-returns having done nothing at all. Without
+            // the log line below, that silent no-op was indistinguishable from this method never having
+            // been called in the first place — which is exactly what hid the missing ProposeTarget call
+            // (see this method's own header comment) for as long as it stayed hidden. Logged ONCE per
+            // "still not ready" episode (guarded by _loggedRunLobbyPending, reset the moment a real lobby
+            // shows up below), not once per call — this branch can otherwise be hit on every single
+            // EnsureHandlersRegistered/ProposeTarget/OnProposalReceived call made before
+            // RunManager.Instance.RunLobby is actually set.
+            if (lobby == null && !_loggedRunLobbyPending)
+            {
+                _loggedRunLobbyPending = true;
+                Log.Write($"[UndoProtocol] EnsureRunLobbySubscribed called (call #{_ensureRunLobbySubscribedCallCount}) "
+                    + "but RunManager.Instance.RunLobby is still null — no-op, not yet subscribed. Logged once so an "
+                    + "absent \"RunLobby subscription updated\" line is distinguishable from this method never having "
+                    + "run at all; further calls while still null stay silent until the lobby is ready.");
+            }
+            return;
+        }
+
+        _loggedRunLobbyPending = false; // a real transition is about to be logged unconditionally below
+        if (_registeredRunLobby != null)
+            _registeredRunLobby.RemotePlayerDisconnected -= OnPeerDisconnected;
+        if (lobby != null)
+            lobby.RemotePlayerDisconnected += OnPeerDisconnected;
+        _registeredRunLobby = lobby;
+        Log.Write($"[UndoProtocol] RunLobby subscription updated (call #{_ensureRunLobbySubscribedCallCount}): "
+            + $"{(lobby != null ? "subscribed to RemotePlayerDisconnected" : "none (singleplayer, or not yet initialized)")}.");
+    }
+
+    /// <summary>
+    /// RunLobby.RemotePlayerDisconnected (RunLobby.cs:49) handler — see this section's own header for the
+    /// full design. Drops the departed peer from every in-flight tally and immediately re-runs the three
+    /// existing quorum-check functions (re-using their own decision logic, not duplicating it) so a
+    /// proposal that was waiting ONLY on this peer resolves right away instead of waiting out
+    /// BarrierTimeoutWatchdog's own ~149s bound.
+    ///
+    /// Handles every degenerate case this section's header promises without special-casing any of them:
+    ///   - NO PROPOSAL IN FLIGHT: CheckAllAccepted/CheckQuiesceRound/CheckAllAcked each already self-guard
+    ///     on their own relevant target being non-null (see their own doc comments) — calling them here
+    ///     unconditionally is a safe, cheap no-op when there is nothing to resolve.
+    ///   - BETWEEN QUIESCE ROUNDS (a disagreement already scheduled RetryQuiesceRoundAfterInterval, which
+    ///     hasn't fired yet): see `hadAlreadyReported` below for why the quiesce re-check specifically is
+    ///     skipped in exactly this window, and why skipping it there loses nothing.
+    ///   - THE DEPARTING PEER IS THE HOST: peerId is handled completely generically below — nothing here
+    ///     assumes it is (or isn't) a client. Checked, not assumed: reading RunLobby.cs's own
+    ///     HandlePlayerLeftMessage/OnDisconnectedFromClientAsHost shows RemotePlayerDisconnected only ever
+    ///     reports a CLIENT's id — if the HOST itself disappears, every remaining peer instead loses its
+    ///     entire connection (RunLobby.OnDisconnected -> LocalPlayerDisconnected, a completely different
+    ///     event this file does not subscribe to), which is a whole-session teardown handled well outside
+    ///     this protocol, not a single-peer departure this handler could meaningfully react to anyway.
+    ///   - TWO PEERS DEPART: RunLobby fires one RemotePlayerDisconnected per departing id (HandlePlayerLeftMessage
+    ///     only ever removes/reports one id per message), so this method simply runs twice, in sequence,
+    ///     purging and re-checking after each — every operation here (HashSet/Dictionary removal, the three
+    ///     Check* calls) is idempotent and order-independent, so two departures in a row degrade to running
+    ///     this method twice, not to any special interaction between them.
+    ///
+    /// _quiesceReports.Remove(peerId) specifically is not just hygiene, unlike the _accepted/_acked removals
+    /// below it (CheckAllAccepted/CheckAllAcked only check for REQUIRED ids being present — an extra entry
+    /// is harmless either way). CheckQuiesceRound's `distinctValues = _quiesceReports.Values.Distinct()`
+    /// reads EVERY value currently in the dictionary, not just the ones keyed by AllPlayerIds() — a stale
+    /// entry left behind by a peer who reported once and then left could inject a false disagreement into a
+    /// round that would otherwise unanimously agree.
+    ///
+    /// The quiesce re-check is deliberately narrower than the other two: only fires when the departed peer
+    /// had NOT yet reported for the CURRENT round (`!hadAlreadyReported`, captured before the removal
+    /// above). If they HAD already reported, CheckQuiesceRound was necessarily already fully evaluated at
+    /// least once for this round the normal way (RegisterQuiesceReport calls it on every new report, and a
+    /// full evaluation requires every required id present — which included this peer, before they left) —
+    /// either it already AGREED (this peer's own _quiesceTargetId is null by now; nothing to re-check) or it
+    /// already DISAGREED, which schedules RetryQuiesceRoundAfterInterval for round+1 WITHOUT resetting
+    /// _quiesceTargetId/_quiesceRound (only the AGREE branch does that, via ResetQuiesce). Re-invoking
+    /// CheckQuiesceRound in that second case, after purging this peer's now-stale value, could make the SAME
+    /// round suddenly re-evaluate as AGREED (if their value was the sole holdout) and start a SECOND,
+    /// concurrent CommitAsync for a round the already-scheduled retry doesn't know has been superseded —
+    /// RetryQuiesceRoundAfterInterval's own ProposalStillLive check treats _commitTargetId == targetId as
+    /// "still relevant" for a DIFFERENT reason (a Phase 4 failure's fresh retry, iteration 5 — see
+    /// ProposalStillLive's own doc comment) and would fire its now-stale RequestNextQuiesceRound anyway,
+    /// racing the fresh commit. Skipping the re-check in this narrower case costs nothing: the round was
+    /// already going to move on via its own scheduled retry, which will itself consult the now-correctly-
+    /// filtered AllPlayerIds() and never wait on this peer again.
+    /// </summary>
+    private static void OnPeerDisconnected(ulong peerId)
+    {
+        Log.Write($"[UndoProtocol] Peer {peerId} disconnected.");
+
+        // The barrier arms at PROPOSAL time and stays armed for the WHOLE propose→vote→quiesce→commit→ack
+        // window (see "── Cross-peer restore barrier ──" above) — so _barrierTargetId != null is exactly
+        // "a proposal is in flight on THIS peer" for proof-of-exercise purposes.
+        bool proposalInFlight = _barrierTargetId != null;
+        if (proposalInFlight)
+        {
+            DeparturesDuringProposalCount++;
+            _departureAffectedCurrentBarrier = true;
+            Log.Write($"[UndoProtocol] Peer {peerId} departed while proposal id={_barrierTargetId} was in "
+                + $"flight — DeparturesDuringProposalCount={DeparturesDuringProposalCount}. Dropping them "
+                + "from _accepted/_quiesceReports/_acked and re-checking every stage immediately.");
+        }
+
+        bool hadAlreadyReported = _quiesceReports.ContainsKey(peerId);
+        _accepted.Remove(peerId);
+        _quiesceReports.Remove(peerId);
+        _acked.Remove(peerId);
+
+        // Only the host tallies/decides quorum outcomes — CheckAllAccepted/CheckQuiesceRound/CheckAllAcked
+        // are host-only by convention throughout this file (see their own doc comments). A client peer has
+        // nothing further to do here: AllPlayerIds() (now excluding peerId on every peer, not just the
+        // host) is consulted again wherever it always was, the next time this peer receives a message from
+        // the host that touches one of these stages.
+        if (_registeredService?.Type != NetGameType.Host)
+            return;
+
+        // Re-use the existing check functions instead of duplicating their decision logic — each already
+        // self-guards against "no proposal at this stage" / "wrong round" (see their own doc comments), so
+        // calling them here correctly no-ops for "no proposal in flight" and "departure between rounds"
+        // without any extra bookkeeping in this method.
+        CheckAllAccepted();
+        if (_quiesceTargetId is uint quiesceTarget && !hadAlreadyReported)
+            CheckQuiesceRound(quiesceTarget, _quiesceRound);
+        CheckAllAcked();
     }
 
     // ── Popup UI ──
@@ -2256,6 +2833,7 @@ internal static class UndoProtocol
         _barrierPreviousActionsDisabled = null;
         _acked.Clear();
         _commitTargetId = null; // see ReleaseBarrierForTarget's own comment on the same field
+        _departureAffectedCurrentBarrier = false;
     }
 
     /// <summary>Combat ended — drop any in-flight proposal, its popup, and any in-flight restore

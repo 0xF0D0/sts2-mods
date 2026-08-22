@@ -103,6 +103,16 @@ namespace UndoSync;
 ///                               peer process it is passed to — the other peer runs unmodified.
 ///   --undosync-mpfuzz-inject-clock-move-count=N Optional, only meaningful alongside the flag above.
 ///                               How many times to force the condition this run. Default 1.
+///   --undosync-mpfuzz-leave-on-vote Optional, fuzz-only fault injection. This peer calls
+///                               RunManager.Instance.NetService.Disconnect(NetError.Quit) — the exact
+///                               call the game's own Disconnect pause-menu button makes,
+///                               NDisconnectConfirmPopup.cs:137 — immediately after voting on the
+///                               first proposal it receives this run, to exercise UndoProtocol's own
+///                               "── Departure-aware quorum ──" with a real, graceful mid-proposal
+///                               departure. See UndoProtocol.LeaveOnVoteForFuzz's own doc comment for
+///                               the full design and for why kill -9 cannot exercise that path at
+///                               all. Meaningful only on the CLIENT process (only the host proposes;
+///                               see ProposeRestoreIfDue's own doc comment) — pass it there.
 ///
 /// WHY THIS ROUTE (see the design note this file was speced from): --fastmp already automates the
 /// network side (NMultiplayerSubmenu.StartHostAsync -> NetHostGameService.StartENetHost;
@@ -290,6 +300,13 @@ internal static class MpFuzz
     /// "requested N" — UndoProtocol.ClockMoveInjectionsRemaining itself counts DOWN as the injection
     /// fires, so by the time the summary prints it no longer holds the original request.</summary>
     private static int _clockMoveInjectionsRequested;
+
+    // --- Fuzz-only fault injection: simulate a GRACEFUL mid-proposal departure — see
+    // UndoProtocol.LeaveOnVoteForFuzz's own doc comment for the full design, exactly which call this
+    // fires, and why a killed process (kill -9) cannot exercise "── Departure-aware quorum ──" at all
+    // (verified live: no disconnect was ever logged by the mod or the game within the run's lifetime)
+    // ---------------------------------------------------------------------------------------------
+    private const string LeaveOnVoteArg = "undosync-mpfuzz-leave-on-vote";
 
     /// <summary>This is always a two-instance test: one host, one client.</summary>
     private const int ExpectedPlayerCount = 2;
@@ -512,6 +529,24 @@ internal static class MpFuzz
                     + $"UndoProtocol.CommitAsync's own moved-since-agreement branch to fire "
                     + $"{injectCount} time(s) on THIS peer this run (see "
                     + "UndoProtocol.ClockMoveInjectionsRemaining's own doc comment).");
+            }
+
+            // Fuzz-only fault injection: simulate a GRACEFUL mid-proposal departure — see
+            // UndoProtocol.LeaveOnVoteForFuzz's own doc comment for the full design and exactly which
+            // call this fires. Opt-in and gated behind this same --undosync-mpfuzz entry point, so a
+            // normal game process never reaches this line at all. Meaningful only on the peer that
+            // actually RECEIVES a proposal (the client, in this harness's own host/client split — only
+            // the host proposes, see ProposeRestoreIfDue's own doc comment); passing it on the host is
+            // harmless but inert, same caveat LeaveOnVoteForFuzz's own doc comment notes.
+            if (CommandLineHelper.HasArg(LeaveOnVoteArg))
+            {
+                UndoProtocol.LeaveOnVoteForFuzz = true;
+                Log.Write($"[MpFuzz] --{LeaveOnVoteArg} detected — this peer will call "
+                    + "RunManager.Instance.NetService.Disconnect(NetError.Quit) immediately after voting "
+                    + "on the first proposal it receives this run, to exercise \"── Departure-aware "
+                    + "quorum ──\" (UndoProtocol.cs) with a REAL graceful departure instead of a kill -9 "
+                    + "(see UndoProtocol.LeaveOnVoteForFuzz's own doc comment for why kill -9 cannot "
+                    + "exercise that path at all).");
             }
 
             Log.Write($"[MpFuzz] --{MpFuzzArg} detected — role={role}"
@@ -993,6 +1028,18 @@ internal static class MpFuzz
                 // targets ran exactly as many times as requested.
                 + $"clockMoveInjectionsRequested={_clockMoveInjectionsRequested} "
                 + $"clockMoveInjectionsFired={UndoProtocol.ClockMoveInjectionsFiredCount} "
+                // "── Departure-aware quorum ──" (UndoProtocol.cs) proof-of-exercise counters — see
+                // UndoProtocol.DeparturesDuringProposalCount/ProposalsResolvedAfterDepartureCount's own
+                // doc comments. Both read 0 on an ordinary run where nobody disconnects mid-proposal;
+                // pass --undosync-mpfuzz-leave-on-vote on the client to make this peer disconnect itself
+                // gracefully mid-proposal (see UndoProtocol.LeaveOnVoteForFuzz's own doc comment) and
+                // both should read non-zero on the HOST for that run, proving the departure handler —
+                // not the vote-stage timeout, not BarrierTimeoutWatchdog's own "may now be DIVERGENT" —
+                // resolved the proposal. departuresDuringProposal is per-peer (every remaining peer
+                // observes the same RemotePlayerDisconnected broadcast); proposalsResolvedAfterDeparture
+                // is host-only, same as abortedProposals above.
+                + $"departuresDuringProposal={UndoProtocol.DeparturesDuringProposalCount} "
+                + $"proposalsResolvedAfterDeparture={UndoProtocol.ProposalsResolvedAfterDepartureCount} "
                 + $"stuckAfterRestoreCount={(outcome.StuckAfterRestore ? 1 : 0)} "
                 + $"restoreSectionFailureDelta={restoreSectionFailureDelta} "
                 + $"uiRefreshFailureDelta={uiRefreshFailureDelta} "
