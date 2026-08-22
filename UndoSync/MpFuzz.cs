@@ -92,6 +92,17 @@ namespace UndoSync;
 ///                               NMultiplayerTest.cs:313). Default 1001.
 ///   --undosync-mpfuzz-noquit   Optional. Stay open at the end instead of quitting — mirrors
 ///                               UndoFuzz's --undosync-fuzz-noquit / --undosync-uitest-noquit.
+///   --undosync-mpfuzz-inject-clock-move        Optional, fuzz-only fault injection. Forces
+///                               UndoProtocol.CommitAsync's own Phase-4 "moved-since-agreement"
+///                               recheck to observe a moved clock on THIS peer a bounded number of
+///                               times — see UndoProtocol.ClockMoveInjectionsRemaining's own doc
+///                               comment for the full design. Presence alone opts in with a default
+///                               count of 1 (proves retry-then-succeed); pass the count flag below
+///                               with a value &gt;= MaxQuiesceRounds (UndoProtocol.cs:645, currently
+///                               3) to prove retry-until-cancelled instead. Only meaningful on the
+///                               peer process it is passed to — the other peer runs unmodified.
+///   --undosync-mpfuzz-inject-clock-move-count=N Optional, only meaningful alongside the flag above.
+///                               How many times to force the condition this run. Default 1.
 ///
 /// WHY THIS ROUTE (see the design note this file was speced from): --fastmp already automates the
 /// network side (NMultiplayerSubmenu.StartHostAsync -> NetHostGameService.StartENetHost;
@@ -261,6 +272,24 @@ internal static class MpFuzz
 
     /// <summary>Default for --undosync-mpfuzz-clientid, per the design note.</summary>
     private const ulong DefaultClientId = 1001;
+
+    // --- Fuzz-only fault injection (Phase-4 "moved-since-agreement" — see UndoProtocol.
+    // ClockMoveInjectionsRemaining's own doc comment for the full design) ---------------------------
+    private const string InjectClockMoveArg = "undosync-mpfuzz-inject-clock-move";
+    private const string InjectClockMoveCountArg = "undosync-mpfuzz-inject-clock-move-count";
+
+    /// <summary>Default for --undosync-mpfuzz-inject-clock-move-count when the enable flag is passed
+    /// without an explicit count. One injected failure is enough to prove retry-then-succeed; pass a
+    /// count &gt;= MaxQuiesceRounds (UndoProtocol.cs:645, currently 3) to prove retry-until-cancelled
+    /// instead — see UndoProtocol.ClockMoveInjectionsRemaining's own doc comment for the arithmetic.
+    /// </summary>
+    private const int DefaultClockMoveInjectionCount = 1;
+
+    /// <summary>The value --undosync-mpfuzz-inject-clock-move-count resolved to this run (0 if the
+    /// enable flag was never passed), stashed here purely so RunAsync's step-10 summary can report
+    /// "requested N" — UndoProtocol.ClockMoveInjectionsRemaining itself counts DOWN as the injection
+    /// fires, so by the time the summary prints it no longer holds the original request.</summary>
+    private static int _clockMoveInjectionsRequested;
 
     /// <summary>This is always a two-instance test: one host, one client.</summary>
     private const int ExpectedPlayerCount = 2;
@@ -466,6 +495,24 @@ internal static class MpFuzz
             // ProposeRestoreIfDue's own doc comment), but setting it on the host too costs
             // nothing and keeps this call site simple.
             UndoProtocol.AutoAcceptForFuzz = true;
+
+            // Fuzz-only fault injection (Phase-4 "moved-since-agreement" — see UndoProtocol.
+            // ClockMoveInjectionsRemaining's own doc comment). Opt-in and gated behind this same
+            // --undosync-mpfuzz entry point, so a normal game process never reaches this line at all.
+            if (CommandLineHelper.HasArg(InjectClockMoveArg))
+            {
+                int injectCount = DefaultClockMoveInjectionCount;
+                if (CommandLineHelper.TryGetValue(InjectClockMoveCountArg, out var injectCountArg)
+                    && !string.IsNullOrEmpty(injectCountArg) && int.TryParse(injectCountArg, out var parsedInjectCount)
+                    && parsedInjectCount > 0)
+                    injectCount = parsedInjectCount;
+                _clockMoveInjectionsRequested = injectCount;
+                UndoProtocol.ClockMoveInjectionsRemaining = injectCount;
+                Log.Write($"[MpFuzz] --{InjectClockMoveArg} detected — will force "
+                    + $"UndoProtocol.CommitAsync's own moved-since-agreement branch to fire "
+                    + $"{injectCount} time(s) on THIS peer this run (see "
+                    + "UndoProtocol.ClockMoveInjectionsRemaining's own doc comment).");
+            }
 
             Log.Write($"[MpFuzz] --{MpFuzzArg} detected — role={role}"
                 + (isHost ? "" : $" clientId={clientId}")
@@ -937,6 +984,15 @@ internal static class MpFuzz
                 // AbortedProposalCount's own doc comment.
                 + $"commitRetryAfterClockMove={UndoProtocol.CommitRetryAfterClockMoveCount} "
                 + $"abortedProposals={UndoProtocol.AbortedProposalCount} "
+                // Fuzz-only fault injection (--undosync-mpfuzz-inject-clock-move — see UndoProtocol.
+                // ClockMoveInjectionsRemaining's own doc comment). clockMoveInjectionsRequested reads
+                // 0 on a run/peer that never passed the flag, same as the two counters above read 0
+                // when their own condition never occurred; clockMoveInjectionsFired proves the
+                // injection actually ran (not just that the flag was accepted) and, together with
+                // commitRetryAfterClockMove above, lets a reader confirm the branch this injection
+                // targets ran exactly as many times as requested.
+                + $"clockMoveInjectionsRequested={_clockMoveInjectionsRequested} "
+                + $"clockMoveInjectionsFired={UndoProtocol.ClockMoveInjectionsFiredCount} "
                 + $"stuckAfterRestoreCount={(outcome.StuckAfterRestore ? 1 : 0)} "
                 + $"restoreSectionFailureDelta={restoreSectionFailureDelta} "
                 + $"uiRefreshFailureDelta={uiRefreshFailureDelta} "

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Combat;
@@ -22,12 +23,15 @@ using MegaCrit.Sts2.Core.Models.Characters;
 using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
+using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.TestSupport;
 using MegaCrit.Sts2.Core.Unlocks;
+using MegaCrit.Sts2.addons.mega_text;
 
 namespace UndoSync;
 
@@ -76,6 +80,16 @@ namespace UndoSync;
 /// seed is a fixed literal (DefaultUiTestSeed), not random, since this path's whole point is a
 /// specific, reproducible check ("did a real NOrbManager exist"), not broad fuzzing.
 ///
+/// A THIRD, narrower flag layers on top of --undosync-uitest itself: --undosync-uitest-screenshot
+/// [--undosync-uitest-screenshot-path PATH]. Where the two paths above prove the orb-node layer
+/// against real nodes, this one proves a single specific popup — UndoPicker.ConfirmRestartCombat
+/// (UndoPicker.cs:206) — actually renders, by opening the REAL dialog (not a replica) through that
+/// method itself, screenshotting the real rendered frame via Godot's own viewport capture, and
+/// logging the resolved title/body/button text off the live node tree. Checked inside
+/// RunOneUiTestCombatAsync, right after combat entry, and — when present — REPLACES that path's
+/// usual StormPower-injection/UnsettlingLamp/DriveCombatAsync combat entirely; see
+/// CaptureRestartConfirmDialogAsync's own doc comment for the full design.
+///
 /// Logs to the existing UndoSync-&lt;pid&gt;.log (Log.cs) with a "[Fuzz]" prefix (the UI-mode path
 /// additionally tags its lines "[Fuzz][uitest]"), rather than a separate file: neither tool ever runs
 /// alongside real multiplayer undo activity (TestMode.IsOn or a throwaway singleplayer run both make
@@ -102,6 +116,27 @@ internal static class UndoFuzz
     /// only ever make sense for whichever path actually ran — a separate flag keeps that unambiguous
     /// from the command line alone, at the cost of one more constant.</summary>
     private const string UiTestNoQuitArg = "undosync-uitest-noquit";
+
+    /// <summary>A THIRD flag layered on top of --undosync-uitest (checked only inside
+    /// RunOneUiTestCombatAsync, itself only reachable once MaybeStart has already validated
+    /// --undosync-uitest — never valid on its own): opts into
+    /// <see cref="CaptureRestartConfirmDialogAsync"/> in place of that path's normal combat. See that
+    /// method's own doc comment for what it proves and why.</summary>
+    private const string UiTestScreenshotArg = "undosync-uitest-screenshot";
+
+    /// <summary>Optional PNG output path override for <see cref="CaptureRestartConfirmDialogAsync"/>;
+    /// same TryGetValue pattern as <see cref="UiTestSeedArg"/>/<see cref="UiTestCountArg"/> above.
+    /// Falls back to <see cref="UiTestScreenshotDefaultPath"/> when absent or empty.</summary>
+    private const string UiTestScreenshotPathArg = "undosync-uitest-screenshot-path";
+
+    /// <summary>Default screenshot path when --undosync-uitest-screenshot-path is not given: directly
+    /// under the current user's home directory (Environment.SpecialFolder.UserProfile — confirmed
+    /// resolving to $HOME on this platform, not some Godot-internal user://-style path), so the file
+    /// lands somewhere a human finds without needing Godot's own user-data-directory convention
+    /// (contrast Log.cs, which deliberately DOES use OS.GetUserDataDir() for the log file itself).</summary>
+    private static readonly string UiTestScreenshotDefaultPath = System.IO.Path.Combine(
+        System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+        "undosync-uitest-restart-confirm.png");
 
     private const int DefaultUiTestCombatCount = 3;
 
@@ -3014,6 +3049,20 @@ internal static class UndoFuzz
             if (ObserveOrbManagerPresence(me))
                 outcome.OrbManagerObserved = true;
 
+            // --undosync-uitest-screenshot: a narrower, single-purpose check layered on top of this
+            // path (see this class's top-of-file doc comment's "THIRD flag" paragraph and
+            // CaptureRestartConfirmDialogAsync's own doc comment). REPLACES the rest of this combat
+            // (StormPower/UnsettlingLamp/DriveCombatAsync below) entirely — this flag exists to prove
+            // one popup renders, not to fuzz a combat, so there is nothing for the normal drive loop
+            // to add here. The early `return outcome` still runs this method's own `finally` teardown
+            // (selectorScope.Dispose()/RunManager.Instance.CleanUp()) same as every other early return
+            // in this method above.
+            if (CommandLineHelper.HasArg(UiTestScreenshotArg))
+            {
+                await CaptureRestartConfirmDialogAsync(combatIndex, me, outcome);
+                return outcome;
+            }
+
             // See ApplyStormPowerForUiTest's own doc comment for the full "why StormPower" reasoning and
             // the exact ApplyPowerConsoleCmd call this mirrors.
             await ApplyStormPowerForUiTest(me, combatIndex);
@@ -3096,6 +3145,199 @@ internal static class UndoFuzz
             // it on in the first place, so there is nothing to turn back off.
         }
         return outcome;
+    }
+
+    // --- --undosync-uitest-screenshot: proves ConfirmRestartCombat actually renders ------------------
+
+    /// <summary>
+    /// FUZZ-ONLY, gated behind --undosync-uitest-screenshot (itself only reachable behind
+    /// --undosync-uitest — a normal player session can never reach --undosync-uitest in the first
+    /// place, see MaybeStart, so it can never reach this method either). Proves
+    /// <see cref="UndoPicker.ConfirmRestartCombat"/> (UndoPicker.cs:206) actually renders, rather than
+    /// merely compiling and passing a static check: opens the REAL confirmation popup through
+    /// UndoPicker.ConfirmRestartCombat itself (bumped from private to internal for exactly this call
+    /// site, see that method's own doc comment), waits for real frames to be processed so it has
+    /// actually been laid out and drawn, saves a PNG of the rendered frame via Godot's own viewport
+    /// capture, and logs the resolved title/body/button text read back off the live node tree — so a
+    /// localization-merge failure (a raw "UNDOSYNC.RESTART_CONFIRM_TITLE" key on screen instead of
+    /// "Restart Combat") shows up in the log even before anyone opens the PNG.
+    ///
+    /// Never presses either button: this only needs the popup to exist and render, not to resolve.
+    /// UndoPicker.ConfirmRestartCombat is started fire-and-forget (`_ = ...`), the exact same pattern
+    /// UndoPicker.HandlePopupResult itself uses to start it (UndoPicker.cs:181), and its returned Task
+    /// is left pending — nothing here ever awaits WaitForConfirmation's result. The `finally` block
+    /// below calls <see cref="UndoPicker.Close"/> directly to free the popup node and clear
+    /// NModalContainer's modal slot (NGenericPopup.OnYesButtonPressed/OnNoButtonPressed — the only two
+    /// things that would otherwise ever resolve that pending Task — never run on this path), so
+    /// RunOneUiTestCombatAsync's own teardown (RunManager.Instance.CleanUp()) isn't left fighting an
+    /// open modal.
+    ///
+    /// The checksum id ConfirmRestartCombat is opened with is never actually consumed here (no button
+    /// is ever pressed, so <see cref="UndoProtocol.ProposeTarget"/> never fires) — any id would do for
+    /// THIS purpose. Still resolved for real — <see cref="ChecksumHook.TryGetCombatStart"/>, falling
+    /// back to the newest entry of <see cref="ChecksumHook.SyncPointsNewestFirst"/> — the same
+    /// resolution UndoPicker.Open() itself uses (UndoPicker.cs:81), rather than a hardcoded literal, so
+    /// the picker's own real precondition (a checksum-hook-produced anchor exists this early in combat)
+    /// is exercised for real too, not assumed. <see cref="WaitForIdleOurTurnAsync"/> is awaited first
+    /// for the same reason DriveCombatAsync waits on it before touching anything (its own doc comment
+    /// above) — it also gives ChecksumHook's "After player turn start" hook (ChecksumHook.cs:428-430)
+    /// a chance to actually fire and set the combat-start anchor before this method asks for it.
+    /// </summary>
+    private static async Task CaptureRestartConfirmDialogAsync(int combatIndex, Player me, CombatOutcome outcome)
+    {
+        const string tag = "[Fuzz][uitest][screenshot]";
+        try
+        {
+            var idle = await WaitForIdleOurTurnAsync(me);
+            Log.Write($"{tag} combat={combatIndex} idle-wait result={idle}");
+
+            uint targetChecksumId;
+            if (ChecksumHook.TryGetCombatStart(out var combatStart))
+            {
+                targetChecksumId = combatStart.ChecksumId;
+            }
+            else
+            {
+                var points = ChecksumHook.SyncPointsNewestFirst();
+                if (points.Count > 0)
+                {
+                    targetChecksumId = points[0].ChecksumId;
+                    Log.Write($"{tag} no combat-start anchor yet; using newest sync point id={targetChecksumId} "
+                        + "instead — fine for this purpose, see this method's own doc comment (the id is never "
+                        + "actually consumed since no button is ever pressed).");
+                }
+                else
+                {
+                    targetChecksumId = 0;
+                    Log.Write($"{tag} WARNING: ChecksumHook has captured no sync points at all yet — opening the "
+                        + "dialog with a placeholder id=0 (harmless here, but means the combat-start anchor this "
+                        + "combat should have produced by now is missing).");
+                }
+            }
+
+            Log.Write($"{tag} combat={combatIndex} opening UndoPicker.ConfirmRestartCombat(targetChecksumId={targetChecksumId})");
+            _ = UndoPicker.ConfirmRestartCombat(targetChecksumId);
+
+            // Wait for real frames to be processed — not a blind Task.Delay — so the popup has
+            // actually been laid out and drawn before it gets photographed. Same signal the rest of
+            // this codebase already waits on for exactly this reason (e.g. UndoProtocol.cs:1236,
+            // UiRefresh.cs:693): SceneTree.ProcessFrame fires once per rendered frame, so N awaits is N
+            // real frames, not a guessed wall-clock delay.
+            var tree = NGame.Instance?.GetTree();
+            if (tree == null)
+            {
+                outcome.DriveError = "NGame.Instance/GetTree() was null — cannot wait for frames";
+                Log.Write($"{tag} {outcome.DriveError}");
+                return;
+            }
+            const int framesToWait = 10;
+            for (int i = 0; i < framesToWait; i++)
+                await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+
+            if (!UndoPicker.IsOpen || UndoPicker.CurrentPopup is not { } popup || !GodotObject.IsInstanceValid(popup))
+            {
+                outcome.DriveError = $"UndoPicker.ConfirmRestartCombat did not leave a popup open after {framesToWait} frames";
+                Log.Write($"{tag} {outcome.DriveError}");
+                return;
+            }
+
+            LogRestartConfirmDialogText(tag, popup);
+            SaveViewportScreenshot(tag, tree);
+        }
+        catch (Exception ex)
+        {
+            outcome.DriveError = ex.Message;
+            Log.Write($"{tag} combat={combatIndex} ERROR: {ex}");
+        }
+        finally
+        {
+            // Never press a button — see this method's own doc comment. Close the modal directly so
+            // teardown below isn't left fighting an open popup.
+            UndoPicker.Close();
+        }
+    }
+
+    /// <summary>
+    /// Reads the restart-confirm dialog's title/body/button text straight off the live node tree —
+    /// the same child node names <see cref="UndoPicker.InjectCardStrip"/> already navigates
+    /// ("VerticalPopup" under the popup, "Header"/"Description" under that — all three literal in
+    /// <c>NVerticalPopup.EnsureNodesAreSet</c>, NVerticalPopup.cs:136-139) plus the two button nodes
+    /// ("YesButton"/"NoButton", same source) and their label (the scene-unique "%Label" lookup
+    /// <c>NPopupYesNoButton._Ready</c> itself uses, NPopupYesNoButton.cs:218) — read this way rather
+    /// than through <c>NVerticalPopup.TitleLabel</c>/<c>BodyLabel</c> (both `private` properties on
+    /// that class, NVerticalPopup.cs:110-112) or reflection, since GetNode and scene-unique-name
+    /// lookup are Godot's own public API and need neither. <c>MegaLabel</c>/<c>MegaRichTextLabel</c>
+    /// expose the resolved text via the ordinary public `Text` property either inherited
+    /// (MegaLabel : Label) or overridden to return it (MegaRichTextLabel.cs:302-311). If any of these
+    /// read back as the raw loc key ("UNDOSYNC.RESTART_CONFIRM_TITLE") instead of real text, the
+    /// localization merge (<see cref="UndoPicker.EnsureLocEntries"/>) failed — this line says so
+    /// without anyone needing to open the screenshot at all.
+    /// </summary>
+    private static void LogRestartConfirmDialogText(string tag, NGenericPopup popup)
+    {
+        try
+        {
+            var vpopup = popup.GetNode<Control>("VerticalPopup");
+            string title = vpopup.GetNode<MegaLabel>("Header").Text;
+            string body = vpopup.GetNode<MegaRichTextLabel>("Description").Text;
+            var yesButton = vpopup.GetNode<NPopupYesNoButton>("YesButton");
+            var noButton = vpopup.GetNode<NPopupYesNoButton>("NoButton");
+            string yesText = yesButton.GetNode<MegaLabel>("%Label").Text;
+            string noText = noButton.Visible ? noButton.GetNode<MegaLabel>("%Label").Text : "(hidden)";
+            Log.Write($"{tag} dialog text as displayed: title=\"{title}\" body=\"{body}\" yesButton=\"{yesText}\" noButton=\"{noText}\"");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"{tag} reading dialog text from the node tree FAILED: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Captures the currently rendered frame via Godot's own viewport capture: <c>SceneTree.Root</c>
+    /// (a <c>Window</c>, which is itself a <c>Viewport</c> — confirmed via GodotSharp.dll's own type
+    /// hierarchy, since none of the game's own decompiled source happens to call this) ->
+    /// <c>Viewport.GetTexture()</c> -> <c>Texture2D.GetImage()</c> -> <c>Image.SavePng(path)</c>; all
+    /// four members confirmed present on GodotSharp.dll via reflection against that exact assembly
+    /// (STS2DataDir/GodotSharp.dll) rather than assumed from general Godot knowledge.
+    ///
+    /// Path: --undosync-uitest-screenshot-path if given, else <see cref="UiTestScreenshotDefaultPath"/>
+    /// under the user's home directory. Logs the absolute path written and the image's pixel
+    /// dimensions on success, or exactly which step failed (null texture/image, or the Godot
+    /// <see cref="Error"/> SavePng returned) on failure — so a failed capture is never silently
+    /// indistinguishable from a successful one in the log.
+    /// </summary>
+    private static void SaveViewportScreenshot(string tag, SceneTree tree)
+    {
+        string path = CommandLineHelper.TryGetValue(UiTestScreenshotPathArg, out var pathArg) && !string.IsNullOrEmpty(pathArg)
+            ? pathArg
+            : UiTestScreenshotDefaultPath;
+        try
+        {
+            var dir = System.IO.Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir))
+                System.IO.Directory.CreateDirectory(dir);
+
+            var image = tree.Root?.GetTexture()?.GetImage();
+            if (image == null)
+            {
+                Log.Write($"{tag} screenshot FAILED: GetTree().Root/.GetTexture()/.GetImage() returned null");
+                return;
+            }
+
+            var err = image.SavePng(path);
+            if (err != Error.Ok)
+            {
+                Log.Write($"{tag} screenshot FAILED: Image.SavePng returned {err} for path=\"{path}\"");
+                return;
+            }
+
+            string absolutePath = System.IO.Path.GetFullPath(path);
+            Log.Write($"{tag} screenshot saved: path=\"{absolutePath}\" size={image.GetWidth()}x{image.GetHeight()}");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"{tag} screenshot FAILED: {ex}");
+        }
     }
 
     /// <summary>

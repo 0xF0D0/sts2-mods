@@ -1582,6 +1582,56 @@ internal static class UndoProtocol
     /// </summary>
     internal static int AbortedProposalCount;
 
+    // ── Fuzz-only fault injection (MpFuzz, --undosync-mpfuzz-inject-clock-move) ──
+    //
+    // 24 live two-instance peer-runs (see this file's top-of-file iteration-5 note and f893325's own
+    // commit message) never once advanced CommitRetryAfterClockMoveCount above — the retry-vs-give-up
+    // fix for CommitAsync's "moved-since-agreement" branch was reviewed, never PROVEN to actually run.
+    // The two fields below let a fuzz run force it to run, a bounded number of times, deterministically.
+
+    /// <summary>
+    /// Set ONCE, at process start, to the number of times CommitAsync's own Phase-4 recheck (below)
+    /// should be made to observe the "moved-since-agreement" condition on THIS peer, then counted down
+    /// by CommitAsync itself as it fires — the same "only the currently-active fuzz path's own setup
+    /// ever writes this" discipline AutoAcceptForFuzz above already uses, except this field keeps
+    /// changing after that initial write (CommitAsync's own decrement below), where AutoAcceptForFuzz
+    /// never changes again once MpFuzz.MaybeStart sets it.
+    ///
+    /// WHAT IT DOES: forces the exact `if` CommitAsync already evaluates (localNextId !=
+    /// effectiveAgreedChecksumId, a few lines below its own gate 2) to be true, by perturbing the
+    /// comparison's RHS to a value guaranteed to differ from the genuine localNextId this peer just
+    /// read from ChecksumTracker.NextId (ChecksumTracker.cs:57) — see the injection site itself for why
+    /// this, and not a parallel branch that fakes the counter/log/return, is what "causes" the
+    /// condition rather than merely simulating its effects. ChecksumTracker.NextId itself is never
+    /// touched — only the local value CommitAsync compares it against — so this cannot desync the real
+    /// checksum id sequence the way writing NextId via reflection (ChecksumHook.cs's own
+    /// TrackerNextIdProp) would.
+    ///
+    /// Bounded, not permanent: each firing decrements this counter (see the injection site below), so
+    /// a run started with e.g. --undosync-mpfuzz-inject-clock-move-count=1 forces exactly one failure —
+    /// enough for the very next attempt (the immediate retry round MaxQuiesceRounds budgets for — see
+    /// that constant's own doc comment, UndoProtocol.cs:645) to succeed normally afterward, proving
+    /// retry-then-succeed. A count &gt;= MaxQuiesceRounds (3) forces every attempt within one proposal's
+    /// round budget to fail, proving retry-until-cancelled instead (see AdvanceQuiesceRoundOrGiveUp's
+    /// own doc comment for the give-up branch this drives, and its AbortedProposalCount incrementing).
+    ///
+    /// Zero (the default) is a no-op: the injection site below is gated on this being &gt; 0, so a
+    /// normal game process — which never runs past MpFuzz.MaybeStart's own --undosync-mpfuzz gate —
+    /// never touches this field at all, and its compile-time initializer is the only value it ever
+    /// observes. See MpFuzz.MaybeStart for the CLI flags that write this.
+    /// </summary>
+    internal static int ClockMoveInjectionsRemaining;
+
+    /// <summary>Proof-of-exercise counter, incremented once per ACTUAL firing of the injection above —
+    /// i.e. once per CommitAsync attempt whose "moved-since-agreement" condition only became true
+    /// because of this fuzz injection, not a genuine clock move. Kept separate from
+    /// CommitRetryAfterClockMoveCount above (which counts BOTH causes, injected or genuine, since from
+    /// the branch's own point of view they are the same condition) so a run's summary can report
+    /// "requested N, fired M, branch ran X times total" and a reader can tell whether the injection
+    /// actually did what it was asked to, independent of whether a genuine clock move also happened to
+    /// occur in the same run. Read by MpFuzz's own step-10 summary.</summary>
+    internal static int ClockMoveInjectionsFiredCount;
+
     /// <summary>
     /// Part C (step 3) proof, not a new guard — the task this was built for asked to verify, not
     /// assume, that "a restore must never be attempted or committed while a card selection is
@@ -1662,6 +1712,13 @@ internal static class UndoProtocol
     /// round machinery Phase 3's own disagreement already uses (AdvanceQuiesceRoundOrGiveUp), bounded
     /// by the same MaxQuiesceRounds — never a second, parallel retry limit, and never a value this
     /// peer decides to accept as "expected fallout" the way the retired design's comment used to.
+    ///
+    /// FUZZ-ONLY FAULT INJECTION: gate 2's comparison below can be forced to fail on demand — see
+    /// ClockMoveInjectionsRemaining's own doc comment (in the "── Fuzz-only fault injection" section
+    /// further down this file) for the full design and the CLI flags that drive it. Zero (the only
+    /// value any normal game process ever observes, since it is written only by MpFuzz.MaybeStart
+    /// behind that file's own --undosync-mpfuzz gate) makes this a complete no-op: gate 2 below runs
+    /// completely unmodified for every peer that never passes --undosync-mpfuzz-inject-clock-move.
     /// </summary>
     private static async Task CommitAsync(uint targetId, uint agreedChecksumId, int round)
     {
@@ -1700,7 +1757,30 @@ internal static class UndoProtocol
                 if (IsLocallyIdle())
                 {
                     uint localNextId = RunManager.Instance?.ChecksumTracker?.NextId ?? 0;
-                    if (localNextId != agreedChecksumId)
+                    // Fuzz-only fault injection (--undosync-mpfuzz-inject-clock-move[-count=N] — see
+                    // ClockMoveInjectionsRemaining's own doc comment for the full design). Zero (the
+                    // default, and the only value any normal game process ever observes) makes this a
+                    // no-op: effectiveAgreedChecksumId == agreedChecksumId and the `if` below behaves
+                    // exactly as it always has. ChecksumTracker.NextId itself is never touched — only
+                    // the local value it gets compared against — so a normal peer's own checksum id
+                    // sequence can never be perturbed by this, fuzz-enabled or not.
+                    uint effectiveAgreedChecksumId = agreedChecksumId;
+                    bool clockMoveInjected = false;
+                    if (ClockMoveInjectionsRemaining > 0)
+                    {
+                        ClockMoveInjectionsRemaining--;
+                        ClockMoveInjectionsFiredCount++;
+                        clockMoveInjected = true;
+                        // Guaranteed to differ from localNextId (unlike, say, agreedChecksumId - 1,
+                        // which would coincidentally EQUAL localNextId whenever this peer's clock had
+                        // genuinely already moved by exactly one, silently swallowing the injection) —
+                        // this simulates the same "moved by one tick since agreement" shape the real
+                        // bug this fix targets took (top-of-file iteration-5 note: host observed
+                        // NextId 13 -> 14 between AGREE and commit), just forced instead of waited for.
+                        effectiveAgreedChecksumId = localNextId > 0 ? localNextId - 1 : localNextId + 1;
+                        Log.Write($"[UndoProtocol] [FUZZ] injecting a moved-since-agreement clock move for id={targetId}: presenting agreedChecksumId={effectiveAgreedChecksumId} to this peer's own Phase-4 recheck instead of the real {agreedChecksumId} ({ClockMoveInjectionsRemaining} injection(s) left this run). The COMMIT ABORTED line below is tagged FUZZ-INJECTED — do not mistake it for a genuine clock move.");
+                    }
+                    if (localNextId != effectiveAgreedChecksumId)
                     {
                         // See this method's own doc comment for why this is distinct from a Phase 3
                         // disagreement, and why it now retries instead of accepting the divergence.
@@ -1710,7 +1790,7 @@ internal static class UndoProtocol
                         // ChecksumHook.RestoreTo's own step-3 comment) — a FRESH quiesce round is what
                         // gives every peer a new, current value to agree on instead.
                         CommitRetryAfterClockMoveCount++;
-                        Log.Write($"[UndoProtocol] COMMIT ABORTED (phase 4, moved-since-agreement) for id={targetId}: local NextId={localNextId} no longer equals the agreed clock={agreedChecksumId} — requesting a fresh quiesce round rather than restoring alone.");
+                        Log.Write($"[UndoProtocol] COMMIT ABORTED (phase 4, moved-since-agreement{(clockMoveInjected ? ", FUZZ-INJECTED" : "")}) for id={targetId}: local NextId={localNextId} no longer equals the agreed clock={effectiveAgreedChecksumId}{(clockMoveInjected ? $" (real agreed={agreedChecksumId}, forced by --undosync-mpfuzz-inject-clock-move)" : "")} — requesting a fresh quiesce round rather than restoring alone.");
                         return;
                     }
                     // Part C (step 3) proof — see AssertQueueEmptyOrRecordViolation's own doc

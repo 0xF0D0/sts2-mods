@@ -48,6 +48,14 @@ internal static class UndoPicker
 
     internal static bool IsOpen => _popup != null && GodotObject.IsInstanceValid(_popup);
 
+    /// <summary>The currently open popup (picker OR restart-confirm), when any — fuzz-only accessor
+    /// for <c>UndoFuzz.CaptureRestartConfirmDialogAsync</c> (UndoFuzz.cs, gated behind
+    /// --undosync-uitest-screenshot) to read the live node tree (title/body/button text) and confirm
+    /// <see cref="ConfirmRestartCombat"/> actually left a popup open before screenshotting it. No
+    /// other caller needs this: every other consumer of <see cref="_popup"/> is a method in this
+    /// file, which already has direct field access.</summary>
+    internal static NGenericPopup? CurrentPopup => _popup;
+
     internal static void Open()
     {
         var points = ChecksumHook.SyncPointsNewestFirst();
@@ -202,8 +210,17 @@ internal static class UndoPicker
     /// combat-start id, same call a card-tile click makes. Cancel (no, :117-121), a closed dialog, or
     /// a mid-confirm force-close (e.g. combat ending) all fall through to close-and-return: no
     /// proposal, no restore.
+    ///
+    /// internal, not private: <c>UndoFuzz.CaptureRestartConfirmDialogAsync</c> (UndoFuzz.cs, gated
+    /// behind --undosync-uitest-screenshot, itself only reachable behind --undosync-uitest — see
+    /// UndoFuzz.MaybeStart) calls this method directly so it can photograph the REAL popup this
+    /// method builds, rather than a hand-built replica. That caller never presses either button — it
+    /// only needs the popup to exist and render — so it fires this fire-and-forget exactly like
+    /// <see cref="HandlePopupResult"/> does above, and lets <see cref="Close"/> free the node
+    /// afterward instead of waiting on the returned Task. No other caller outside this file exists;
+    /// this is not a general-purpose public API.
     /// </summary>
-    private static async Task ConfirmRestartCombat(uint targetChecksumId)
+    internal static async Task ConfirmRestartCombat(uint targetChecksumId)
     {
         EnsureLocEntries();
         var popup = NGenericPopup.Create();

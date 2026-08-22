@@ -3,7 +3,7 @@
   "name": "Undo Sync",
   "author": "beomsu",
   "description": "Multiplayer-capable combat undo. Left Arrow opens a picker to choose how far back to rewind: in singleplayer the chosen point restores immediately, in multiplayer it opens a unanimous vote among all players and, once accepted, restores every peer simultaneously. Logs to <godot-user-data>/logs/UndoSync-<pid>.log.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": true
