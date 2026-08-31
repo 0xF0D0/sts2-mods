@@ -124,6 +124,19 @@ internal static class UndoFuzz
     /// method's own doc comment for what it proves and why.</summary>
     private const string UiTestScreenshotArg = "undosync-uitest-screenshot";
 
+    /// <summary>Opt-in companion to <see cref="UiTestScreenshotArg"/>: after the screenshot test has
+    /// opened the real picker, this drives the real restart button and then the real confirmation
+    /// button through <see cref="NClickableControl.ForceClick"/>.  It exists only to regression-test
+    /// the exact two-modal handoff a player uses; normal UI-mode runs, and all normal play, leave it
+    /// off.</summary>
+    private const string UiTestRestartClickArg = "undosync-uitest-restart-click";
+
+    /// <summary>Opt-in headless regression for the game bug where
+    /// ActionQueueSet.StartCancellingAllPlayerDrivenCombatActions removes the final queued action but
+    /// leaves IsEmpty false.  The test uses a throwaway ActionQueueSet only; it cannot touch the live
+    /// combat queue.</summary>
+    private const string QueueIdleRegressionArg = "undosync-fuzz-queue-idle-regression";
+
     /// <summary>Optional PNG output path override for <see cref="CaptureRestartConfirmDialogAsync"/>;
     /// same TryGetValue pattern as <see cref="UiTestSeedArg"/>/<see cref="UiTestCountArg"/> above.
     /// Falls back to <see cref="UiTestScreenshotDefaultPath"/> when absent or empty.</summary>
@@ -627,6 +640,18 @@ internal static class UndoFuzz
         /// production only ever reports through Log.Error/Sentry with no public flag or event.</summary>
         public bool SawGameError;
 
+        /// <summary>Set only by the opt-in ActionQueueSet cancellation regression test.  Kept on the
+        /// outcome rather than a process-wide static so the normal fuzz summary can make a requested
+        /// regression check visibly pass or fail.</summary>
+        public bool QueueIdleRegressionPassed;
+
+        /// <summary>Whether this combat actually ran the opt-in ActionQueueSet cancellation regression
+        /// test.  Only combat zero of a --undosync-fuzz run can set this.</summary>
+        public bool QueueIdleRegressionChecked;
+
+        /// <summary>Set only by the opt-in real two-popup restart-combat click regression test.</summary>
+        public bool RestartPickerFlowPassed;
+
         /// <summary>True when the GAME's own combat turn loop died (CombatManager.RunTurnLoopAfter,
         /// CombatManager.cs:516-528) — set by DriveCombatAsync when WaitForIdleOurTurnAsync returns
         /// IdleWait.GameTurnLoopDied, i.e. _gameTurnLoopDied was seen set by RecordGameError. This
@@ -1024,6 +1049,7 @@ internal static class UndoFuzz
         var sectionFailureSeeds = new List<string>();
         var gameErrorSeeds = new List<string>();
         var turnLoopDiedSeeds = new List<string>();
+        bool? queueIdleRegressionPassed = null;
 
         // Coverage accumulators for the "coverage:" summary line below — answer "did this run
         // actually explore anything beyond the untouched starting deck" from the log alone, without
@@ -1081,6 +1107,8 @@ internal static class UndoFuzz
                     gameErrorSeeds.Add(outcome.Seed);
                 if (outcome.TurnLoopDied)
                     turnLoopDiedSeeds.Add(outcome.Seed);
+                if (outcome.QueueIdleRegressionChecked)
+                    queueIdleRegressionPassed = outcome.QueueIdleRegressionPassed;
                 if (outcome.BudgetExhausted)
                     budgetExhausted++;
                 // TurnLoopDied combats also set DriveError (see DriveCombatAsync's GameTurnLoopDied
@@ -1183,7 +1211,8 @@ internal static class UndoFuzz
         Log.Write($"[Fuzz] orb node/model invariant: not applicable — {UiRefresh.OrbInvariantViolationCount} violation(s) "
             + "recorded, and this path cannot produce a nonzero value because no orb nodes exist under TestMode.");
         Log.Write($"[Fuzz] shadow containers: copied={StateSnapshot.ShadowContainersCopied} "
-            + $"shared={StateSnapshot.ShadowContainersShared} (shared = no copy constructor; DynamicVarSet is the\n            expected occupant and is captured separately)".Replace("\n", " ").Replace("            ", ""));
+            + $"dynamicVarSets={StateSnapshot.ShadowDynamicVarSetsCloned} "
+            + $"shared={StateSnapshot.ShadowContainersShared}");
         // See UndoSyncMod.IsActionQueueIdle's doc comment for the mechanism this counts
         // (ActionQueueSet.IsEmpty staying stale-false after StartCancellingAllPlayerDrivenCombatActions
         // removes the last queued action, ActionQueueSet.cs:331-349, without calling CheckIfQueuesEmpty,
@@ -1192,6 +1221,12 @@ internal static class UndoFuzz
         // live, not just theoretically possible.
         Log.Write($"[Fuzz] stale ActionQueueSet.IsEmpty: {UndoSyncMod.StaleIsEmptyObservations} observation(s) "
             + "(IsEmpty=false while the literal queued-action count was 0 — see UndoSyncMod.IsActionQueueIdle).");
+        if (CommandLineHelper.HasArg(QueueIdleRegressionArg))
+        {
+            Log.Write(queueIdleRegressionPassed == true
+                ? "[Fuzz] queue-idle cancellation regression: PASS — the throwaway queue stayed IsEmpty=false after its final action was cancelled, while UndoSync's literal-count guard returned idle."
+                : "[Fuzz] queue-idle cancellation regression: FAIL — see the [Fuzz][queue-idle-regression] line above.");
+        }
         Log.Write("[Fuzz] ==================== done ====================");
 
         // Quit when the run is over. Without this the process sits at the main menu forever, which
@@ -1272,6 +1307,45 @@ internal static class UndoFuzz
     }
 
     /// <summary>
+    /// Reproduces the ActionQueueSet.IsEmpty staleness defect without touching RunManager's live
+    /// queue.  EnqueueWithoutSynchronizing arms its private completion source, then the game's own
+    /// StartCancellingAllPlayerDrivenCombatActions removes the sole waiting action without calling
+    /// CheckIfQueuesEmpty (ActionQueueSet.cs:331-349).  At that point the engine reports IsEmpty=false
+    /// even though the literal action lists are empty.  UndoSync must accept the latter as idle.
+    /// </summary>
+    private static bool RunQueueIdleCancellationRegression(Player owner)
+    {
+        const string tag = "[Fuzz][queue-idle-regression]";
+        try
+        {
+            var queues = new MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSet(
+                new List<Player> { owner });
+            var action = new MegaCrit.Sts2.Core.DevConsole.ConsoleCmdGameAction(
+                owner, "help", inCombat: true);
+
+            queues.EnqueueWithoutSynchronizing(action);
+            bool armed = !queues.IsEmpty;
+            queues.StartCancellingAllPlayerDrivenCombatActions();
+
+            int observationsBefore = UndoSyncMod.StaleIsEmptyObservations;
+            bool rawIsEmpty = queues.IsEmpty;
+            bool idle = UndoSyncMod.IsActionQueueIdle(queues, out var detail);
+            int observationDelta = UndoSyncMod.StaleIsEmptyObservations - observationsBefore;
+            bool passed = armed && !rawIsEmpty && idle && detail.Length == 0 && observationDelta == 1;
+
+            Log.Write($"{tag} {(passed ? "PASS" : "FAIL")}: initiallyArmed={armed} "
+                + $"afterCancel.IsEmpty={rawIsEmpty} actionState={action.State} literalIdle={idle} "
+                + $"detail=\"{detail}\" staleObservationDelta={observationDelta}.");
+            return passed;
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"{tag} ERROR: {ex}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Sets up one throwaway TestMode run, drives one combat to completion (with random restores
     /// along the way), and tears the run back down — regardless of how it went. Never throws: any
     /// failure becomes outcome.DriveError instead, so RunAllCombatsAsync's loop is never at risk.
@@ -1310,6 +1384,21 @@ internal static class UndoFuzz
             outcome.CharacterId = character.Id.Entry;
 
             var player = Player.CreateForNewRun(character, UnlockState.all, 1uL);
+
+            // This narrowly exercises the exact engine cancellation path behind the user's
+            // "undo stack doesn't update" report.  It is opt-in and uses a brand-new queue, before
+            // SetUpTest has attached the real one to RunManager, so no test action can enter combat.
+            if (combatIndex == 0 && CommandLineHelper.HasArg(QueueIdleRegressionArg))
+            {
+                outcome.QueueIdleRegressionChecked = true;
+                outcome.QueueIdleRegressionPassed = RunQueueIdleCancellationRegression(player);
+                if (!outcome.QueueIdleRegressionPassed)
+                {
+                    outcome.DriveError = "queue-idle cancellation regression failed";
+                    Log.Write($"[Fuzz] combat={combatIndex} {outcome.DriveError}; aborting before live combat setup.");
+                    return outcome;
+                }
+            }
             var runState = RunState.CreateForTest(
                 players: new List<Player> { player },
                 // Fixed at 10, not randomized: ascension widens the explored state space (harder
@@ -2801,6 +2890,7 @@ internal static class UndoFuzz
         Log.Write($"[Fuzz][uitest] seed={outcome.Seed} encounter={outcome.EncounterId} character={outcome.CharacterId} "
             + $"roomType={outcome.RoomTypeName} completed={outcome.Completed} turnsPlayed={outcome.TurnsPlayed} "
             + $"cardsPlayed={outcome.CardsPlayed} restoresAttempted={outcome.RestoresAttempted} restoresFailed={outcome.RestoresFailed}"
+            + (CommandLineHelper.HasArg(UiTestRestartClickArg) ? $" restartPickerFlowPassed={outcome.RestartPickerFlowPassed}" : "")
             + (outcome.BudgetExhausted ? " budgetExhausted=true" : "")
             + (outcome.StuckAfterRestore ? $" stuckAfterRestore=\"{outcome.StuckAfterRestoreDetail}\"" : "")
             + (outcome.SectionFailures > 0 ? $" sectionFailures={outcome.SectionFailures} (\"{outcome.SectionFailureDetail}\")" : "")
@@ -2852,7 +2942,8 @@ internal static class UndoFuzz
                 + "otherwise.");
         }
 
-        Log.Write($"[Fuzz][uitest] shadow containers: copied={StateSnapshot.ShadowContainersCopied} shared={StateSnapshot.ShadowContainersShared}");
+        Log.Write($"[Fuzz][uitest] shadow containers: copied={StateSnapshot.ShadowContainersCopied} "
+            + $"dynamicVarSets={StateSnapshot.ShadowDynamicVarSetsCloned} shared={StateSnapshot.ShadowContainersShared}");
         Log.Write("[Fuzz][uitest] ==================== done ====================");
 
         // Same reasoning as RunAllCombatsAsync's own quit step — Godot's own shutdown (not a kill) so
@@ -3063,6 +3154,18 @@ internal static class UndoFuzz
                 return outcome;
             }
 
+            if (CommandLineHelper.HasArg(UiTestRestartClickArg))
+            {
+                // Unlike the screenshot-only test above, this runs through the first picker and its
+                // second confirmation with the UI path's real-animation bounds.  It deliberately
+                // replaces the ordinary drive loop: a successful click restores the combat-start
+                // snapshot, which is the condition under test rather than useful fuzz coverage.
+                _activeIdleWaitTimeout = UiTestIdleWaitTimeout;
+                _activeCombatWallClockTimeout = UiTestCombatWallClockTimeout;
+                await ExerciseRestartCombatPickerAsync(combatIndex, me, outcome);
+                return outcome;
+            }
+
             // See ApplyStormPowerForUiTest's own doc comment for the full "why StormPower" reasoning and
             // the exact ApplyPowerConsoleCmd call this mirrors.
             await ApplyStormPowerForUiTest(me, combatIndex);
@@ -3072,8 +3175,8 @@ internal static class UndoFuzz
             // power-application hook at UnsettlingLamp.cs:107 and cleared only at combat start/end),
             // which is exactly the state StateSnapshot.Shadow's container copy exists to snapshot.
             // Without forcing it, a run can finish with ShadowContainersCopied == 0 and the copy
-            // branch unproven — every shared container in a random run turns out to be
-            // RelicModel._dynamicVars, which has no copy constructor and is captured separately.
+            // branch unproven — random runs previously encountered only RelicModel._dynamicVars,
+            // whose no-copy-constructor shape needed its own DynamicVarSet.Clone path.
             // StormPower supplies the power applications that make the list actually grow.
             await ObtainRelicForUiTest(me, "UNSETTLING_LAMP", combatIndex);
 
@@ -3145,6 +3248,140 @@ internal static class UndoFuzz
             // it on in the first place, so there is nothing to turn back off.
         }
         return outcome;
+    }
+
+    // --- --undosync-uitest-restart-click: drives the actual two-dialog restart flow -----------------
+
+    /// <summary>
+    /// Exercises the exact restart-combat route a player takes: first make the combat-start anchor
+    /// older than the current sync point, open <see cref="UndoPicker.Open"/>, click that picker's
+    /// restart button, wait for the distinct confirmation popup, and click its confirm button.  The
+    /// clicks use <see cref="NClickableControl.ForceClick"/>, the game's own AutoSlay test helper:
+    /// it emits the same Released signal and therefore invokes the same NGenericPopup callbacks and
+    /// NModalContainer cleanup as a real button release, rather than calling UndoProtocol directly.
+    ///
+    /// A pass requires the confirmation to close and ChecksumHook's byte-for-byte fidelity check to
+    /// pass after the resulting single-player ProposeTarget restore.  This is deliberately a
+    /// single-player UI regression: it proves the previously broken picker -> confirmation ->
+    /// ProposeTarget handoff.  The separate MpFuzz run covers the shared multiplayer vote/commit path.
+    /// </summary>
+    private static async Task ExerciseRestartCombatPickerAsync(int combatIndex, Player me, CombatOutcome outcome)
+    {
+        const string tag = "[Fuzz][uitest][restart-click]";
+        try
+        {
+            var firstIdle = await WaitForIdleOurTurnAsync(me);
+            if (firstIdle != IdleWait.Ready)
+            {
+                outcome.DriveError = $"initial idle wait returned {firstIdle}";
+                Log.Write($"{tag} combat={combatIndex} {outcome.DriveError}");
+                return;
+            }
+
+            // The first anchor is intentionally withheld while it is also the newest point.  Advance
+            // through one ordinary single-player turn first, so the picker is allowed to show a
+            // meaningful "restart combat" target rather than a no-op-to-now button.
+            PlayerCmd.EndTurn(me, canBackOut: false);
+            var nextIdle = await WaitForIdleOurTurnAsync(me);
+            if (nextIdle != IdleWait.Ready || !ChecksumHook.TryGetCombatStart(out var combatStart))
+            {
+                outcome.DriveError = $"no restartable combat-start anchor after advancing one turn (idle={nextIdle})";
+                Log.Write($"{tag} combat={combatIndex} {outcome.DriveError}");
+                return;
+            }
+
+            Log.Write($"{tag} combat={combatIndex} opening real picker for combat-start id={combatStart.ChecksumId}.");
+            UndoPicker.Open();
+            var tree = NGame.Instance?.GetTree();
+            if (tree == null)
+            {
+                outcome.DriveError = "NGame.Instance/GetTree() was null";
+                Log.Write($"{tag} {outcome.DriveError}");
+                return;
+            }
+
+            const int popupFrames = 12;
+            for (int i = 0; i < popupFrames; i++)
+                await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+
+            if (UndoPicker.CurrentPopup is not { } picker || !GodotObject.IsInstanceValid(picker))
+            {
+                outcome.DriveError = $"UndoPicker.Open did not leave the first popup open after {popupFrames} frames";
+                Log.Write($"{tag} {outcome.DriveError}");
+                return;
+            }
+
+            var pickerVertical = picker.GetNode<Control>("VerticalPopup");
+            var restartButton = pickerVertical.GetNode<NPopupYesNoButton>("NoButton");
+            if (!restartButton.Visible)
+            {
+                outcome.DriveError = "restart button was hidden despite TryGetCombatStart succeeding";
+                Log.Write($"{tag} {outcome.DriveError}");
+                return;
+            }
+
+            // ForceClick is the real button-signal route: NGenericPopup.OnNoButtonPressed resolves
+            // WaitForConfirmation(false), HandlePopupResult closes picker state, then opens the
+            // second confirmation.  Do not call ConfirmRestartCombat directly here.
+            restartButton.ForceClick();
+
+            NGenericPopup? confirmation = null;
+            const int confirmationFrames = 120;
+            for (int i = 0; i < confirmationFrames; i++)
+            {
+                await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+                var current = UndoPicker.CurrentPopup;
+                if (current != null && !ReferenceEquals(current, picker) && GodotObject.IsInstanceValid(current))
+                {
+                    confirmation = current;
+                    break;
+                }
+            }
+            if (confirmation == null)
+            {
+                outcome.DriveError = $"restart button did not open a distinct confirmation popup within {confirmationFrames} frames";
+                Log.Write($"{tag} {outcome.DriveError}");
+                return;
+            }
+
+            LogRestartConfirmDialogText(tag, confirmation);
+            var confirmButton = confirmation.GetNode<Control>("VerticalPopup").GetNode<NPopupYesNoButton>("YesButton");
+            confirmButton.ForceClick();
+
+            const int restoreFrames = 120;
+            for (int i = 0; i < restoreFrames; i++)
+            {
+                await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+                if (!UndoPicker.IsOpen)
+                {
+                    if (ChecksumHook.LastRestoreFidelityOk)
+                    {
+                        outcome.RestartPickerFlowPassed = true;
+                        Log.Write($"{tag} PASS: picker restart -> confirmation -> ProposeTarget restored id={combatStart.ChecksumId} with byte-identical fidelity.");
+                    }
+                    else
+                    {
+                        outcome.DriveError = "confirmation closed but no byte-identical restore was observed";
+                        Log.Write($"{tag} {outcome.DriveError}");
+                    }
+                    return;
+                }
+            }
+
+            outcome.DriveError = $"confirmation remained open after {restoreFrames} frames";
+            Log.Write($"{tag} {outcome.DriveError}");
+        }
+        catch (Exception ex)
+        {
+            outcome.DriveError = ex.Message;
+            Log.Write($"{tag} combat={combatIndex} ERROR: {ex}");
+        }
+        finally
+        {
+            // A test failure must not leave the UI harness's subsequent RunManager.CleanUp fighting a
+            // modal.  On a successful ForceClick path this is an intentional no-op.
+            UndoPicker.Close();
+        }
     }
 
     // --- --undosync-uitest-screenshot: proves ConfirmRestartCombat actually renders ------------------
@@ -3397,8 +3634,8 @@ internal static class UndoFuzz
     /// Proves StateSnapshot.Shadow actually copies containers, rather than inferring it from a run
     /// that happened not to exercise the branch. This exists because the first real runs reported
     /// ShadowContainersCopied == 0: every container a random run encountered was
-    /// RelicModel._dynamicVars, a DynamicVarSet with no copy constructor that is deliberately left
-    /// shared and captured separately. A gameplay-coincidence proof is not a proof — only ~11 of the
+    /// RelicModel._dynamicVars, a DynamicVarSet with no copy constructor. A gameplay-coincidence
+    /// proof is not a proof — only ~11 of the
     /// game's ~300 relics own a non-DynamicVarSet container, and several of those populate lazily, so
     /// a green run tells you nothing about whether the copy branch works.
     ///

@@ -501,6 +501,7 @@ internal static class MpFuzz
             // fires on BOTH host and client, so both roles need this to observe a divergence on their
             // own side rather than relying on the other peer's log.
             InstallDivergenceObserverPatch();
+            InstallStaleDebugDisconnectGuardPatch();
 
             // Step 3, Part A: fuzz-only auto-accept for the undo vote — see
             // UndoProtocol.AutoAcceptForFuzz's own doc comment for why this exact flag/placement
@@ -674,6 +675,40 @@ internal static class MpFuzz
         {
             Log.Write($"[MpFuzz] WARNING: failed to install divergence observer patch on ChecksumTracker.OnReceivedStateDivergenceMessage: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// The debug multiplayer scene remains the listener for its <see cref="StartRunLobby"/> even after
+    /// that scene has been replaced by the real run scene.  A later client departure therefore reaches
+    /// <c>NMultiplayerTest.RemotePlayerDisconnected</c> with freed UI nodes and throws before
+    /// StartRunLobby can finish broadcasting its PlayerLeftMessage.  That blocks the real RunLobby's
+    /// departure event, which is the very signal this fuzz mode needs to exercise.  Skip only that stale
+    /// debug-UI callback after a run has begun; this patch is installed solely by --undosync-mpfuzz.
+    /// </summary>
+    private static void InstallStaleDebugDisconnectGuardPatch()
+    {
+        try
+        {
+            var harmony = new Harmony("undosync.mpfuzz");
+            var original = AccessTools.Method(typeof(NMultiplayerTest), "RemotePlayerDisconnected");
+            var prefix = new HarmonyMethod(AccessTools.Method(typeof(MpFuzz), nameof(AllowDebugDisconnectUiUpdate)));
+            harmony.Patch(original, prefix: prefix);
+            Log.Write("[MpFuzz] Patched NMultiplayerTest.RemotePlayerDisconnected (mpfuzz-only) to skip its stale UI update after run start.");
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[MpFuzz] WARNING: failed to install stale debug disconnect guard: {ex.Message}");
+        }
+    }
+
+    /// <summary>Harmony prefix for the debug-scene guard above. Returning false skips only the dead
+    /// scene's cosmetic node update; StartRunLobby still completes its own disconnect propagation.</summary>
+    private static bool AllowDebugDisconnectUiUpdate()
+    {
+        if (RunManager.Instance?.IsInProgress != true)
+            return true;
+        Log.Write("[MpFuzz] Skipped stale NMultiplayerTest disconnect UI update after run start.");
+        return false;
     }
 
     /// <summary>

@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Entities.UI;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
@@ -186,7 +187,37 @@ internal static class UndoPicker
             return;
         }
         Log.Write($"[UndoPicker] restart-combat button pressed, targetId={combatStart.ChecksumId}");
-        _ = ConfirmRestartCombat(combatStart.ChecksumId);
+        _ = OpenRestartConfirmationNextFrame(combatStart.ChecksumId);
+    }
+
+    /// <summary>
+    /// Waits until the source picker's button signal has completely unwound before opening the second
+    /// modal. NGenericPopup resolves its TaskCompletionSource inside its first Released callback, so
+    /// <see cref="HandlePopupResult"/> can resume synchronously before NVerticalPopup's second Released
+    /// callback calls NModalContainer.Clear(). Opening the confirmation immediately in that window lets
+    /// that old cleanup callback clear the NEW popup — the exact "restart combat button logged, then
+    /// nothing happens" defect this method prevents. One ProcessFrame lets both callbacks complete;
+    /// the confirmation is then the only modal slot occupant.
+    /// </summary>
+    private static async Task OpenRestartConfirmationNextFrame(uint targetChecksumId)
+    {
+        try
+        {
+            var tree = NGame.Instance?.GetTree();
+            if (tree == null)
+            {
+                Log.Write("[UndoPicker] restart-combat confirmation skipped: NGame.Instance/GetTree() was null");
+                return;
+            }
+            await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+            await ConfirmRestartCombat(targetChecksumId);
+        }
+        catch (Exception ex)
+        {
+            // This Task is intentionally fire-and-forget from HandlePopupResult; never let a UI
+            // continuation exception become invisible or escape into the engine's signal dispatch.
+            Log.Write($"[UndoPicker] restart-combat confirmation continuation ERROR: {ex}");
+        }
     }
 
     /// <summary>

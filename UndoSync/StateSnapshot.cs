@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Entities.Orbs;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Combat.History;
 using MegaCrit.Sts2.Core.Entities.Rngs;
+using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Runs;
@@ -286,8 +287,8 @@ internal sealed class StateSnapshot
     /// (UnsettlingLamp.cs:107) and is cleared only at BeforeCombatStart (:66) / AfterCombatEnd
     /// (:155), so it accumulates across turns; after an undo the shadow's "captured" list has
     /// already grown past what it held at capture time, because it was never a separate list.
-    /// See CopyShadowContainers for how the copy is done and ShadowContainersShared for the
-    /// one case (DynamicVarSet) where it deliberately isn't.
+    /// See CopyShadowContainers for how the copy is done, including the dedicated DynamicVarSet
+    /// clone path that preserves its model ownership.
     /// </summary>
     /// <summary>Test seam: UndoFuzz's startup self-test needs to prove Shadow's container-copy branch
     /// works without depending on a run happening to encounter a relic that owns one. Shadow itself
@@ -309,17 +310,19 @@ internal sealed class StateSnapshot
     /// reading the code. Dormant/unused outside a harness.</summary>
     internal static int ShadowContainersCopied;
 
+    /// <summary>Subset of <see cref="ShadowContainersCopied"/> copied through
+    /// DynamicVarSet.Clone(AbstractModel), not a constructor copy. A nonzero fuzz-run delta proves
+    /// the exact relic/power dynamic-variable path that previously remained shared was exercised.</summary>
+    internal static int ShadowDynamicVarSetsCloned;
+
     /// <summary>Count of container-valued fields Shadow() found but could NOT copy — the field's
     /// runtime type has no (T value) copy constructor, or that constructor threw, so the field is
     /// left aliasing the live object's container exactly as plain MemberwiseClone would have left
     /// it, and CopyShadowContainers logs a one-line warning naming the declaring type/field/field
-    /// type. DynamicVarSet (DynamicVarSet.cs:12) is the expected occupant of this bucket: it
-    /// implements IReadOnlyDictionary&lt;string, DynamicVar&gt; but its only constructor takes
-    /// IEnumerable&lt;DynamicVar&gt;, not a DynamicVarSet, so Activator.CreateInstance never finds a
-    /// matching constructor. That's fine — relics, potions and powers all capture their own
-    /// DynamicVars independently through the game's own DynamicVars.Clone(owner) (see
-    /// RelicCapture.DynamicVarsClone / PowerCapture.DynamicVarsClone / _potionDynamicVars above),
-    /// so a shared _dynamicVars field on a Shadow() clone is never actually relied on.</summary>
+    /// type. A DynamicVarSet owned by an AbstractModel is handled through the game's own
+    /// DynamicVarSet.Clone(owner) path before this fallback, because it has no copy constructor.
+    /// A value only reaches this bucket if it is not a model-owned DynamicVarSet or cannot otherwise
+    /// be safely copied.</summary>
     internal static int ShadowContainersShared;
 
     /// <summary>
@@ -339,6 +342,8 @@ internal sealed class StateSnapshot
     ///
     /// Two shapes are handled, in order:
     ///  - System.Array, via Array.Clone() (shallow — same element-identity rule as above).
+    ///  - a model-owned DynamicVarSet, via DynamicVarSet.Clone(cloned model). Its DynamicVars carry
+    ///    owner references, so a constructor copy would be both unavailable and incorrect.
     ///  - anything else that is System.Collections.IEnumerable and isn't a string, via its copy
     ///    constructor (Activator.CreateInstance(type, new object[] { value })) — List&lt;T&gt;,
     ///    HashSet&lt;T&gt; and Dictionary&lt;K,V&gt; all provide one.
@@ -360,6 +365,13 @@ internal sealed class StateSnapshot
                 {
                     f.SetValue(clone, array.Clone());
                     ShadowContainersCopied++;
+                    continue;
+                }
+                if (value is DynamicVarSet dynamicVars && clone is AbstractModel owner)
+                {
+                    f.SetValue(clone, dynamicVars.Clone(owner));
+                    ShadowContainersCopied++;
+                    ShadowDynamicVarSetsCloned++;
                     continue;
                 }
                 if (value is System.Collections.IEnumerable && value is not string)
@@ -1151,7 +1163,6 @@ internal sealed class StateSnapshot
             r.Ref.IsWax = r.IsWax;
             r.Ref.IsMelted = r.IsMelted;
             if (r.Status != null) PRelicStatus?.SetValue(r.Ref, r.Status);
-            if (r.DynamicVarsClone != null) FRelicDynVars?.SetValue(r.Ref, r.DynamicVarsClone);
             // subclass-private per-turn counters (e.g. cards-played trackers)
             if (_relicShadow.TryGetValue(r.Ref, out var shadow))
             {
@@ -1169,6 +1180,10 @@ internal sealed class StateSnapshot
                 CopyMutableFields(Shadow(shadow)!, r.Ref);
                 RebindDeepCloneOwnership(r.Ref);
             }
+            // CopyMutableFields above includes _dynamicVars. Restore the independently captured
+            // DynamicVarSet last so a generic relic shadow can never overwrite the captured values.
+            // The capture clone is already owned by this same live relic.
+            if (r.DynamicVarsClone != null) FRelicDynVars?.SetValue(r.Ref, r.DynamicVarsClone);
         }
     }
 

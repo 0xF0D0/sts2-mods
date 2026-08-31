@@ -1009,7 +1009,7 @@ internal static class UndoProtocol
         }
 
         // Part C (step 3) proof, not a new guard — see AssertQueueEmptyOrRecordViolation's own doc
-        // comment. CanUndoRedo() just above already required ActionQueueSet.IsEmpty, so this can
+        // comment. CanUndoRedo() just above already required a literally idle queue, so this can
         // only ever record zero today; it stays as an explicit, independently-logged assertion.
         AssertQueueEmptyOrRecordViolation("ProposeTarget");
 
@@ -1948,8 +1948,8 @@ internal static class UndoProtocol
     /// Part C (step 3) proof, not a new guard — the task this was built for asked to verify, not
     /// assume, that "a restore must never be attempted or committed while a card selection is
     /// pending". Both call sites below (ProposeTarget and CommitAsync) already run this only AFTER
-    /// their own existing CanUndoRedo()/`idle` gate has already required
-    /// RunManager.Instance.ActionQueueSet.IsEmpty, so under today's code this can only ever record
+    /// their own existing CanUndoRedo()/`idle` gate has already required a literally empty action
+    /// queue, so under today's code this can only ever record
     /// zero — it exists so that guarantee is PROVEN by a live run's own counter
     /// (SelectionPendingViolations) rather than resting solely on a reading of
     /// ActionQueueSet.PauseActionForPlayerChoice's source (ActionQueueSet.cs:261 — it pauses an
@@ -1960,10 +1960,11 @@ internal static class UndoProtocol
     private static void AssertQueueEmptyOrRecordViolation(string where)
     {
         var queues = RunManager.Instance?.ActionQueueSet;
-        if (queues != null && queues.IsEmpty) return;
+        string detail = "action queues unavailable";
+        if (queues != null && UndoSyncMod.IsActionQueueIdle(queues, out detail)) return;
         SelectionPendingViolations++;
         Log.Write($"[UndoProtocol] SELECTION VIOLATION #{SelectionPendingViolations} at {where}: "
-            + $"ActionQueueSet.IsEmpty={(queues != null ? queues.IsEmpty.ToString() : "null queue")} — "
+            + $"{detail} — "
             + "a restore must never be attempted or committed while a card selection (or any other "
             + "action) is pending.");
     }
@@ -1986,7 +1987,7 @@ internal static class UndoProtocol
         var aq = RunManager.Instance?.ActionQueueSet;
         return cs != null && cs.CurrentSide == CombatSide.Player
             && syncr != null && syncr.CombatState == ActionSynchronizerCombatState.PlayPhase
-            && aq != null && aq.IsEmpty
+            && aq != null && UndoSyncMod.IsActionQueueIdle(aq, out _)
             && NGame.Instance?.Transition?.InTransition != true;
     }
 
@@ -2106,7 +2107,7 @@ internal static class UndoProtocol
                         return;
                     }
                     // Part C (step 3) proof — see AssertQueueEmptyOrRecordViolation's own doc
-                    // comment; the idle check above already required aq.IsEmpty, so this can only
+                    // comment; the idle check above already required a literally empty queue, so this can only
                     // ever record zero, but it stays as an explicit, independently-logged assertion.
                     AssertQueueEmptyOrRecordViolation("CommitAsync");
                     ChecksumHook.RestoreTo(sp);
