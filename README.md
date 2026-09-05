@@ -49,6 +49,27 @@ local two-instance multiplayer testing, and the game-update compatibility toolin
 (pass mod names as arguments to package only some of them). Attach the
 resulting zip to a GitHub Release tagged `<Mod>-v<version>`.
 
+## Native save/load and replay experiment
+
+The `experiment/native-replay-undo` branch investigates rebuilding a fresh run
+from an immutable native starting save, then replaying the recorded actions up
+to a safe decision point. All players' actions, choices, hook actions and
+resumptions matter; replaying only the local player's clicks is insufficient.
+The existing UndoSync implementation remains available while this direction is
+validated in the separate `UndoReplayLab` diagnostic mod.
+
+The first checks cover potion-generated card choices and RNG state, permanent
+card growth, and whether a new action executes after reconstruction. A matching
+network checksum alone is not proof that all gameplay state was restored.
+Live multiplayer handoff, UI reconstruction and external mod side effects need
+their own runtime evidence. The game's replay networking service is not a
+drop-in replacement for an active multiplayer connection.
+
+Implementation is delegated to Luna; design, game API investigation and review
+are handled separately. See the [architecture and root-cause record](docs/ROOT_CAUSE_REVIEW.md)
+and [isolated Windows test launcher](tools/ReplayLab/README.md) for scope and
+verification details. Experimental results are not a claim of production-ready undo.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Inspired by the single-player

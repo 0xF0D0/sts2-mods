@@ -1,0 +1,10 @@
+{
+  "id": "UndoReplayLab",
+  "name": "Undo Replay Lab",
+  "author": "beomsu",
+  "description": "Opt-in native save/load and combat replay validation prototype.",
+  "version": "0.1.0",
+  "has_pck": false,
+  "has_dll": true,
+  "affects_gameplay": false
+}
