@@ -99,7 +99,7 @@ function Test-ReportContract([object]$Report, [int]$ExpectedProcessId, [string]$
     $reportUserDir = Get-JsonProperty $Report @('userDataDir', 'user_data_dir')
     if ($null -eq $hasFailure -or [bool]$hasFailure -or $null -eq $reportPid -or [int]$reportPid -ne $ExpectedProcessId -or $null -eq $reportUserDir -or (Get-FullPath ([string]$reportUserDir)) -ne (Get-FullPath $ExpectedUserDir)) { return $false }
 
-    $expectedPhaseNames = @('bootstrap', 'native-save-load', 'native-card-generation-rng-probe', 'record', 'potion-choice-replay', 'genetic-algorithm', 'model-state', 'replay-dispatch', 'normal-card-action-replay')
+    $expectedPhaseNames = @('bootstrap', 'native-save-load', 'record', 'potion-choice-replay', 'potion-rng-state', 'genetic-algorithm', 'model-state', 'replay-dispatch', 'checkpoint-immutability', 'normal-card-action-replay')
     $phaseDictionary = Get-JsonProperty $Report @('Phases', 'phases')
     if ($null -eq $phaseDictionary) { return $false }
     foreach ($name in $expectedPhaseNames) {
@@ -115,7 +115,22 @@ function Test-ReportContract([object]$Report, [int]$ExpectedProcessId, [string]$
     $replayedEvents = [int](Get-JsonProperty $Report @('ReplayedEvents', 'replayedEvents'))
     $replayedActions = [int](Get-JsonProperty $Report @('ReplayedActions', 'replayedActions'))
     $replayedChoices = [int](Get-JsonProperty $Report @('ReplayedChoices', 'replayedChoices'))
-    if ($recordedEvents -le 0 -or $recordedActions -le 0 -or $recordedChoices -lt 2 -or $replayedEvents -ne $recordedEvents -or $replayedActions -ne $recordedActions -or $replayedChoices -ne $recordedChoices) { return $false }
+    if ($recordedEvents -le 0 -or $recordedActions -le 0 -or $recordedChoices -lt 2) { return $false }
+    $trials = @(Get-JsonProperty $Report @('ReplayTrials', 'replayTrials'))
+    if ($trials.Count -ne 2) { return $false }
+    $trialTotals = @{ events = 0; actions = 0; choices = 0 }
+    foreach ($trial in $trials) {
+        $trialEvents = [int](Get-JsonProperty $trial @('ReplayedEvents', 'replayedEvents'))
+        $trialActions = [int](Get-JsonProperty $trial @('ReplayedActions', 'replayedActions'))
+        $trialChoices = [int](Get-JsonProperty $trial @('ReplayedChoices', 'replayedChoices'))
+        $finishedActions = [int](Get-JsonProperty $trial @('FinishedActions', 'finishedActions'))
+        $canceledActions = [int](Get-JsonProperty $trial @('CanceledActions', 'canceledActions'))
+        if ($trialEvents -ne $recordedEvents -or $trialActions -ne $recordedActions -or $trialChoices -ne $recordedChoices -or $trialChoices -lt 2 -or $finishedActions -ne 4 -or $canceledActions -ne 0) { return $false }
+        $trialTotals.events += $trialEvents
+        $trialTotals.actions += $trialActions
+        $trialTotals.choices += $trialChoices
+    }
+    if ($trialTotals.events -ne $replayedEvents -or $trialTotals.actions -ne $replayedActions -or $trialTotals.choices -ne $replayedChoices) { return $false }
     return $true
 }
 
@@ -276,7 +291,23 @@ try { $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json } c
 if (-not (Test-ReportContract $result $process.Id $expectedUserDir)) {
     $metadata.status = 'failed-result-contract'
     Write-Metadata $metadata $metadataPath
-    throw "ReplayLab result.json did not identify PID $($process.Id) and user data directory $expectedUserDir. Evidence retained at $RunRoot"
+    $failedPhases = @($result.PSObject.Properties | Where-Object {
+        $_.Name -ieq 'Phases'
+    } | ForEach-Object {
+        $_.Value.PSObject.Properties | Where-Object {
+            $status = Get-JsonProperty $_.Value @('Status', 'status')
+            ([string]$status).ToUpperInvariant() -ne 'PASS' -and $_.Name -ine 'post-replay-singleplayer-action'
+        } | ForEach-Object {
+            $status = Get-JsonProperty $_.Value @('Status', 'status')
+            "$($_.Name)=$status"
+        }
+    })
+    $labError = Get-JsonProperty $result @('Error', 'error')
+    $failureDetail = @()
+    if ($null -ne $labError -and -not [string]::IsNullOrWhiteSpace([string]$labError)) { $failureDetail += "Error=$labError" }
+    if ($failedPhases.Count -gt 0) { $failureDetail += "FailedPhases=$($failedPhases -join ',')" }
+    $detailText = if ($failureDetail.Count -gt 0) { '; ' + ($failureDetail -join '; ') } else { '' }
+    throw "ReplayLab validation failed; inspect result.json for details$detailText. Evidence retained at $RunRoot"
 }
 if ($process.ExitCode -ne 0) {
     $metadata.status = 'failed-exit-code'

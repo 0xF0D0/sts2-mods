@@ -87,6 +87,8 @@ public static class UndoReplayLabMod
 
             report.BinaryHashes["UndoReplayLab.dll"] = HashFile(typeof(UndoReplayLabMod).Assembly.Location);
             report.BinaryHashes["sts2.dll"] = HashFile(Path.Combine(GetSts2DataDir(), "sts2.dll"));
+            report.BinaryHashes["0Harmony.dll"] = HashFile(Path.Combine(GetSts2DataDir(), "0Harmony.dll"));
+            report.BinaryHashes["GodotSharp.dll"] = HashFile(Path.Combine(GetSts2DataDir(), "GodotSharp.dll"));
             harmony = new Harmony(HarmonyId);
             harmony.PatchAll(typeof(UndoReplayLabMod).Assembly);
             report.Phase("bootstrap", "PASS");
@@ -135,13 +137,17 @@ public static class UndoReplayLabMod
             var state = RunState.CreateForTest(new[] { player }, seed: seed);
             manager.SetUpTest(state, new NetSingleplayerGameService(), shouldSave: false);
             managerOwned = true;
+            // SetUpTest intentionally omits GenerateRooms. A real save must contain every act's RoomSet.
+            manager.GenerateRooms();
             manager.Launch();
             manager.ChecksumTracker.IsEnabled = true;
             await manager.SetActInternal(0);
 
             var encounter = state.Act.AllRegularEncounters.FirstOrDefault()
                 ?? throw new InvalidOperationException("Act 0 has no regular encounter");
-            state.AddVisitedMapCoord(new MegaCrit.Sts2.Core.Map.MapCoord(0, 0));
+            var validMapCoord = state.Map.StartingMapPoint.coord;
+            report.OriginalMapCoord = validMapCoord.ToString();
+            state.AddVisitedMapCoord(validMapCoord);
             manager.RunLocationTargetedBuffer.OnLocationChanged(state.RunLocation);
             manager.MapSelectionSynchronizer.OnLocationChanged(state.MapLocation);
 
@@ -173,7 +179,9 @@ public static class UndoReplayLabMod
             var original = LocalContext.GetMe(state) ?? throw new InvalidOperationException("Local player unavailable after combat setup");
             await WaitForCombatAsync(original);
             ChoiceOptionTrace.Clear();
-            var generationBefore = RunPotionGenerationProbe(original, report);
+            var originalActions = new List<GameAction>();
+            Action<GameAction> originalActionTracker = action => originalActions.Add(action);
+            manager.ActionQueueSet.ActionEnqueued += originalActionTracker;
             selector = CardSelectCmd.UseSelector(new LocalChoiceSelector(() => original, report), localOnly: true);
 
             var attackPotion = original.Potions.OfType<AttackPotion>().FirstOrDefault()
@@ -189,6 +197,7 @@ public static class UndoReplayLabMod
             report.PotionActionsEnqueued++;
             await WaitForStableBoundaryAsync(manager);
             report.SkillPotionActionCompleted = skillPotion.HasBeenRemovedFromState;
+            report.OriginalPotionRngDigest = NativeRngDigest(state);
 
             var geneticAction = FindGeneticAlgorithmAction(original);
             manager.ActionQueueSynchronizer.RequestEnqueue(geneticAction);
@@ -203,10 +212,19 @@ public static class UndoReplayLabMod
             report.OriginalNormalCardActionCompleted = normalAction.State == GameActionState.Finished;
             report.OriginalCombatDigest = NativeCombatDigest(state);
             report.OriginalChoiceOptions = ChoiceOptionTrace.ToList();
+            report.OriginalFinishedActions = originalActions.Count(a => a.State == GameActionState.Finished);
+            report.OriginalCanceledActions = originalActions.Count(a => a.State == GameActionState.Canceled);
+            manager.ActionQueueSet.ActionEnqueued -= originalActionTracker;
 
-            var replayPath = Path.Combine(report.UserDataDir, "undo-replay-lab-native.mcr").Replace('\\', '/');
-            manager.CombatReplayWriter.WriteReplay(replayPath, stopRecording: true);
-            var replayBytes = File.ReadAllBytes(replayPath);
+            // Write the raw private replay packet so the original net IDs are preserved. WriteReplay intentionally
+            // anonymizes IDs and consumes chaotic RNG, which would make this in-memory identity test ambiguous.
+            var recordedReplay = GetRecordedReplay(manager.CombatReplayWriter);
+            var rawReplayWriter = new PacketWriter();
+            rawReplayWriter.Write(recordedReplay);
+            var replayBytes = rawReplayWriter.Buffer.AsSpan(0, rawReplayWriter.BytePosition).ToArray();
+            var replayPath = Path.Combine(report.UserDataDir, "undo-replay-lab-native-raw.mcr").Replace('\\', '/');
+            File.WriteAllBytes(replayPath, replayBytes);
+            report.ReplayPath = replayPath;
             report.ReplayBytes = replayBytes.Length;
             report.ReplaySha256 = Sha256(replayBytes);
             var replay = DeserializePacket<CombatReplay>(replayBytes);
@@ -223,7 +241,22 @@ public static class UndoReplayLabMod
             managerOwned = false;
             TestMode.IsOn = false;
 
-            await RunFreshReplayTrialAsync(report, replay, initialBytes, generationBefore);
+            for (var trialNumber = 1; trialNumber <= 2; trialNumber++)
+            {
+                try
+                {
+                    await RunFreshReplayTrialAsync(report, replayBytes, initialBytes, encounter.Id, validMapCoord, trialNumber);
+                }
+                catch (Exception ex)
+                {
+                    report.Phase($"replay-trial-{trialNumber}", "FAIL", ex.Message);
+                    report.Error = AppendError(report.Error, $"Replay trial {trialNumber} failed: {ex}");
+                }
+            }
+            report.CheckpointSha256AfterTrials = Sha256(initialBytes);
+            report.ImmutableCheckpointPreserved = string.Equals(report.InitialSaveSha256, report.CheckpointSha256AfterTrials, StringComparison.Ordinal);
+            report.Phase("checkpoint-immutability", report.ImmutableCheckpointPreserved ? "PASS" : "FAIL",
+                report.ImmutableCheckpointPreserved ? null : "Frozen pre-combat save bytes changed across replay trials");
         }
         catch (Exception ex)
         {
@@ -241,12 +274,14 @@ public static class UndoReplayLabMod
         }
     }
 
-    private static async Task RunFreshReplayTrialAsync(LabReport report, CombatReplay replay, byte[] initialBytes, List<string> generationBefore)
+    private static async Task RunFreshReplayTrialAsync(LabReport report, byte[] replayBytes, byte[] initialBytes,
+        ModelId encounterId, MegaCrit.Sts2.Core.Map.MapCoord expectedMapCoord, int trialNumber)
     {
         RunManager manager = RunManager.Instance;
         TestMode.TurnOnInternal();
         try
         {
+            var replay = DeserializePacket<CombatReplay>(replayBytes);
             if (replay.events.Count == 0)
                 throw new InvalidDataException("Replay event list is empty for the exercised target");
 
@@ -258,67 +293,141 @@ public static class UndoReplayLabMod
 
             // SetUpReplay calls InitializeSavedRun and avoids SetUpTest's InitializeNewRun bag/hook mutations.
             manager.SetUpReplay(fresh, replay, fresh.Players[0].NetId);
+            // The harness is an isolated headless diagnostic; there is no run lobby for combat synchronization.
+            manager.CombatStateSynchronizer.IsDisabled = true;
             report.ReplayShouldSaveBeforeSuppression = manager.ShouldSave;
+            if (!report.ReplayShouldSaveBeforeSuppression)
+                throw new InvalidOperationException("SetUpReplay did not enable native saving before lab suppression");
             DisableSaving(manager);
             report.ReplaySaveSuppressed = !manager.ShouldSave;
-            report.ReplaySaveSetup = true;
+            report.ReplaySaveSetup = report.ReplayShouldSaveBeforeSuppression && report.ReplaySaveSuppressed;
             manager.Launch();
             manager.ChecksumTracker.IsEnabled = true;
-            var encounter = fresh.Act.AllRegularEncounters.FirstOrDefault()
-                ?? throw new InvalidOperationException("Fresh saved state has no regular encounter");
+            // Native load flow calls GenerateMap after SetUpReplay/Launch; this consumes SavedMapsToLoad
+            // and installs the serialized map without regenerating it from RNG.
+            await manager.GenerateMap();
+            var currentMapPoint = fresh.CurrentMapPoint
+                ?? throw new InvalidDataException("Fresh saved state has no current map point after GenerateMap");
+            report.ReplayedMapCoord = currentMapPoint.coord.ToString();
+            if (!currentMapPoint.coord.Equals(expectedMapCoord))
+                throw new InvalidDataException($"Fresh current map coord {currentMapPoint.coord} did not match original {expectedMapCoord}");
+            var encounter = fresh.Act.AllRegularEncounters.FirstOrDefault(e => e.Id == encounterId)
+                ?? throw new InvalidOperationException($"Fresh saved state cannot resolve recorded encounter {encounterId.Entry}");
             await manager.EnterRoomDebug(RoomType.Monster, MegaCrit.Sts2.Core.Map.MapPointType.Unassigned,
                 encounter.ToMutable(), showTransition: false);
             var player = LocalContext.GetMe(fresh) ?? throw new InvalidOperationException("Fresh replay local player unavailable");
             await WaitForCombatAsync(player);
 
             ChoiceOptionTrace.Clear();
-            var generationAfter = RunPotionGenerationProbe(player, report);
-            CompareGeneration(report, generationBefore, generationAfter);
-
             manager.ActionQueueSet.FastForwardNextActionId(replay.nextActionId);
             manager.ActionQueueSynchronizer.FastForwardHookId(replay.nextHookId);
             manager.PlayerChoiceSynchronizer.FastForwardChoiceIds(replay.choiceIds);
-            foreach (var replayEvent in replay.events)
+            var replayActions = new List<GameAction>();
+            Action<GameAction> replayActionTracker = action => replayActions.Add(action);
+            manager.ActionQueueSet.ActionEnqueued += replayActionTracker;
+            var potionBoundary = FindPotionBoundary(replay.events);
+            var trialReplayedEvents = 0;
+            var trialReplayedActions = 0;
+            var trialReplayedChoices = 0;
+            for (var i = 0; i < replay.events.Count; i++)
             {
-                DispatchReplayEvent(manager, fresh, replayEvent);
+                var replayEvent = replay.events[i];
+                await DispatchReplayEventAsync(manager, fresh, replayEvent);
                 report.ReplayedEvents++;
+                trialReplayedEvents++;
                 if (replayEvent.eventType == CombatReplayEventType.GameAction)
+                {
                     report.ReplayedActions++;
+                    trialReplayedActions++;
+                }
                 if (replayEvent.eventType == CombatReplayEventType.PlayerChoice)
+                {
                     report.ReplayedChoices++;
+                    trialReplayedChoices++;
+                }
+                if (i + 1 == potionBoundary)
+                {
+                    // The prefix contains both potion actions and their choice/resume events. Wait once at
+                    // this stable boundary so the post-potion native RNG can be compared.
+                    await WaitForStableBoundaryAsync(manager);
+                    report.ReplayedPotionRngDigest = NativeRngDigest(fresh);
+                }
             }
-            // Pump the complete event stream before waiting. Choice and resume events must arrive while actions suspend.
+            // Pump the complete event stream before the final wait. Choice and resume events must arrive while actions suspend.
             await WaitForStableBoundaryAsync(manager);
+            manager.ActionQueueSet.ActionEnqueued -= replayActionTracker;
 
-            report.ReplayedChoiceOptions = ChoiceOptionTrace.ToList();
-            report.ReplayedAttackPotionActionCompleted = !player.Potions.OfType<AttackPotion>().Any();
-            report.ReplayedSkillPotionActionCompleted = !player.Potions.OfType<SkillPotion>().Any();
-            report.PotionChoiceReplayMatch = report.AttackPotionActionCompleted && report.SkillPotionActionCompleted
-                && report.ReplayedAttackPotionActionCompleted && report.ReplayedSkillPotionActionCompleted
-                && report.RecordedChoices > 0 && report.RecordedChoices == report.ReplayedChoices
-                && report.OriginalChoiceOptions.SequenceEqual(report.ReplayedChoiceOptions);
-            report.Phase("potion-choice-replay", report.PotionChoiceReplayMatch ? "PASS" : "FAIL",
-                report.PotionChoiceReplayMatch ? null : "Actual FromChooseACardScreen options or choice event counts differed");
+            var replayedChoiceOptions = ChoiceOptionTrace.ToList();
+            var replayedAttackPotionActionCompleted = !player.Potions.OfType<AttackPotion>().Any();
+            var replayedSkillPotionActionCompleted = !player.Potions.OfType<SkillPotion>().Any();
+            var potionChoiceReplayMatch = report.AttackPotionActionCompleted && report.SkillPotionActionCompleted
+                && replayedAttackPotionActionCompleted && replayedSkillPotionActionCompleted
+                && report.RecordedChoices > 0 && report.RecordedChoices == trialReplayedChoices
+                && report.OriginalChoiceOptions.SequenceEqual(replayedChoiceOptions);
+            report.ReplayedChoiceOptions = replayedChoiceOptions;
+            report.ReplayedAttackPotionActionCompleted |= replayedAttackPotionActionCompleted;
+            report.ReplayedSkillPotionActionCompleted |= replayedSkillPotionActionCompleted;
+            report.PotionChoiceReplayMatch = report.ReplayTrials.Count == 0
+                ? potionChoiceReplayMatch : report.PotionChoiceReplayMatch && potionChoiceReplayMatch;
+            report.Phase("potion-choice-replay", potionChoiceReplayMatch ? "PASS" : "FAIL",
+                potionChoiceReplayMatch ? null : $"Trial {trialNumber}: actual choice options or choice event counts differed");
 
-            report.PermanentDeckGrowthRestored = CompareGeneticAlgorithm(fresh, report);
-            report.Phase("genetic-algorithm", report.PermanentDeckGrowthRestored ? "PASS" : "FAIL",
-                report.PermanentDeckGrowthRestored ? null : "Persistent DeckVersion growth did not match");
+            var trialFinishedActions = replayActions.Count(a => a.State == GameActionState.Finished);
+            var trialCanceledActions = replayActions.Count(a => a.State == GameActionState.Canceled);
+            report.ReplayedFinishedActions += trialFinishedActions;
+            report.ReplayedCanceledActions += trialCanceledActions;
+            var potionRngMatch = string.Equals(report.OriginalPotionRngDigest, report.ReplayedPotionRngDigest, StringComparison.Ordinal);
+            report.PotionRngMatch = report.ReplayTrials.Count == 0
+                ? potionRngMatch : report.PotionRngMatch && potionRngMatch;
+            report.Phase("potion-rng-state", potionRngMatch ? "PASS" : "FAIL",
+                potionRngMatch ? null : $"Trial {trialNumber}: native RNG state differed after the two actual potion actions");
+
+            var permanentDeckGrowthRestored = CompareGeneticAlgorithm(fresh, report);
+            report.PermanentDeckGrowthRestored = report.ReplayTrials.Count == 0
+                ? permanentDeckGrowthRestored : report.PermanentDeckGrowthRestored && permanentDeckGrowthRestored;
+            report.Phase("genetic-algorithm", permanentDeckGrowthRestored ? "PASS" : "FAIL",
+                permanentDeckGrowthRestored ? null : $"Trial {trialNumber}: persistent DeckVersion growth did not match");
 
             report.ReplayedCombatDigest = NativeCombatDigest(fresh);
-            report.ModelStateMatch = string.Equals(report.OriginalCombatDigest, report.ReplayedCombatDigest, StringComparison.Ordinal);
-            report.Phase("model-state", report.ModelStateMatch ? "PASS" : "FAIL",
-                report.ModelStateMatch ? null : "NetFullCombatState native packet differed after replay");
-            report.Phase("replay-dispatch", report.ReplayedEvents > 0 ? "PASS" : "FAIL",
-                report.ReplayedEvents == 0 ? "No replay events were dispatched" : null);
+            var modelStateMatch = string.Equals(report.OriginalCombatDigest, report.ReplayedCombatDigest, StringComparison.Ordinal);
+            report.ModelStateMatch = report.ReplayTrials.Count == 0
+                ? modelStateMatch : report.ModelStateMatch && modelStateMatch;
+            report.Phase("model-state", modelStateMatch ? "PASS" : "FAIL",
+                modelStateMatch ? null : $"Trial {trialNumber}: NetFullCombatState native packet differed after replay");
+            var replayDispatchPass = trialReplayedEvents > 0;
+            report.Phase("replay-dispatch", replayDispatchPass ? "PASS" : "FAIL",
+                replayDispatchPass ? null : $"Trial {trialNumber}: no replay events were dispatched");
 
             // SetUpReplay installs NetReplayGameService. RequestEnqueue has no replay service path, so do not call it
             // or label an offline enqueue as a live singleplayer handoff.
             report.Phase("post-replay-singleplayer-action", "UNSUPPORTED",
                 "Native SetUpReplay uses NetReplayGameService; live RequestEnqueue continuation is not verified");
-            report.Phase("normal-card-action-replay", report.OriginalNormalCardActionCompleted
-                && report.RecordedActions > 0 && report.ReplayedActions == report.RecordedActions ? "PASS" : "FAIL",
-                report.OriginalNormalCardActionCompleted && report.RecordedActions > 0 && report.ReplayedActions == report.RecordedActions
-                    ? null : "Normal queued card action did not complete and replay");
+            var normalCardReplayPass = report.OriginalNormalCardActionCompleted
+                && report.RecordedActions > 0 && trialReplayedActions == report.RecordedActions
+                && trialFinishedActions >= report.RecordedActions;
+            report.Phase("normal-card-action-replay", normalCardReplayPass ? "PASS" : "FAIL",
+                normalCardReplayPass ? null : $"Trial {trialNumber}: normal queued card action did not finish in replay");
+
+            report.ReplayTrials.Add(new ReplayTrialSummary
+            {
+                Trial = trialNumber,
+                FrozenCheckpointSha256 = Sha256(initialBytes),
+                ReplayedEvents = trialReplayedEvents,
+                ReplayedActions = trialReplayedActions,
+                ReplayedChoices = trialReplayedChoices,
+                FinishedActions = trialFinishedActions,
+                CanceledActions = trialCanceledActions,
+                PotionOptions = replayedChoiceOptions,
+                PotionRngDigest = report.ReplayedPotionRngDigest,
+                CombatDigest = report.ReplayedCombatDigest,
+                PotionChoicePass = potionChoiceReplayMatch,
+                PotionRngPass = potionRngMatch,
+                GeneticAlgorithmPass = permanentDeckGrowthRestored,
+                ModelStatePass = modelStateMatch,
+                ReplayDispatchPass = replayDispatchPass,
+                NormalCardActionPass = normalCardReplayPass
+            });
+            report.Phase($"replay-trial-{trialNumber}", "PASS");
         }
         finally
         {
@@ -327,28 +436,24 @@ public static class UndoReplayLabMod
         }
     }
 
-    private static List<string> RunPotionGenerationProbe(Player player, LabReport report)
+    private static string AppendError(string? existing, string error)
+        => string.IsNullOrEmpty(existing) ? error : existing + System.Environment.NewLine + error;
+
+    private static int FindPotionBoundary(IReadOnlyList<CombatReplayEvent> events)
     {
-        var cards = player.Character.CardPool.GetUnlockedCards(player.UnlockState, player.RunState.CardMultiplayerConstraint);
-        var generated = new List<string>();
-        generated.AddRange(CardFactory.GetDistinctForCombat(player, cards.Where(c => c.Type == CardType.Attack), 3,
-            player.RunState.Rng.CombatCardGeneration).Select(c => c.Id.Entry));
-        generated.Add("|");
-        generated.AddRange(CardFactory.GetDistinctForCombat(player, cards.Where(c => c.Type == CardType.Skill), 3,
-            player.RunState.Rng.CombatCardGeneration).Select(c => c.Id.Entry));
-        report.PotionGenerationCalls += 2;
-        report.PotionGenerationChoices += generated.Count - 1;
-        return generated;
+        var gameActions = 0;
+        for (var i = 0; i < events.Count; i++)
+        {
+            if (events[i].eventType != CombatReplayEventType.GameAction)
+                continue;
+            gameActions++;
+            if (gameActions == 3)
+                return i;
+        }
+        throw new InvalidDataException("Replay did not contain a third game action boundary after the two potion actions");
     }
 
-    private static void CompareGeneration(LabReport report, IReadOnlyList<string> before, IReadOnlyList<string> after)
-    {
-        report.AttackSkillChoicesMatch = before.SequenceEqual(after);
-        report.Phase("native-card-generation-rng-probe", report.AttackSkillChoicesMatch ? "PASS" : "FAIL",
-            report.AttackSkillChoicesMatch ? "Exact native CardFactory attack/skill RNG probe matched" : "Native CardFactory attack/skill RNG probe differed");
-    }
-
-    private static void DispatchReplayEvent(RunManager manager, RunState state, CombatReplayEvent replayEvent)
+    private static Task DispatchReplayEventAsync(RunManager manager, RunState state, CombatReplayEvent replayEvent)
     {
         switch (replayEvent.eventType)
         {
@@ -357,17 +462,17 @@ public static class UndoReplayLabMod
                 var actionPlayer = state.GetPlayer(replayEvent.playerId!.Value)
                     ?? throw new InvalidDataException($"GameAction references unknown player {replayEvent.playerId.Value}");
                 manager.ActionQueueSet.EnqueueWithoutSynchronizing(replayEvent.action!.ToGameAction(actionPlayer));
-                return;
+                return Task.CompletedTask;
             case CombatReplayEventType.HookAction:
                 Require(replayEvent.playerId.HasValue && replayEvent.hookId.HasValue && replayEvent.gameActionType.HasValue,
                     "Malformed HookAction replay event");
                 manager.ActionQueueSet.EnqueueWithoutSynchronizing(manager.ActionQueueSynchronizer.GetHookActionForId(
                     replayEvent.hookId!.Value, replayEvent.playerId!.Value, replayEvent.gameActionType!.Value));
-                return;
+                return Task.CompletedTask;
             case CombatReplayEventType.ResumeAction:
                 Require(replayEvent.actionId.HasValue, "Malformed ResumeAction replay event");
                 manager.ActionQueueSet.ResumeActionWithoutSynchronizing(replayEvent.actionId!.Value);
-                return;
+                return Task.CompletedTask;
             case CombatReplayEventType.PlayerChoice:
                 Require(replayEvent.playerId.HasValue && replayEvent.choiceId.HasValue && replayEvent.playerChoiceResult.HasValue,
                     "Malformed PlayerChoice replay event");
@@ -375,7 +480,7 @@ public static class UndoReplayLabMod
                     ?? throw new InvalidDataException($"PlayerChoice references unknown player {replayEvent.playerId.Value}");
                 manager.PlayerChoiceSynchronizer.ReceiveReplayChoice(choicePlayer, replayEvent.choiceId!.Value,
                     replayEvent.playerChoiceResult!.Value);
-                return;
+                return Task.CompletedTask;
             default:
                 throw new InvalidDataException($"Unsupported CombatReplayEventType {replayEvent.eventType}");
         }
@@ -451,6 +556,22 @@ public static class UndoReplayLabMod
         var writer = new PacketWriter();
         writer.Write(packet);
         return Sha256(writer.Buffer.AsSpan(0, writer.BytePosition).ToArray());
+    }
+
+    private static string NativeRngDigest(RunState state)
+    {
+        var packet = new PacketWriter();
+        packet.Write(state.Rng.ToSerializable());
+        return Sha256(packet.Buffer.AsSpan(0, packet.BytePosition).ToArray());
+    }
+
+    private static CombatReplay GetRecordedReplay(CombatReplayWriter writer)
+    {
+        // Verified installed decompile: CombatReplayWriter stores the active replay in private field _replay.
+        var field = typeof(CombatReplayWriter).GetField("_replay", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(CombatReplayWriter).FullName, "_replay");
+        return field.GetValue(writer) as CombatReplay
+            ?? throw new InvalidOperationException("CombatReplayWriter did not contain a stable replay");
     }
 
     private static SerializableRun DeserializeSave(byte[] bytes) =>
@@ -551,6 +672,8 @@ public static class UndoReplayLabMod
         public bool UserDirMatch { get; set; }
         public string? OutputPath { get; set; }
         public string? EncounterId { get; set; }
+        public string? OriginalMapCoord { get; set; }
+        public string? ReplayedMapCoord { get; set; }
         public Dictionary<string, string?> BinaryHashes { get; } = new();
         public Dictionary<string, PhaseResult> Phases { get; } = new();
         public string? Error { get; set; }
@@ -560,6 +683,7 @@ public static class UndoReplayLabMod
         public bool ReplaySaveSetup { get; set; }
         public bool ReplayShouldSaveBeforeSuppression { get; set; }
         public bool ReplaySaveSuppressed { get; set; }
+        public string? ReplayPath { get; set; }
         public int ReplayBytes { get; set; }
         public string? ReplaySha256 { get; set; }
         public int RecordedEvents { get; set; }
@@ -571,9 +695,6 @@ public static class UndoReplayLabMod
         public int ActionsEnqueued { get; set; }
         public int PotionActionsEnqueued { get; set; }
         public int LocalChoicesSynced { get; set; }
-        public int PotionGenerationCalls { get; set; }
-        public int PotionGenerationChoices { get; set; }
-        public bool AttackSkillChoicesMatch { get; set; }
         public bool AttackPotionActionCompleted { get; set; }
         public bool SkillPotionActionCompleted { get; set; }
         public bool ReplayedAttackPotionActionCompleted { get; set; }
@@ -584,31 +705,72 @@ public static class UndoReplayLabMod
         public int DeckVersionGrowth { get; set; }
         public int OriginalDeckVersionGrowth { get; set; }
         public bool OriginalNormalCardActionCompleted { get; set; }
+        public int OriginalFinishedActions { get; set; }
+        public int OriginalCanceledActions { get; set; }
+        public int ReplayedFinishedActions { get; set; }
+        public int ReplayedCanceledActions { get; set; }
+        public string? OriginalPotionRngDigest { get; set; }
+        public string? ReplayedPotionRngDigest { get; set; }
+        public bool PotionRngMatch { get; set; }
         public bool ModelStateMatch { get; set; }
         public string? OriginalCombatDigest { get; set; }
         public string? ReplayedCombatDigest { get; set; }
         public List<string> OriginalChoiceOptions { get; set; } = new();
         public List<string> ReplayedChoiceOptions { get; set; } = new();
+        public int ReplayTrialCount => ReplayTrials.Count;
+        public List<ReplayTrialSummary> ReplayTrials { get; } = new();
+        public string? CheckpointSha256AfterTrials { get; set; }
+        public bool ImmutableCheckpointPreserved { get; set; }
         public bool HasFailure => Error != null || Phases.Values.Any(p => p.Status is "FAIL" or "SKIP");
 
         public void InitializePhases()
         {
             foreach (var phase in new[]
             {
-                "bootstrap", "native-save-load", "native-card-generation-rng-probe", "record",
-                "potion-choice-replay", "genetic-algorithm", "model-state", "replay-dispatch",
-                "normal-card-action-replay", "post-replay-singleplayer-action"
+                "bootstrap", "native-save-load", "record", "potion-choice-replay", "potion-rng-state",
+                "genetic-algorithm", "model-state", "replay-dispatch", "checkpoint-immutability",
+                "normal-card-action-replay", "post-replay-singleplayer-action", "replay-trial-1", "replay-trial-2"
             })
                 Phase(phase, "SKIP");
         }
 
-        public void Phase(string name, string status, string? detail = null) =>
-            Phases[name] = new PhaseResult { Status = status, Detail = detail };
+        public void Phase(string name, string status, string? detail = null)
+        {
+            if (!Phases.TryGetValue(name, out var existing) || existing.Status is "SKIP" or "RUNNING")
+            {
+                Phases[name] = new PhaseResult { Status = status, Detail = detail };
+                return;
+            }
+            if (existing.Status == "FAIL" || status == "PASS" && existing.Status == "UNSUPPORTED")
+                return;
+            if (status == "FAIL")
+                Phases[name] = new PhaseResult { Status = status, Detail = detail };
+        }
     }
 
     private sealed class PhaseResult
     {
         public string Status { get; set; } = "SKIP";
         public string? Detail { get; set; }
+    }
+
+    private sealed class ReplayTrialSummary
+    {
+        public int Trial { get; set; }
+        public string? FrozenCheckpointSha256 { get; set; }
+        public int ReplayedEvents { get; set; }
+        public int ReplayedActions { get; set; }
+        public int ReplayedChoices { get; set; }
+        public int FinishedActions { get; set; }
+        public int CanceledActions { get; set; }
+        public List<string> PotionOptions { get; set; } = new();
+        public string? PotionRngDigest { get; set; }
+        public string? CombatDigest { get; set; }
+        public bool PotionChoicePass { get; set; }
+        public bool PotionRngPass { get; set; }
+        public bool GeneticAlgorithmPass { get; set; }
+        public bool ModelStatePass { get; set; }
+        public bool ReplayDispatchPass { get; set; }
+        public bool NormalCardActionPass { get; set; }
     }
 }

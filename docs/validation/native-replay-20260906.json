@@ -1,0 +1,165 @@
+{
+  "pid": 17348,
+  "StartedUtc": "2026-09-06T00:05:10.7149595+09:00",
+  "FinishedUtc": "2026-09-06T00:05:12.5818643+09:00",
+  "UserDirMatch": true,
+  "EncounterId": "CUBEX_CONSTRUCT_NORMAL",
+  "OriginalMapCoord": "MapCoord (3, 0)",
+  "ReplayedMapCoord": "MapCoord (3, 0)",
+  "BinaryHashes": {
+    "UndoReplayLab.dll": "DF43EC1D563ABA82C9138546CB257871DAEDE8AAF53350B6B5A2D62D02FE838A",
+    "sts2.dll": "0861BFA1DF347538D932F22D580E75420F08082792EB914E53B4882764ACDBE9",
+    "0Harmony.dll": "EF1898322C9F5C86DC1B0758B272A9C440823B4A41CA9A0B82A3AA6B3D206387",
+    "GodotSharp.dll": "0E4897ECDFB31456A97C7D8028DFB8D7DBDC632E2F73FC9B438D7B266A139289"
+  },
+  "Phases": {
+    "bootstrap": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "native-save-load": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "record": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "potion-choice-replay": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "potion-rng-state": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "genetic-algorithm": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "model-state": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "replay-dispatch": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "checkpoint-immutability": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "normal-card-action-replay": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "post-replay-singleplayer-action": {
+      "Status": "UNSUPPORTED",
+      "Detail": "Native SetUpReplay uses NetReplayGameService; live RequestEnqueue continuation is not verified"
+    },
+    "replay-trial-1": {
+      "Status": "PASS",
+      "Detail": null
+    },
+    "replay-trial-2": {
+      "Status": "PASS",
+      "Detail": null
+    }
+  },
+  "Error": null,
+  "InitialSaveBytes": 47530,
+  "InitialSaveSha256": "E8665951D0D69C85656F9B4A007C9A3805DB369CA5D18E03AC64C2C3A066ADEE",
+  "NativeSaveRoundTrip": true,
+  "ReplaySaveSetup": true,
+  "ReplayShouldSaveBeforeSuppression": true,
+  "ReplaySaveSuppressed": true,
+  "ReplayBytes": 3208,
+  "ReplaySha256": "8A0E1F8AF66BFBD933F67E9B4E14B0EA5D5440EABF4767C0A58333E2107D49E5",
+  "RecordedEvents": 8,
+  "RecordedActions": 4,
+  "RecordedChoices": 2,
+  "ReplayedEvents": 16,
+  "ReplayedActions": 8,
+  "ReplayedChoices": 4,
+  "ActionsEnqueued": 2,
+  "PotionActionsEnqueued": 2,
+  "LocalChoicesSynced": 2,
+  "AttackPotionActionCompleted": true,
+  "SkillPotionActionCompleted": true,
+  "ReplayedAttackPotionActionCompleted": true,
+  "ReplayedSkillPotionActionCompleted": true,
+  "PotionChoiceReplayMatch": true,
+  "PermanentDeckGrowthRestored": true,
+  "GeneticAlgorithmDeckCount": 1,
+  "DeckVersionGrowth": 3,
+  "OriginalDeckVersionGrowth": 3,
+  "OriginalNormalCardActionCompleted": true,
+  "OriginalFinishedActions": 4,
+  "OriginalCanceledActions": 0,
+  "ReplayedFinishedActions": 8,
+  "ReplayedCanceledActions": 0,
+  "OriginalPotionRngDigest": "F39691F56FA4F4BA0DB81E761D34A4D7FC64EDCA54B1A809A8EFA552989A432F",
+  "ReplayedPotionRngDigest": "F39691F56FA4F4BA0DB81E761D34A4D7FC64EDCA54B1A809A8EFA552989A432F",
+  "PotionRngMatch": true,
+  "ModelStateMatch": true,
+  "OriginalCombatDigest": "CE2D0C62112AF9C6C3790AE9C62D6D61DF3791B8E7C97772BC24C1810A8D41FB",
+  "ReplayedCombatDigest": "CE2D0C62112AF9C6C3790AE9C62D6D61DF3791B8E7C97772BC24C1810A8D41FB",
+  "OriginalChoiceOptions": [
+    "ROCKET_PUNCH,SWEEPING_BEAM,FTL",
+    "CHARGE_BATTERY,BOOST_AWAY,MULTI_CAST"
+  ],
+  "ReplayedChoiceOptions": [
+    "ROCKET_PUNCH,SWEEPING_BEAM,FTL",
+    "CHARGE_BATTERY,BOOST_AWAY,MULTI_CAST"
+  ],
+  "ReplayTrialCount": 2,
+  "ReplayTrials": [
+    {
+      "Trial": 1,
+      "FrozenCheckpointSha256": "E8665951D0D69C85656F9B4A007C9A3805DB369CA5D18E03AC64C2C3A066ADEE",
+      "ReplayedEvents": 8,
+      "ReplayedActions": 4,
+      "ReplayedChoices": 2,
+      "FinishedActions": 4,
+      "CanceledActions": 0,
+      "PotionOptions": [
+        "ROCKET_PUNCH,SWEEPING_BEAM,FTL",
+        "CHARGE_BATTERY,BOOST_AWAY,MULTI_CAST"
+      ],
+      "PotionRngDigest": "F39691F56FA4F4BA0DB81E761D34A4D7FC64EDCA54B1A809A8EFA552989A432F",
+      "CombatDigest": "CE2D0C62112AF9C6C3790AE9C62D6D61DF3791B8E7C97772BC24C1810A8D41FB",
+      "PotionChoicePass": true,
+      "PotionRngPass": true,
+      "GeneticAlgorithmPass": true,
+      "ModelStatePass": true,
+      "ReplayDispatchPass": true,
+      "NormalCardActionPass": true
+    },
+    {
+      "Trial": 2,
+      "FrozenCheckpointSha256": "E8665951D0D69C85656F9B4A007C9A3805DB369CA5D18E03AC64C2C3A066ADEE",
+      "ReplayedEvents": 8,
+      "ReplayedActions": 4,
+      "ReplayedChoices": 2,
+      "FinishedActions": 4,
+      "CanceledActions": 0,
+      "PotionOptions": [
+        "ROCKET_PUNCH,SWEEPING_BEAM,FTL",
+        "CHARGE_BATTERY,BOOST_AWAY,MULTI_CAST"
+      ],
+      "PotionRngDigest": "F39691F56FA4F4BA0DB81E761D34A4D7FC64EDCA54B1A809A8EFA552989A432F",
+      "CombatDigest": "CE2D0C62112AF9C6C3790AE9C62D6D61DF3791B8E7C97772BC24C1810A8D41FB",
+      "PotionChoicePass": true,
+      "PotionRngPass": true,
+      "GeneticAlgorithmPass": true,
+      "ModelStatePass": true,
+      "ReplayDispatchPass": true,
+      "NormalCardActionPass": true
+    }
+  ],
+  "CheckpointSha256AfterTrials": "E8665951D0D69C85656F9B4A007C9A3805DB369CA5D18E03AC64C2C3A066ADEE",
+  "ImmutableCheckpointPreserved": true,
+  "HasFailure": false,
+  "EvidenceRunId": "b75faa878023405fbccdcb1e802b2a5a",
+  "EvidenceNote": "Original result.json from the actual isolated game process. Only machine-local directory paths removed."
+}

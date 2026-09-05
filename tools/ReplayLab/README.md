@@ -4,7 +4,9 @@
 
 Game export files are hard-linked when Windows permits it and copied otherwise. The source game directory, its mods, profiles, and saves are never used as writable test locations. The isolated export receives an `override.cfg` that enables Godot's custom user directory at `Sts2UndoReplayLab/<run id>`. The launcher also passes the expected user-data path to the harness for its guard. Every run includes `--force-steam=off`, which skips Steam initialization, cloud saves, and workshop loading.
 
-For the release NullPlatform path, the launcher creates a new `default/1/settings.save` under `%APPDATA%\Sts2UndoReplayLab\<run id>`. It contains only the mod consent and enabled `UndoReplayLab` entry needed for the test, plus `skip_intro_logo`; no original settings are read or copied. A result is accepted only when it is valid JSON with `HasFailure`/`hasFailure` false, matching process and user-data identity, all nine required phase labels reporting `PASS`, and recorded/replayed event, action, and choice counters matching (`RecordedEvents > 0`, `RecordedActions > 0`, `RecordedChoices >= 2`). The optional `post-replay-singleplayer-action` phase is not required.
+For the release NullPlatform path, the launcher creates a new `default/1/settings.save` under `%APPDATA%\Sts2UndoReplayLab\<run id>`. It contains only the mod consent and enabled `UndoReplayLab` entry needed for the test, plus `skip_intro_logo`; no original settings are read or copied. A result is accepted only when it is valid JSON with `HasFailure` false, matching process and user-data identity, all required phase labels reporting `PASS`, and exactly two completed replay trials. Each trial must match the recorded event/action/choice counts, finish four actions and cancel none; combined counters must equal both trials' totals. The `post-replay-singleplayer-action` phase is explicitly `UNSUPPORTED` and is not a passing live-input test.
+
+The bounded test passed in the actual game engine on 2026-09-06 KST. See [results and remaining coverage](../../docs/NATIVE_REPLAY_VALIDATION.md).
 
 The parent process must build `UndoReplayLab` first. From this repository, run:
 

@@ -66,9 +66,17 @@ their own runtime evidence. The game's replay networking service is not a
 drop-in replacement for an active multiplayer connection.
 
 Implementation is delegated to Luna; design, game API investigation and review
-are handled separately. See the [architecture and root-cause record](docs/ROOT_CAUSE_REVIEW.md)
-and [isolated Windows test launcher](tools/ReplayLab/README.md) for scope and
-verification details. Experimental results are not a claim of production-ready undo.
+are handled separately. On 2026-09-06 KST, the isolated engine test passed two
+fresh reconstructions of the same combat. Each replay executed four actions,
+including two potion choices and their resumptions. Potion options, run RNG,
+Genetic Algorithm's permanent deck growth and the combat packet matched the
+original. This is a single-player model test; normal input after replay, UI,
+hook-action coverage and live multiplayer ordering remain unverified.
+
+See the [runtime evidence and limits](docs/NATIVE_REPLAY_VALIDATION.md),
+[architecture and root-cause record](docs/ROOT_CAUSE_REVIEW.md) and
+[isolated Windows test launcher](tools/ReplayLab/README.md).
+Experimental results are not a claim of production-ready undo.
 
 ## License
 
