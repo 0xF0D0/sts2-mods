@@ -918,17 +918,10 @@ internal static class UndoFuzz
     ///                      RunUiTestCombatsAsync) — see RunUiTestCombatsAsync's doc comment for why it
     ///                      exists and what it verifies that the headless path structurally cannot.
     ///
-    /// Deliberately mutually exclusive within one process, not merely independent: both paths drive the
-    /// same RunManager.Instance/TestMode.IsOn singletons via fire-and-forget tasks
-    /// (RunWhenReadyAsync/RunUiTestWhenReadyAsync are both started with `_ = ...` and interleave freely
-    /// via async/await), and one path flips TestMode.IsOn on while the other requires it to stay off
-    /// for its entire run — running both concurrently would corrupt whichever one loses the race. If
-    /// both flags are present, --undosync-fuzz wins and --undosync-uitest is skipped with a warning;
-    /// this also happens to be the guard against double-subscription the design for this method calls
-    /// out — the headless path's GenerateMissingPostActionChecksum subscription and TraceChecksums
-    /// probes live entirely inside RunOneCombatAsync/RunAllCombatsAsync, which the UI-mode path's own
-    /// methods (RunOneUiTestCombatAsync/RunUiTestCombatsAsync) never call, so this exclusivity check is
-    /// belt-and-suspenders on top of that structural separation, not a substitute for it.
+    /// The former snapshot-based fuzz/UI entry points are retained as reusable helpers for historical
+    /// diagnostics, but are retired as command-line entry points now that multiplayer undo uses the
+    /// native CombatReplay event journal. This guard intentionally covers the screenshot variant too:
+    /// none of these flags may start a legacy path that could call ChecksumHook.RestoreTo.
     /// </summary>
     internal static void MaybeStart()
     {
@@ -936,50 +929,16 @@ internal static class UndoFuzz
         {
             bool fuzzRequested = CommandLineHelper.HasArg(FuzzArg);
             bool uiTestRequested = CommandLineHelper.HasArg(UiTestArg);
-            if (!fuzzRequested && !uiTestRequested) return;
+            bool screenshotRequested = CommandLineHelper.HasArg(UiTestScreenshotArg);
+            if (!fuzzRequested && !uiTestRequested && !screenshotRequested) return;
 
-            if (fuzzRequested && uiTestRequested)
+            string requestedFlags = string.Join(", ", new[]
             {
-                Log.Write($"[Fuzz] both --{FuzzArg} and --{UiTestArg} were passed — these are mutually exclusive (see MaybeStart's doc comment). Running --{FuzzArg} only.");
-                uiTestRequested = false;
-            }
-
-            // Shared diagnostic capture, useful for either path — see InstallGameErrorCapturePatch's
-            // doc comment for why (CombatManager's turn-loop death is otherwise reported only via
-            // Log.Error/Sentry, with no public flag or event).
-            InstallGameErrorCapturePatch();
-
-            if (fuzzRequested)
-            {
-                TraceChecksums = CommandLineHelper.HasArg("undosync-fuzz-trace");
-            SelfTestShadowContainerCopy();
-
-                int count = DefaultCombatCount;
-                if (CommandLineHelper.TryGetValue(CountArg, out var countStr)
-                    && int.TryParse(countStr, out var parsedCount) && parsedCount > 0)
-                    count = parsedCount;
-
-                string baseSeed = CommandLineHelper.TryGetValue(SeedArg, out var seedArg) && !string.IsNullOrEmpty(seedArg)
-                    ? seedArg
-                    : SeedHelper.GetRandomSeed();
-
-                Log.Write($"[Fuzz] --{FuzzArg} detected — will run {count} combat(s) once game startup completes (baseSeed=\"{baseSeed}\").");
-                _ = RunWhenReadyAsync(count, baseSeed);
-            }
-            else
-            {
-                int count = DefaultUiTestCombatCount;
-                if (CommandLineHelper.TryGetValue(UiTestCountArg, out var countStr)
-                    && int.TryParse(countStr, out var parsedCount) && parsedCount > 0)
-                    count = parsedCount;
-
-                string seed = CommandLineHelper.TryGetValue(UiTestSeedArg, out var seedArg) && !string.IsNullOrEmpty(seedArg)
-                    ? seedArg
-                    : DefaultUiTestSeed;
-
-                Log.Write($"[Fuzz][uitest] --{UiTestArg} detected — requested {count} combat(s) once game startup completes (seed=\"{seed}\"); see RunUiTestCombatsAsync for why only 1 actually runs.");
-                _ = RunUiTestWhenReadyAsync(count, seed);
-            }
+                fuzzRequested ? $"--{FuzzArg}" : null,
+                uiTestRequested ? $"--{UiTestArg}" : null,
+                screenshotRequested ? $"--{UiTestScreenshotArg}" : null,
+            }.Where(flag => flag != null));
+            Log.Write($"[Fuzz] retired command-line path requested ({requestedFlags}); native event-journal multiplayer replay replaced snapshot restore, so no legacy fuzz/UI task will start.");
         }
         catch (Exception ex)
         {
@@ -2355,13 +2314,28 @@ internal static class UndoFuzz
                     continue; // re-settle via the same wait above before touching hand/cards
                 }
 
+                // MpFuzz's proposal hook can arm the real multiplayer input barrier
+                // synchronously; do not let this direct driver bypass it in this iteration.
+                if (_useMultiplayerIdleGate
+                    && CombatManager.Instance is { PlayerActionsDisabled: true })
+                {
+                    Log.Write("[Fuzz] multiplayer input barrier armed after restore attempt; deferring driver action");
+                    continue;
+                }
+
                 var pile = PileType.Hand.GetPile(me);
                 var candidates = pile.Cards.Where(c => c.CanPlay(out _, out _)).ToList();
 
                 bool acted = false;
                 while (candidates.Count > 0)
                 {
-                    int idx = rng.Next(candidates.Count);
+                    // Test-only deterministic coverage for native PlayerChoice replay.
+                    int idx = _useMultiplayerIdleGate
+                        && CommandLineHelper.HasArg("undosync-mpfuzz-propose-after-player-choice")
+                        ? candidates.FindIndex(card => card.Id.Entry == "SURVIVOR")
+                        : -1;
+                    if (idx < 0)
+                        idx = rng.Next(candidates.Count);
                     var card = candidates[idx];
                     var target = PickRandomTarget(card, rng);
                     bool played;

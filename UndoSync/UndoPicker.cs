@@ -33,11 +33,41 @@ namespace UndoSync;
 /// </summary>
 internal static class UndoPicker
 {
-    private const int MaxEntries = 20;
+    internal readonly record struct PaginationPageDiagnostics(
+        int Page,
+        int PageCount,
+        int FirstChoice,
+        int LastChoice,
+        int CardCount);
+
+    internal readonly record struct PaginationProbeResult(
+        bool Passed,
+        bool ChoicesExceedPage,
+        bool NextButtonAdvanced,
+        bool ClosedWithoutSelection,
+        int TotalChoices,
+        PaginationPageDiagnostics FirstPage,
+        PaginationPageDiagnostics SecondPage,
+        string Detail);
+
+    // Keep the picker bounded without making older native sync points unreachable.
+    // A page is deliberately small because NCard is a real, relatively heavy game
+    // preview node; navigation reuses the same strip and only renders this many.
+    private const int EntriesPerPage = 8;
     private const string LocTableName = "main_menu_ui";
 
     private static NGenericPopup? _popup;
     private static readonly List<NCard> _cardNodes = new();
+    private static HBoxContainer? _pageBox;
+    private static Button? _previousPageButton;
+    private static Button? _nextPageButton;
+    private static Button? _pageIndicator;
+    private static List<SyncPoint>? _pagePoints;
+    private static bool _pageKorean;
+    private static Vector2 _pageHolderSize;
+    private static float _pageScale;
+    private static Font? _pageFont;
+    private static int _pageIndex;
 
     // Reflection into NCard's private title/description label fields, used to
     // overwrite the "???" NotSeen text on dummy (non-card-step) tiles after
@@ -46,6 +76,16 @@ internal static class UndoPicker
     private static readonly FieldInfo? FCardTitleLabel = AccessTools.Field(typeof(NCard), "_titleLabel");
     private static readonly FieldInfo? FCardDescriptionLabel = AccessTools.Field(typeof(NCard), "_descriptionLabel");
     private static readonly FieldInfo? FCardTypeLabel = AccessTools.Field(typeof(NCard), "_typeLabel");
+
+    // Verified against decompiled NPopupYesNoButton.cs:154-170 and :212-222. These are the
+    // fields initialized by _Ready and subsequently dereferenced by SetText/IsYes/actions.
+    private static readonly FieldInfo? FPopupVisuals = AccessTools.Field(typeof(NPopupYesNoButton), "_visuals");
+    private static readonly FieldInfo? FPopupOutline = AccessTools.Field(typeof(NPopupYesNoButton), "_outline");
+    private static readonly FieldInfo? FPopupImage = AccessTools.Field(typeof(NPopupYesNoButton), "_image");
+    private static readonly FieldInfo? FPopupLabel = AccessTools.Field(typeof(NPopupYesNoButton), "_label");
+    private static readonly FieldInfo? FPopupHsv = AccessTools.Field(typeof(NPopupYesNoButton), "_hsv");
+    private static readonly FieldInfo? FPopupOutlineMaterial = AccessTools.Field(typeof(NPopupYesNoButton), "_outlineMaterial");
+    private static bool _popupReadinessReflectionWarningLogged;
 
     internal static bool IsOpen => _popup != null && GodotObject.IsInstanceValid(_popup);
 
@@ -83,6 +123,12 @@ internal static class UndoPicker
         NModalContainer.Instance.Add(popup);
         _popup = popup;
 
+        if (!ArePopupControlsReady(popup))
+        {
+            Close();
+            return;
+        }
+
         // Captured up front (not re-resolved inside the continuation) so HandlePopupResult
         // acts on the same SyncPoint instance the popup advertised via its button label —
         // ChecksumHook.TryGetCombatStart's "not already newest" check could in principle flip
@@ -98,7 +144,9 @@ internal static class UndoPicker
         _ = HandlePopupResult(task, popup, hasCombatStart ? combatStart : null);
 
         int shown = InjectCardStrip(popup, points, korean);
-        Log.Write($"[UndoPicker] opened with {shown} choices (native chrome), restartCombat={hasCombatStart}");
+        int pages = (shown + EntriesPerPage - 1) / EntriesPerPage;
+        Log.Write($"[UndoPicker] opened with {shown} choices across {pages} pages (native chrome), "
+                  + $"renderWindow={EntriesPerPage}, restartCombat={hasCombatStart}");
     }
 
     internal static void Close()
@@ -112,11 +160,118 @@ internal static class UndoPicker
                 card.QueueFreeSafely(); // NCard is NodePool-pooled; plain QueueFree would break the pool.
         }
         _cardNodes.Clear();
+        _pageBox = null;
+        _previousPageButton = null;
+        _nextPageButton = null;
+        _pageIndicator = null;
+        _pagePoints = null;
+        _pageIndex = 0;
+        _pageFont = null;
 
         if (popup != null && GodotObject.IsInstanceValid(popup))
         {
             EnsureModalCleared(popup);
             Log.Write("[UndoPicker] closed");
+        }
+    }
+
+    /// <summary>Temporary compatibility shim for the old fuzzer call site.</summary>
+    [Obsolete("The fuzzer must dispatch Open and InspectPaginationForFuzzer to Godot's main thread.")]
+    internal static Task<PaginationProbeResult> InspectPaginationForFuzzerAsync()
+        => Task.FromException<PaginationProbeResult>(
+            new InvalidOperationException("Temporary shim: dispatch picker probe to Godot's main thread first."));
+
+    /// <summary>
+    /// Fuzzer-only inspection of the live picker pagination. This deliberately
+    /// emits the same Godot signal used by a real press of the Next button; it
+    /// never emits a card-choice signal and always closes the picker in a
+    /// finally block. The method is inert unless a fuzzer calls it after
+    /// <see cref="Open"/> has created a multi-page picker.
+    /// </summary>
+    internal static PaginationProbeResult InspectPaginationForFuzzer()
+    {
+        var empty = new PaginationPageDiagnostics(0, 0, 0, 0, 0);
+        if (!IsOpen || _pagePoints == null || _nextPageButton == null)
+        {
+            Close();
+            return new PaginationProbeResult(
+                Passed: false,
+                ChoicesExceedPage: false,
+                NextButtonAdvanced: false,
+                ClosedWithoutSelection: true,
+                TotalChoices: 0,
+                FirstPage: empty,
+                SecondPage: empty,
+                Detail: "picker is not open or pagination controls are unavailable");
+        }
+
+        bool choicesExceedPage = false;
+        bool nextButtonAdvanced = false;
+        PaginationPageDiagnostics firstPage = empty;
+        PaginationPageDiagnostics secondPage = empty;
+        int totalChoices = _pagePoints.Count - 1;
+        PaginationProbeResult result;
+
+        try
+        {
+            choicesExceedPage = totalChoices > EntriesPerPage;
+            firstPage = CapturePaginationPageDiagnostics();
+
+            if (choicesExceedPage && !_nextPageButton.Disabled)
+            {
+                int pageBeforePress = _pageIndex;
+                // This is the actual callback path wired in InjectCardStrip:
+                // Button.Pressed -> ShowPage(popup, _pageIndex + 1).
+                _nextPageButton.EmitSignal(BaseButton.SignalName.Pressed);
+                nextButtonAdvanced = _pageIndex == pageBeforePress + 1;
+                secondPage = CapturePaginationPageDiagnostics();
+            }
+
+            int expectedSecondLast = Math.Min(EntriesPerPage * 2, totalChoices);
+            bool secondPageRangeCorrect = secondPage.Page == 2
+                && secondPage.FirstChoice == EntriesPerPage + 1
+                && secondPage.LastChoice == expectedSecondLast
+                && secondPage.CardCount == expectedSecondLast - EntriesPerPage;
+            bool firstPageRangeCorrect = firstPage.Page == 1
+                && firstPage.FirstChoice == 1
+                && firstPage.LastChoice == EntriesPerPage
+                && firstPage.CardCount == EntriesPerPage;
+            bool passed = choicesExceedPage && firstPageRangeCorrect
+                && nextButtonAdvanced && secondPageRangeCorrect;
+            string detail = passed
+                ? $"choices={totalChoices}; first page={firstPage.FirstChoice}-{firstPage.LastChoice} "
+                  + $"cards={firstPage.CardCount}; second page={secondPage.FirstChoice}-{secondPage.LastChoice} "
+                  + $"cards={secondPage.CardCount}; next=pressed"
+                : $"choices={totalChoices}; first={firstPage}; second={secondPage}; "
+                  + $"nextAdvanced={nextButtonAdvanced}";
+            Log.Write($"[UndoPicker] pagination probe {(passed ? "PASS" : "FAIL")}: {detail}");
+            result = new PaginationProbeResult(passed, choicesExceedPage, nextButtonAdvanced,
+                ClosedWithoutSelection: false, totalChoices, firstPage, secondPage, detail);
+        }
+        catch (Exception ex)
+        {
+            string detail = $"exception during live next-button probe: {ex.Message}";
+            Log.Write($"[UndoPicker] pagination probe FAIL: {detail}");
+            result = new PaginationProbeResult(false, choicesExceedPage, nextButtonAdvanced,
+                ClosedWithoutSelection: false, totalChoices, firstPage, secondPage, detail);
+        }
+        finally
+        {
+            // No card button is pressed by this probe. Closing the popup here
+            // proves the inspection leaves no pending picker selection.
+            Close();
+        }
+        return result with { ClosedWithoutSelection = !IsOpen };
+
+        PaginationPageDiagnostics CapturePaginationPageDiagnostics()
+        {
+            if (_pagePoints == null)
+                return empty;
+            int choices = _pagePoints.Count - 1;
+            int pageCount = (choices + EntriesPerPage - 1) / EntriesPerPage;
+            int first = 1 + _pageIndex * EntriesPerPage;
+            int last = Math.Min(choices, first + EntriesPerPage - 1);
+            return new PaginationPageDiagnostics(_pageIndex + 1, pageCount, first, last, _cardNodes.Count);
         }
     }
 
@@ -193,11 +348,11 @@ internal static class UndoPicker
     /// <summary>
     /// Waits until the source picker's button signal has completely unwound before opening the second
     /// modal. NGenericPopup resolves its TaskCompletionSource inside its first Released callback, so
-    /// <see cref="HandlePopupResult"/> can resume synchronously before NVerticalPopup's second Released
-    /// callback calls NModalContainer.Clear(). Opening the confirmation immediately in that window lets
-    /// that old cleanup callback clear the NEW popup — the exact "restart combat button logged, then
-    /// nothing happens" defect this method prevents. One ProcessFrame lets both callbacks complete;
-    /// the confirmation is then the only modal slot occupant.
+    /// <see cref="HandlePopupResult"/> can resume synchronously before NVerticalPopup's second
+    /// Released callback calls NModalContainer.Clear(). Opening the confirmation immediately in that
+    /// window lets that old cleanup callback clear the NEW popup — the exact restart-combat defect
+    /// this method prevents. One ProcessFrame lets both callbacks complete; the confirmation is then
+    /// the only modal slot occupant.
     /// </summary>
     private static async Task OpenRestartConfirmationNextFrame(uint targetChecksumId)
     {
@@ -214,8 +369,6 @@ internal static class UndoPicker
         }
         catch (Exception ex)
         {
-            // This Task is intentionally fire-and-forget from HandlePopupResult; never let a UI
-            // continuation exception become invisible or escape into the engine's signal dispatch.
             Log.Write($"[UndoPicker] restart-combat confirmation continuation ERROR: {ex}");
         }
     }
@@ -261,12 +414,16 @@ internal static class UndoPicker
             return;
         }
         Close(); // guarantees a clear modal slot before Add(); no-op here, see doc comment above.
-        _popup = popup;
         NModalContainer.Instance.Add(popup);
-
+        _popup = popup;
         bool confirmed;
         try
         {
+            if (!ArePopupControlsReady(popup))
+            {
+                Close();
+                return;
+            }
             confirmed = await popup.WaitForConfirmation(
                 new LocString(LocTableName, "UNDOSYNC.RESTART_CONFIRM_BODY"),
                 new LocString(LocTableName, "UNDOSYNC.RESTART_CONFIRM_TITLE"),
@@ -287,6 +444,54 @@ internal static class UndoPicker
         }
         Log.Write($"[UndoPicker] restart-combat confirmed, targetId={targetChecksumId}");
         UndoProtocol.ProposeTarget(targetChecksumId);
+    }
+
+    /// <summary>
+    /// IsNodeReady() is not reliable for this instantiated native hierarchy. Check the concrete
+    /// fields populated by NPopupYesNoButton._Ready instead, while still requiring the popup and
+    /// both native buttons to be valid scene-tree nodes.
+    /// </summary>
+    private static bool ArePopupControlsReady(NGenericPopup popup)
+    {
+        if (!GodotObject.IsInstanceValid(popup) || !popup.IsInsideTree())
+            return false;
+        if (FPopupVisuals == null || FPopupOutline == null || FPopupImage == null || FPopupLabel == null
+            || FPopupHsv == null || FPopupOutlineMaterial == null)
+        {
+            if (!_popupReadinessReflectionWarningLogged)
+            {
+                _popupReadinessReflectionWarningLogged = true;
+                Log.Write("[UndoPicker] native button readiness reflection unavailable for NPopupYesNoButton.cs:154-170");
+            }
+            return false;
+        }
+        try
+        {
+            var vertical = popup.GetNodeOrNull<Control>("VerticalPopup");
+            var yes = vertical?.GetNodeOrNull<NPopupYesNoButton>("YesButton");
+            var no = vertical?.GetNodeOrNull<NPopupYesNoButton>("NoButton");
+            return vertical != null && yes != null && no != null
+                && vertical.IsInsideTree() && yes.IsInsideTree() && no.IsInsideTree()
+                && NativeButtonFieldsReady(yes) && NativeButtonFieldsReady(no);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[UndoPicker] native button readiness reflection check ERROR: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static bool NativeButtonFieldsReady(NPopupYesNoButton button)
+    {
+        foreach (var field in new[]
+        {
+            FPopupVisuals, FPopupOutline, FPopupImage, FPopupLabel, FPopupHsv, FPopupOutlineMaterial,
+        })
+        {
+            if (field?.GetValue(button) is not GodotObject value || !GodotObject.IsInstanceValid(value))
+                return false;
+        }
+        return true;
     }
 
     /// <summary>
@@ -331,7 +536,9 @@ internal static class UndoPicker
 
     /// <summary>
     /// Hides the popup's body label and fills its rect with a horizontally
-    /// scrolling strip of undo steps, sized to fit. Returns the number shown.
+    /// scrolling strip of one bounded page of undo steps. Older pages are
+    /// rendered on demand, so every stored point remains reachable without
+    /// creating one NCard per action. Returns the total number of choices.
     /// </summary>
     private static int InjectCardStrip(NGenericPopup popup, List<SyncPoint> points, bool korean)
     {
@@ -370,12 +577,15 @@ internal static class UndoPicker
         var holderSize = NCard.defaultSize * scale + new Vector2(32f, 32f);
         Log.Write($"[UndoPicker] body rect pos={body.Position} size={bodyRect} -> scale={scale} holderSize={holderSize}");
 
+        // Leave a small, fixed footer for page navigation. The strip itself is
+        // still a ScrollContainer because two cards may not fit at every UI scale.
+        float navigationHeight = 48f;
         var scroll = new ScrollContainer
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
             VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
             Position = body.Position,
-            Size = bodyRect,
+            Size = new Vector2(bodyRect.X, Mathf.Max(1f, bodyRect.Y - navigationHeight)),
             SizeFlagsVertical = Control.SizeFlags.Fill,
         };
         vpopup.AddChild(scroll);
@@ -391,24 +601,84 @@ internal static class UndoPicker
         hbox.AddThemeConstantOverride("separation", 16);
         scroll.AddChild(hbox);
 
-        // points[0] is the current state; undoing to points[i] rewinds i actions.
-        // The oldest action being undone is the one that produced points[i-1].
-        int shown = 0;
-        for (int i = 1; i < points.Count && i <= MaxEntries; i++)
+        var navigation = new HBoxContainer
         {
-            string context = points[i - 1].Context;
-            // Turn starts stay stored — the turn's first card rewinds to one — but they
-            // are not a move the player made, so instead of an entry they become a
-            // plain divider marking where the turn changed.
-            if (context.StartsWith("After player turn start"))
-            {
-                hbox.AddChild(BuildTurnSeparator(holderSize));
-                continue;
-            }
-            hbox.AddChild(BuildItem(context, i, points[i], korean, holderSize, scale, stripFont));
-            shown++;
+            Position = new Vector2(body.Position.X, body.Position.Y + bodyRect.Y - navigationHeight),
+            Size = new Vector2(bodyRect.X, navigationHeight),
+            Alignment = BoxContainer.AlignmentMode.Center,
+        };
+        navigation.AddThemeConstantOverride("separation", 18);
+        vpopup.AddChild(navigation);
+
+        var previous = new Button { Text = "‹", CustomMinimumSize = new Vector2(56f, 40f) };
+        var indicator = new Button { Disabled = true, CustomMinimumSize = new Vector2(96f, 40f) };
+        var next = new Button { Text = "›", CustomMinimumSize = new Vector2(56f, 40f) };
+        navigation.AddChild(previous);
+        navigation.AddChild(indicator);
+        navigation.AddChild(next);
+
+        _pageBox = hbox;
+        _previousPageButton = previous;
+        _nextPageButton = next;
+        _pageIndicator = indicator;
+        _pagePoints = points;
+        _pageKorean = korean;
+        _pageHolderSize = holderSize;
+        _pageScale = scale;
+        _pageFont = stripFont;
+        _pageIndex = 0;
+
+        previous.Pressed += () => ShowPage(popup, _pageIndex - 1);
+        next.Pressed += () => ShowPage(popup, _pageIndex + 1);
+        ShowPage(popup, 0);
+        return points.Count - 1;
+    }
+
+    /// <summary>Replaces the bounded page in-place, retaining newest-first target semantics.</summary>
+    private static void ShowPage(NGenericPopup popup, int pageIndex)
+    {
+        if (!ReferenceEquals(_popup, popup) || _pageBox == null || _pagePoints == null)
+            return;
+
+        int choiceCount = _pagePoints.Count - 1;
+        int pageCount = (choiceCount + EntriesPerPage - 1) / EntriesPerPage;
+        if (pageCount <= 0) return;
+        _pageIndex = Math.Clamp(pageIndex, 0, pageCount - 1);
+
+        foreach (var card in _cardNodes)
+        {
+            if (GodotObject.IsInstanceValid(card))
+                card.QueueFreeSafely();
         }
-        return shown;
+        _cardNodes.Clear();
+        foreach (Node child in _pageBox.GetChildren())
+        {
+            _pageBox.RemoveChild(child);
+            child.QueueFreeSafely();
+        }
+
+        int first = 1 + _pageIndex * EntriesPerPage;
+        int lastExclusive = Math.Min(_pagePoints.Count, first + EntriesPerPage);
+        for (int i = first; i < lastExclusive; i++)
+        {
+            // points[0] is the current state; points[i] is the target. Every
+            // stored point, including turn-start anchors, gets a selectable item.
+            if (_pagePoints[i - 1].Context.StartsWith("After player turn start"))
+                _pageBox.AddChild(BuildTurnSeparator(_pageHolderSize));
+            _pageBox.AddChild(BuildItem(_pagePoints[i - 1].Context, i, _pagePoints[i],
+                _pageKorean, _pageHolderSize, _pageScale, _pageFont));
+        }
+
+        if (_previousPageButton != null)
+            _previousPageButton.Disabled = _pageIndex == 0;
+        if (_nextPageButton != null)
+            _nextPageButton.Disabled = _pageIndex == pageCount - 1;
+        if (_pageIndicator != null)
+            _pageIndicator.Text = _pageKorean
+                ? $"{_pageIndex + 1} / {pageCount}"
+                : $"page {_pageIndex + 1} / {pageCount}";
+        Log.Write($"[UndoPicker] rendered page={_pageIndex + 1}/{pageCount} "
+                  + $"choices={first}-{lastExclusive - 1} ncardNodes={_cardNodes.Count}");
     }
 
     /// <summary>
@@ -453,7 +723,7 @@ internal static class UndoPicker
         };
         column.AddChild(holder);
 
-        BuildHolderVisual(holder, context, target, korean, holderSize, scale, font);
+        BuildHolderVisual(holder, context, korean, holderSize, scale, font);
 
         var clickButton = new Button
         {
@@ -509,7 +779,7 @@ internal static class UndoPicker
     /// Fills the holder with either the real card visual (when the step's context
     /// names a card) or a small text tile describing the step.
     /// </summary>
-    private static void BuildHolderVisual(Control holder, string context, SyncPoint before, bool korean, Vector2 holderSize, float scale, Font? font)
+    private static void BuildHolderVisual(Control holder, string context, bool korean, Vector2 holderSize, float scale, Font? font)
     {
         var cardId = TryGetCardModelId(context);
         if (cardId != null)
@@ -541,7 +811,7 @@ internal static class UndoPicker
             Log.Write($"[UndoPicker] card lookup failed for '{cardId}' (context='{context}')");
         }
 
-        if (BuildDummyCardTile(holder, context, before, korean, holderSize, scale))
+        if (BuildDummyCardTile(holder, context, korean, holderSize, scale))
             return;
 
         BuildTextTile(holder, context, holderSize, korean, font);
@@ -565,7 +835,7 @@ internal static class UndoPicker
     /// card model is available or <see cref="NCard.Create"/> fails — this is the
     /// pre-existing plain-panel tile and stays as the safety net.
     /// </summary>
-    private static bool BuildDummyCardTile(Control holder, string context, SyncPoint before, bool korean, Vector2 holderSize, float scale)
+    private static bool BuildDummyCardTile(Control holder, string context, bool korean, Vector2 holderSize, float scale)
     {
         // The base card decides the frame: NCard takes its banner texture/material
         // straight off Model (NCard.cs:1255) and rarity drives it, so an arbitrary
@@ -598,9 +868,9 @@ internal static class UndoPicker
 
         string label = DescribeAction(context, korean);
         string typePlaque = korean ? "시스템" : "system";
-        // Resolved from the snapshot BEFORE this step, not the context string — see
-        // TryGetPotionName for why the context alone can't name the potion.
-        string description = TryGetPotionName(context, before) ?? "";
+        // Historical inventory is not available from native journal metadata, so
+        // potion steps intentionally fall back to the generic action label.
+        string description = TryGetPotionName(context) ?? "";
         // UpdateVisuals must run after the node is in the tree (see the real-card
         // path above), and the title/description overwrite must run strictly after
         // it, since UpdateVisuals() is what writes the "???" NotSeen text in the
@@ -719,54 +989,12 @@ internal static class UndoPicker
     }
 
     /// <summary>
-    /// The potion's display name for a potion step, resolved from the state BEFORE the step:
-    /// UsePotionAction.ToString() runs after the potion has already left the belt, so the
-    /// context string carries only the player's NetId and the belt slot index, never the name.
-    /// Returns null when the context is not a potion step or the potion cannot be resolved.
+    /// Native journal metadata does not contain the historical inventory needed to
+    /// resolve a potion title. Keep the generic context label instead.
     /// </summary>
-    private static string? TryGetPotionName(string context, SyncPoint before)
+    private static string? TryGetPotionName(string context)
     {
-        try
-        {
-            // Two context shapes carry a potion identity (verified in UsePotionAction.ToString()
-            // and DiscardPotionGameAction.ToString()); everything else is not a potion step.
-            string netIdMarker, slotMarker;
-            if (context.Contains("UsePotionAction "))
-            {
-                netIdMarker = "UsePotionAction ";
-                slotMarker = "index: ";
-            }
-            else if (context.Contains("DiscardPotionGameAction"))
-            {
-                netIdMarker = "for player ";
-                slotMarker = "potion slot: ";
-            }
-            else
-            {
-                return null;
-            }
-
-            if (!ulong.TryParse(TokenAfter(context, netIdMarker), out var netId)) return null;
-            if (!int.TryParse(TokenAfter(context, slotMarker), out var slot)) return null;
-
-            return before.Snapshot.GetPotionAtSlot(netId, slot)?.Title.GetFormattedText();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>The whitespace-delimited token right after the first occurrence of marker, or null.</summary>
-    private static string? TokenAfter(string s, string marker)
-    {
-        var idx = s.IndexOf(marker, StringComparison.Ordinal);
-        if (idx < 0) return null;
-        var start = idx + marker.Length;
-        var end = start;
-        while (end < s.Length && !char.IsWhiteSpace(s[end]))
-            end++;
-        return end > start ? s.Substring(start, end - start) : null;
+        return null;
     }
 
     /// <summary>

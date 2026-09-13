@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
+using MegaCrit.Sts2.Core.Multiplayer.Replay;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Multiplayer.Transport;
 using MegaCrit.Sts2.Core.Nodes;
@@ -93,7 +94,7 @@ public record struct UndoVoteMessage : INetMessage
 ///
 /// Every peer — including the host itself, through the same CommitAsync path; see that method's own
 /// doc comment for why it is not special-cased — re-checks its own NextId against agreedChecksumId
-/// ONE more time, immediately before calling ChecksumHook.RestoreTo. Unlike the retired design, this
+/// ONE more time, immediately before creating the native replay restore plan. Unlike the retired design, this
 /// is not a wait loop: Phase 2/3 already proved every peer REACHED and HELD at this exact value, so
 /// there is nothing left to wait for — only whether it has since moved (see CommitAsync's own
 /// "moved-since-agreement" log line, deliberately distinct from a Phase 3 disagreement, for why
@@ -121,12 +122,14 @@ public record struct UndoCommitMessage : INetMessage
     public uint targetChecksumId;
     public uint agreedChecksumId;
     public int round;
+    public CombatReplay canonicalReplay;
 
     public void Serialize(PacketWriter writer)
     {
         writer.WriteUInt(targetChecksumId);
         writer.WriteUInt(agreedChecksumId);
         writer.WriteInt(round);
+        writer.Write(canonicalReplay);
     }
 
     public void Deserialize(PacketReader reader)
@@ -134,6 +137,7 @@ public record struct UndoCommitMessage : INetMessage
         targetChecksumId = reader.ReadUInt();
         agreedChecksumId = reader.ReadUInt();
         round = reader.ReadInt();
+        canonicalReplay = reader.Read<CombatReplay>();
     }
 }
 
@@ -298,59 +302,6 @@ public record struct UndoCancelMessage : INetMessage
         targetChecksumId = reader.ReadUInt();
         byNetId = reader.ReadULong();
     }
-}
-
-/// <summary>
-/// Sent by every peer once its OWN local restore (ChecksumHook.RestoreTo, inside CommitAsync) has
-/// finished, to tell the host it is safe to count this peer toward the barrier release. Same shape
-/// as UndoVoteMessage (target id + sender id) — the host's tally of these (RegisterAck/CheckAllAcked)
-/// deliberately reuses UndoVoteMessage's own tally shape (a HashSet&lt;ulong&gt; plus
-/// AllPlayerIds().All(...)) rather than inventing a second one. See "── Cross-peer restore barrier
-/// ──" below for the full flow this belongs to.
-/// </summary>
-public record struct UndoRestoreAckMessage : INetMessage
-{
-    public bool ShouldBroadcast => true;
-    public NetTransferMode Mode => NetTransferMode.Reliable;
-    public LogLevel LogLevel => LogLevel.Info;
-    public bool ShouldBuffer => true;
-
-    public uint targetChecksumId;
-    public ulong ackerNetId;
-
-    public void Serialize(PacketWriter writer)
-    {
-        writer.WriteUInt(targetChecksumId);
-        writer.WriteULong(ackerNetId);
-    }
-
-    public void Deserialize(PacketReader reader)
-    {
-        targetChecksumId = reader.ReadUInt();
-        ackerNetId = reader.ReadULong();
-    }
-}
-
-/// <summary>
-/// Broadcast by the host once every player has sent an UndoRestoreAckMessage for the same target id
-/// (CheckAllAcked), or once the barrier's own timeout gives up on stragglers (BarrierTimeoutWatchdog).
-/// Receipt is what actually lowers the barrier on every OTHER peer (OnResumeReceived) — the host
-/// lowers its own directly in the same call that decides to send this, for the same reason
-/// CheckAllAccepted calls CommitAsync directly instead of waiting for its own UndoCommitMessage to
-/// loop back: a peer's own broadcast is never delivered back to itself.
-/// </summary>
-public record struct UndoResumeMessage : INetMessage
-{
-    public bool ShouldBroadcast => true;
-    public NetTransferMode Mode => NetTransferMode.Reliable;
-    public LogLevel LogLevel => LogLevel.Info;
-    public bool ShouldBuffer => true;
-
-    public uint targetChecksumId;
-
-    public void Serialize(PacketWriter writer) => writer.WriteUInt(targetChecksumId);
-
-    public void Deserialize(PacketReader reader) => targetChecksumId = reader.ReadUInt();
 }
 
 // ── Vote-based synchronized undo, with a cross-peer restore barrier ──
@@ -663,11 +614,6 @@ internal static class UndoProtocol
     /// role _pendingGeneration plays for TimeoutWatchdog, reused here for BarrierTimeoutWatchdog.</summary>
     private static int _barrierGeneration;
 
-    /// <summary>Host-only tally of who has sent UndoRestoreAckMessage for _barrierTargetId. Same
-    /// shape as _accepted above (a HashSet&lt;ulong&gt; checked against AllPlayerIds().All(...)) by
-    /// design — see UndoRestoreAckMessage's own doc comment. Harmless and unread on non-host peers.</summary>
-    private static readonly HashSet<ulong> _acked = new();
-
     /// <summary>Host-only: true once at least one peer has departed (RunLobby.RemotePlayerDisconnected —
     /// see "── Departure-aware quorum ──" further down) while THIS barrier (_barrierTargetId) has been
     /// armed. Reset to false by ArmBarrierForProposal (a fresh barrier lifecycle begins) and by
@@ -824,8 +770,6 @@ internal static class UndoProtocol
             _registeredService.UnregisterMessageHandler<UndoCommitMessage>(OnCommitReceived);
             _registeredService.UnregisterMessageHandler<UndoCommitFailedMessage>(OnCommitFailedReceived);
             _registeredService.UnregisterMessageHandler<UndoCancelMessage>(OnCancelReceived);
-            _registeredService.UnregisterMessageHandler<UndoRestoreAckMessage>(OnRestoreAckReceived);
-            _registeredService.UnregisterMessageHandler<UndoResumeMessage>(OnResumeReceived);
         }
         svc.RegisterMessageHandler<UndoProposalMessage>(OnProposalReceived);
         svc.RegisterMessageHandler<UndoVoteMessage>(OnVoteReceived);
@@ -834,8 +778,6 @@ internal static class UndoProtocol
         svc.RegisterMessageHandler<UndoCommitMessage>(OnCommitReceived);
         svc.RegisterMessageHandler<UndoCommitFailedMessage>(OnCommitFailedReceived);
         svc.RegisterMessageHandler<UndoCancelMessage>(OnCancelReceived);
-        svc.RegisterMessageHandler<UndoRestoreAckMessage>(OnRestoreAckReceived);
-        svc.RegisterMessageHandler<UndoResumeMessage>(OnResumeReceived);
         _registeredService = svc;
         ResetPending();
         ResetQuiesce();
@@ -1015,8 +957,7 @@ internal static class UndoProtocol
 
         if (svc.Type == NetGameType.Singleplayer)
         {
-            Log.Write($"[UndoProtocol] Singleplayer undo to id={target.ChecksumId}");
-            ChecksumHook.RestoreTo(target);
+            Log.Write($"[UndoProtocol] Singleplayer undo to id={target.ChecksumId} blocked: native replay restore is multiplayer-only; direct snapshot restore is unavailable.");
             return;
         }
 
@@ -1045,9 +986,8 @@ internal static class UndoProtocol
     }
 
     /// <summary>
-    /// How many actions a rewind to <paramref name="targetId"/> undoes. Computed
-    /// locally on each peer — the sync point id streams are identical, so every
-    /// peer gets the same number without putting it in the message.
+    /// How many actions a rewind to <paramref name="targetId"/> represents in the local
+    /// picker. The replay event cursor is host-authoritative and is carried by the commit.
     /// </summary>
     private static int StepsTo(uint targetId) =>
         ChecksumHook.SyncPointsNewestFirst().Count(p => p.ChecksumId > targetId);
@@ -1100,14 +1040,6 @@ internal static class UndoProtocol
         // OnCancelReceived's own release call), and other peers may still be mid-vote in the
         // meantime.
         ArmBarrierForProposal(msg.targetChecksumId);
-
-        if (!ChecksumHook.HasSyncPoint(msg.targetChecksumId))
-        {
-            // We can't restore to a point we don't have — reject so nobody diverges.
-            Log.Write($"[UndoProtocol] Missing sync point id={msg.targetChecksumId} — auto-rejecting");
-            SubmitLocalVote(accept: false);
-            return;
-        }
 
         if (AutoAcceptForFuzz)
         {
@@ -1291,7 +1223,31 @@ internal static class UndoProtocol
 
     private static void OnCommitReceived(UndoCommitMessage msg, ulong senderId)
     {
+        var svc = _registeredService;
+        if (svc is not NetClientGameService clientService ||
+            !clientService.IsConnected ||
+            senderId != clientService.HostNetId)
+        {
+            string expectedHost = svc is NetClientGameService connectedClient && connectedClient.IsConnected
+                ? connectedClient.HostNetId.ToString()
+                : "none";
+            Log.Write($"[UndoProtocol] Commit rejected: sender {senderId} is not the currently connected authoritative host (expected {expectedHost}, service={svc?.Type.ToString() ?? "none"}, connected={svc?.IsConnected.ToString() ?? "false"}).");
+            return;
+        }
+
         Log.Write($"[UndoProtocol] Commit received for id={msg.targetChecksumId} agreedChecksumId={msg.agreedChecksumId}");
+        if (!NativeReplayJournal.TryCreateRestorePlan(
+                msg.canonicalReplay,
+                msg.targetChecksumId,
+                out NativeReplayRestorePlan plan,
+                out string planDetail))
+        {
+            Log.Write($"[UndoProtocol] Commit rejected: host canonical native replay was invalid for id={msg.targetChecksumId}: {planDetail}");
+            RequestCommitRetryOrGiveUp(msg.targetChecksumId, msg.round);
+            ResetPending();
+            ResetQuiesce();
+            return;
+        }
         // The barrier is already up by now — armed back in OnProposalReceived when this peer first
         // saw the proposal for this same target, not here (arming on commit receipt was measured
         // too late — see the "── Cross-peer restore barrier ──" section header). Defensive check
@@ -1302,7 +1258,7 @@ internal static class UndoProtocol
         if (_barrierTargetId != msg.targetChecksumId)
             Log.Write($"[UndoProtocol] OnCommitReceived: barrier target mismatch — armed for {(_barrierTargetId?.ToString() ?? "none")}, commit says {msg.targetChecksumId}. This should be impossible now that the barrier arms at proposal time; investigate if seen.");
         ClosePopup();
-        _ = CommitAsync(msg.targetChecksumId, msg.agreedChecksumId, msg.round);
+        _ = CommitAsync(plan, msg.agreedChecksumId, msg.round);
         ResetPending(); // no-op by now on every peer except a host that somehow reached here (it never does — self-broadcast)
         ResetQuiesce();
     }
@@ -1329,27 +1285,6 @@ internal static class UndoProtocol
         // ReleaseBarrierForTarget already no-ops on a mismatched/stale target, so this is harmless
         // even for a peer whose barrier already resolved some other way (e.g. its own
         // TimeoutWatchdog firing first).
-        ReleaseBarrierForTarget(msg.targetChecksumId);
-    }
-
-    /// <summary>Host-only: tally one peer's restore ack, same shape as OnVoteReceived above.</summary>
-    private static void OnRestoreAckReceived(UndoRestoreAckMessage msg, ulong senderId)
-    {
-        Log.Write($"[UndoProtocol] Restore ack from {msg.ackerNetId} (target id={msg.targetChecksumId})");
-        if (_registeredService?.Type != NetGameType.Host) return; // host tallies
-        RegisterAck(msg.ackerNetId, msg.targetChecksumId);
-    }
-
-    /// <summary>
-    /// Lowers the barrier on every peer EXCEPT the host that sent this (the host lowers its own
-    /// directly inside CheckAllAcked/BarrierTimeoutWatchdog — see UndoResumeMessage's own doc
-    /// comment for why a self-sent broadcast never loops back). ReleaseBarrierForTarget itself
-    /// already ignores a mismatched/stale target, so a resume that arrives after this peer's own
-    /// barrier already resolved (e.g. via its own timeout) is a harmless no-op.
-    /// </summary>
-    private static void OnResumeReceived(UndoResumeMessage msg, ulong senderId)
-    {
-        Log.Write($"[UndoProtocol] Resume received for id={msg.targetChecksumId}");
         ReleaseBarrierForTarget(msg.targetChecksumId);
     }
 
@@ -1591,8 +1526,52 @@ internal static class UndoProtocol
             // failure for THIS attempt can still be reported well after that reset runs).
             _commitTargetId = targetId;
             _commitRound = round;
-            _registeredService?.SendMessage(new UndoCommitMessage { targetChecksumId = targetId, agreedChecksumId = agreed, round = round });
-            _ = CommitAsync(targetId, agreed, round);
+            if (!ChecksumHook.TryGetSyncPoint(targetId, out SyncPoint syncPoint))
+            {
+                Log.Write($"[UndoProtocol] Quiesce agreement could not resolve a local native sync point for id={targetId}; cancelling before commit.");
+                AdvanceQuiesceRoundOrGiveUp(targetId, round, "local native sync point unavailable");
+                return;
+            }
+
+            if (!ChecksumHook.TryCreateNativeRestorePlan(
+                    syncPoint,
+                    out NativeReplayRestorePlan localPlan,
+                    out string localPlanDetail))
+            {
+                Log.Write($"[UndoProtocol] Quiesce agreement could not create the host native restore plan for id={targetId}: {localPlanDetail}");
+                AdvanceQuiesceRoundOrGiveUp(targetId, round, "host native restore plan unavailable");
+                return;
+            }
+
+            if (!NativeReplayJournal.TryCreateCanonicalPrefix(
+                    localPlan,
+                    out CombatReplay canonicalReplay,
+                    out string canonicalDetail))
+            {
+                Log.Write($"[UndoProtocol] Quiesce agreement could not create the canonical native replay for id={targetId}: {canonicalDetail}");
+                AdvanceQuiesceRoundOrGiveUp(targetId, round, "canonical native replay unavailable");
+                return;
+            }
+
+            if (!NativeReplayJournal.TryCreateRestorePlan(
+                    canonicalReplay,
+                    targetId,
+                    out NativeReplayRestorePlan canonicalPlan,
+                    out string canonicalPlanDetail))
+            {
+                Log.Write($"[UndoProtocol] Quiesce agreement could not validate the canonical native replay for id={targetId}: {canonicalPlanDetail}");
+                AdvanceQuiesceRoundOrGiveUp(targetId, round, "canonical native replay validation failed");
+                return;
+            }
+
+            _registeredService?.SendMessage(new UndoCommitMessage
+            {
+                targetChecksumId = targetId,
+                agreedChecksumId = agreed,
+                round = round,
+                canonicalReplay = canonicalReplay,
+            });
+            _ = CommitAsync(canonicalPlan, agreed, round);
             ResetQuiesce();
             return;
         }
@@ -1770,14 +1749,8 @@ internal static class UndoProtocol
     }
 
     /// <summary>
-    /// The peer-side half of a Phase 4 failure — called from CommitAsync's finally block (see that
-    /// method's own doc comment) once it has determined this peer will NOT be sending
-    /// UndoRestoreAckMessage for this attempt. Mirrors SubmitLocalVote/SendQuiesceReport/
-    /// SendRestoreAck's own "host's own broadcast never loops back to itself" special case: if this
-    /// peer IS the host, RegisterCommitFailure is called directly instead of round-tripping a message
-    /// to itself; otherwise UndoCommitFailedMessage carries the report to the host, which is the only
-    /// peer that can decide to retry (RequestNextQuiesceRound broadcasts UndoQuiesceRequestMessage,
-    /// documented as host-only) or give up (UndoCancelMessage).
+    /// The peer-side half of a pre-teardown Phase 4 failure. Once native replay starts, CommitAsync
+    /// marks the commit locally resolved and never enters this old-service retry path.
     /// </summary>
     private static void RequestCommitRetryOrGiveUp(uint targetId, int round)
     {
@@ -1789,47 +1762,10 @@ internal static class UndoProtocol
             svc.SendMessage(new UndoCommitFailedMessage { targetChecksumId = targetId, round = round, reporterNetId = MyNetId });
     }
 
-    /// <summary>Sends this peer's own restore ack after a successful local restore (called from
-    /// CommitAsync). Host-only special case mirrors SubmitLocalVote: a host's own broadcast never
-    /// loops back to itself, so the host also registers its own ack directly.</summary>
-    private static void SendRestoreAck(uint targetId)
-    {
-        var svc = _registeredService;
-        if (svc == null) return;
-        svc.SendMessage(new UndoRestoreAckMessage { targetChecksumId = targetId, ackerNetId = MyNetId });
-        if (svc.Type == NetGameType.Host)
-            RegisterAck(MyNetId, targetId); // host's own ack never loops back as a message
-    }
-
-    /// <summary>Host-only: tally a restore ack, same shape as RegisterVote above.</summary>
-    private static void RegisterAck(ulong acker, uint targetId)
-    {
-        if (_barrierTargetId != targetId) return; // stale ack for an already-resolved barrier
-        _acked.Add(acker);
-        CheckAllAcked();
-    }
-
-    /// <summary>Host-only: once every player has acked the current barrier target, release it —
-    /// same shape as CheckAllAccepted above.</summary>
-    private static void CheckAllAcked()
-    {
-        if (_barrierTargetId == null) return;
-        var target = _barrierTargetId.Value;
-        var all = AllPlayerIds().ToList();
-        if (all.Count == 0 || !all.All(id => _acked.Contains(id)))
-            return;
-        Log.Write($"[UndoProtocol] All {all.Count} players acked restore id={target} — releasing barrier.");
-        _registeredService?.SendMessage(new UndoResumeMessage { targetChecksumId = target });
-        // Host's own release: the broadcast above never loops back to its own sender — same reason
-        // ArmBarrierForProposal is called directly in ProposeTarget/OnProposalReceived instead of
-        // relying on a self-sent message looping back.
-        ReleaseBarrierForTarget(target);
-    }
-
     // ── Fuzz-only bookkeeping (MpFuzz step 3, Part C) ──
 
     /// <summary>MpFuzz (step 3, Part C) bookkeeping only. Incremented once per successful
-    /// ChecksumHook.RestoreTo call inside CommitAsync below — i.e. once per commit actually executed
+    /// native replay completion inside CommitAsync below — i.e. once per commit actually executed
     /// on THIS peer, host or client alike (CommitAsync runs on both: the host calls it directly from
     /// CheckAllAccepted, the client from OnCommitReceived). Runs unconditionally for every peer, fuzz
     /// or not — cheap bookkeeping nothing outside MpFuzz's own summary ever reads.</summary>
@@ -1841,6 +1777,12 @@ internal static class UndoProtocol
     /// for it. See CommitCount's own doc comment for why this is safe to leave unconditional.
     /// </summary>
     internal static uint LastCommittedChecksumId;
+
+    /// <summary>Monotonic diagnostic count of native replay transitions that actually started on this
+    /// peer. Incremented immediately before CommitAsync invokes NativeReplayRestorer, so callers can
+    /// distinguish a proposal/commit path from a real native replay transition.</summary>
+    private static int _nativeReplayTransitionsStartedCount;
+    internal static int NativeReplayTransitionsStartedCount => _nativeReplayTransitionsStartedCount;
 
     /// <summary>Count of AssertQueueEmptyOrRecordViolation calls that ever found the queue non-empty
     /// — see that method's own doc comment. Read by MpFuzz's step-10 summary; expected to stay zero
@@ -2033,23 +1975,19 @@ internal static class UndoProtocol
     /// behind that file's own --undosync-mpfuzz gate) makes this a complete no-op: gate 2 below runs
     /// completely unmodified for every peer that never passes --undosync-mpfuzz-inject-clock-move.
     /// </summary>
-    private static async Task CommitAsync(uint targetId, uint agreedChecksumId, int round)
+    private static async Task CommitAsync(
+        NativeReplayRestorePlan canonicalPlan,
+        uint agreedChecksumId,
+        int round)
     {
-        // True once this peer has definitely done ONE of: sent UndoRestoreAckMessage (successful
-        // restore), or reached a state some OTHER mechanism already owns the resolution of (combat
-        // ended — ResetOnCombatEnd). Everything else — a missing sync point, moved-since-agreement,
-        // never-re-idle, or an outright exception — must NOT leave the host's tally silently one peer
-        // short, so the finally block below reports it exactly once, from a single place, rather than
-        // a release/report call copied into every early-return branch (and therefore easy to miss
-        // adding to a future one).
+        uint targetId = canonicalPlan.TargetChecksumId;
+        // True once this peer has reached a terminal local outcome. Before native replay teardown,
+        // an ordinary phase-4 failure may still use the existing retry path. Once the restorer is
+        // invoked, the old network service is no longer a valid failure channel: all failures after
+        // that point are logged locally and never send an old-service retry, cancel, ack, or resume.
         bool resolved = false;
         try
         {
-            if (!ChecksumHook.TryGetSyncPoint(targetId, out var sp))
-            {
-                Log.Write($"[UndoProtocol] COMMIT FAILED: missing sync point id={targetId} for this peer — requesting a retry/give-up decision instead of leaving the host's ack tally short.");
-                return;
-            }
             var tree = NGame.Instance?.GetTree();
             for (int i = 0; i < CommitReidleWaitFrames; i++)
             {
@@ -2095,12 +2033,12 @@ internal static class UndoProtocol
                     }
                     if (localNextId != effectiveAgreedChecksumId)
                     {
-                        // See this method's own doc comment for why this is distinct from a Phase 3
-                        // disagreement, and why it now retries instead of accepting the divergence.
+                    // See this method's own doc comment for why this is distinct from a Phase 3
+                    // disagreement, and why it retries instead of accepting the divergence.
                         // Nothing to wait for locally: Phase 2 already proved every peer reached
                         // agreedChecksumId, so if THIS peer's clock has since moved off it, waiting
-                        // longer on this peer alone cannot bring it back (NextId cannot be rewound —
-                        // ChecksumHook.RestoreTo's own step-3 comment) — a FRESH quiesce round is what
+                        // longer on this peer alone cannot bring it back (native replay never rewinds
+                        // the live checksum clock) — a FRESH quiesce round is what
                         // gives every peer a new, current value to agree on instead.
                         CommitRetryAfterClockMoveCount++;
                         Log.Write($"[UndoProtocol] COMMIT ABORTED (phase 4, moved-since-agreement{(clockMoveInjected ? ", FUZZ-INJECTED" : "")}) for id={targetId}: local NextId={localNextId} no longer equals the agreed clock={effectiveAgreedChecksumId}{(clockMoveInjected ? $" (real agreed={agreedChecksumId}, forced by --undosync-mpfuzz-inject-clock-move)" : "")} — requesting a fresh quiesce round rather than restoring alone.");
@@ -2110,15 +2048,36 @@ internal static class UndoProtocol
                     // comment; the idle check above already required a literally empty queue, so this can only
                     // ever record zero, but it stays as an explicit, independently-logged assertion.
                     AssertQueueEmptyOrRecordViolation("CommitAsync");
-                    ChecksumHook.RestoreTo(sp);
-                    CommitCount++;
-                    LastCommittedChecksumId = sp.ChecksumId;
-                    // Tell the host this peer is done — see "── Cross-peer restore barrier ──"
-                    // below. Sent even if this peer's own barrier failed to arm (reflection
-                    // missing/threw): the ack means "I finished restoring", independent of whether
-                    // the barrier itself is enforcing that on this peer.
-                    SendRestoreAck(sp.ChecksumId);
+
+                    // Record the transition before invalidating the old barrier and tearing down
+                    // the game service. This monotonic diagnostic is the fuzzer's in-flight signal.
+                    _nativeReplayTransitionsStartedCount++;
+
+                    // Invalidate every old barrier watchdog before the game service is torn down.
+                    // ResetBarrier deliberately does not touch the game's new-session input flag;
+                    // NativeReplayCompletion owns that flag after the official reload completes.
+                    ResetBarrier();
                     resolved = true;
+
+                    NativeReplayRestoreResult restore =
+                        await NativeReplayRestorer.RestoreMultiplayerAsync(canonicalPlan);
+                    if (!restore.Success)
+                    {
+                        Log.Write($"[UndoProtocol] NATIVE REPLAY RESTORE FAILED locally for id={targetId} canonicalEvents={canonicalPlan.EventCount}: {restore.Detail}");
+                        return;
+                    }
+
+                    NativeReplayCompletionResult completion =
+                        await NativeReplayCompletion.WaitForQuorumAsync(canonicalPlan);
+                    if (!completion.Success)
+                    {
+                        Log.Write($"[UndoProtocol] NATIVE REPLAY COMPLETION FAILED locally for id={targetId} canonicalEvents={canonicalPlan.EventCount}: {completion.Detail}");
+                        return;
+                    }
+
+                    CommitCount++;
+                    LastCommittedChecksumId = canonicalPlan.TargetChecksumId;
+                    Log.Write($"[UndoProtocol] Native replay commit completed id={targetId} canonicalEvents={canonicalPlan.EventCount}: {completion.Detail}");
                     return;
                 }
                 if (tree == null) break;
@@ -2132,13 +2091,9 @@ internal static class UndoProtocol
         }
         finally
         {
-            // See this method's own doc comment and `resolved`'s own comment above. Deliberately a
-            // single call site outside every branch, not one copied into each early return: a
-            // release/report statement duplicated per-branch is exactly the shape that let the
-            // moved-since-agreement and never-re-idle branches silently diverge from each other
-            // before this fix (one had a comment claiming the resulting divergence was fine; neither
-            // told the host anything). This also fires for the exception path above, which the old
-            // code left with no ack AND no cancel — the same barrier-hang defect by a different route.
+            // Only pre-teardown failures may use the old retry path. Native replay sets resolved
+            // before invoking the restorer, so exceptions and failures after teardown cannot talk
+            // over the disposed service.
             if (!resolved)
                 RequestCommitRetryOrGiveUp(targetId, round);
         }
@@ -2200,7 +2155,7 @@ internal static class UndoProtocol
     //     unconditionally and logging that the session may now be divergent.
     //
     // Singleplayer cannot deadlock on any of this: ProposeTarget's own `svc.Type ==
-    // NetGameType.Singleplayer` branch (above) calls ChecksumHook.RestoreTo directly and returns
+    // NetGameType.Singleplayer` branch (above) blocks because native replay restore is multiplayer-only and returns
     // BEFORE ArmBarrierForProposal is EVER reached — there is no barrier, no vote, and no
     // quiescence-quorum handshake for a deadlock to wait on, because none of that code runs at all.
     // This is the WHOLE guarantee: a single early `return` on the one code path every undo request
@@ -2303,7 +2258,6 @@ internal static class UndoProtocol
     {
         _barrierTargetId = targetId;
         _barrierGeneration++;
-        _acked.Clear();
         _departureAffectedCurrentBarrier = false; // fresh barrier lifecycle — see that field's own doc comment
         ArmActionBarrier();
         _ = BarrierTimeoutWatchdog(_barrierGeneration, targetId);
@@ -2342,7 +2296,6 @@ internal static class UndoProtocol
         ReleaseActionBarrier();
         _barrierTargetId = null;
         _barrierGeneration++;
-        _acked.Clear();
         _commitTargetId = null;
         _departureAffectedCurrentBarrier = false;
     }
@@ -2386,8 +2339,6 @@ internal static class UndoProtocol
                 + "— releasing the barrier on this peer unconditionally. Peers may now be DIVERGENT: some may "
                 + "still be mid-restore, or the resume broadcast never arrived. Treat the next checksum "
                 + "mismatch, if any, as expected fallout of this timeout, not a new bug.");
-            if (_registeredService?.Type == NetGameType.Host)
-                _registeredService.SendMessage(new UndoResumeMessage { targetChecksumId = targetId });
             ReleaseBarrierForTarget(targetId);
         }
         catch (Exception ex)
@@ -2446,7 +2397,7 @@ internal static class UndoProtocol
     // them), never manufactures a synthetic reject/cancel on their behalf. Reasoning:
     //   - A departure carries no information that could make completing UNSAFE, unlike an explicit reject
     //     (RegisterVote) or an explicit conflicting checksum (CheckQuiesceRound's disagreement branch). The
-    //     departed peer will never call ChecksumHook.RestoreTo, so whatever state they held is already
+    //     departed peer will never reach native replay completion, so whatever state they held is already
     //     irrelevant to the two things this whole protocol protects: every REMAINING peer restoring to the
     //     same point, and every remaining peer's checksum clock agreeing. Both stay fully enforced —
     //     AllPlayerIds() (now filtered) still requires unanimous agreement among everyone still actually
@@ -2630,7 +2581,6 @@ internal static class UndoProtocol
         bool hadAlreadyReported = _quiesceReports.ContainsKey(peerId);
         _accepted.Remove(peerId);
         _quiesceReports.Remove(peerId);
-        _acked.Remove(peerId);
 
         // Only the host tallies/decides quorum outcomes — CheckAllAccepted/CheckQuiesceRound/CheckAllAcked
         // are host-only by convention throughout this file (see their own doc comments). A client peer has
@@ -2647,7 +2597,6 @@ internal static class UndoProtocol
         CheckAllAccepted();
         if (_quiesceTargetId is uint quiesceTarget && !hadAlreadyReported)
             CheckQuiesceRound(quiesceTarget, _quiesceRound);
-        CheckAllAcked();
     }
 
     // ── Popup UI ──
@@ -2832,7 +2781,6 @@ internal static class UndoProtocol
         _barrierTargetId = null;
         _barrierGeneration++;
         _barrierPreviousActionsDisabled = null;
-        _acked.Clear();
         _commitTargetId = null; // see ReleaseBarrierForTarget's own comment on the same field
         _departureAffectedCurrentBarrier = false;
     }

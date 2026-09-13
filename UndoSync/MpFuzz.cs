@@ -92,6 +92,15 @@ namespace UndoSync;
 ///                               NMultiplayerTest.cs:313). Default 1001.
 ///   --undosync-mpfuzz-noquit   Optional. Stay open at the end instead of quitting — mirrors
 ///                               UndoFuzz's --undosync-fuzz-noquit / --undosync-uitest-noquit.
+///   --undosync-mpfuzz-force-silent Optional, test-only. Makes both roles choose the known Silent
+///                               paginator entry at index 1, producing a reproducible Survivor
+///                               player-choice combat. Absent this flag, character randomization
+///                               is unchanged.
+///   --undosync-mpfuzz-propose-after-player-choice Optional, host-only test mode. Postpones restore
+///                               proposals until the current native CombatReplay contains a real
+///                               PlayerChoice event, and only chooses targets whose native event
+///                               prefix includes that first choice. Normal proposal behavior is
+///                               unchanged when absent.
 ///   --undosync-mpfuzz-inject-clock-move        Optional, fuzz-only fault injection. Forces
 ///                               UndoProtocol.CommitAsync's own Phase-4 "moved-since-agreement"
 ///                               recheck to observe a moved clock on THIS peer a bounded number of
@@ -113,6 +122,11 @@ namespace UndoSync;
 ///                               the full design and for why kill -9 cannot exercise that path at
 ///                               all. Meaningful only on the CLIENT process (only the host proposes;
 ///                               see ProposeRestoreIfDue's own doc comment) — pass it there.
+///   --undosync-mpfuzz-picker-pagination-probe Optional, host-only. Requires --undosync-mpfuzz.
+///                               Waits for more than eight real native sync-point choices, opens the
+///                               live picker during the driver's idle window, exercises the actual
+///                               Next-button path, and closes without choosing. Failure or an early
+///                               combat end is a fuzzer FAILURE; normal cadence is unchanged.
 ///
 /// WHY THIS ROUTE (see the design note this file was speced from): --fastmp already automates the
 /// network side (NMultiplayerSubmenu.StartHostAsync -> NetHostGameService.StartENetHost;
@@ -279,6 +293,7 @@ internal static class MpFuzz
     private const string RoleArg = "undosync-mpfuzz-role";
     private const string ClientIdArg = "undosync-mpfuzz-clientid";
     private const string NoQuitArg = "undosync-mpfuzz-noquit";
+    private const string ForceSilentArg = "undosync-mpfuzz-force-silent";
 
     /// <summary>Default for --undosync-mpfuzz-clientid, per the design note.</summary>
     private const ulong DefaultClientId = 1001;
@@ -307,6 +322,18 @@ internal static class MpFuzz
     // (verified live: no disconnect was ever logged by the mod or the game within the run's lifetime)
     // ---------------------------------------------------------------------------------------------
     private const string LeaveOnVoteArg = "undosync-mpfuzz-leave-on-vote";
+    private const string PickerPaginationProbeArg = "undosync-mpfuzz-picker-pagination-probe";
+
+    private static bool _pickerPaginationProbeRequested;
+    private static bool _pickerPaginationProbePassed;
+    private static bool _pickerPaginationProbeFailed;
+    private static int _pickerPaginationLastLoggedChoiceCount = -1;
+    private static string _pickerPaginationProbeFailure = "";
+    private static Task<UndoPicker.PaginationProbeResult>? _pickerPaginationProbeTask;
+
+    private const string ProposeAfterPlayerChoiceArg = "undosync-mpfuzz-propose-after-player-choice";
+    private static bool _proposeAfterPlayerChoiceRequested;
+    private static bool _proposeAfterPlayerChoiceWaitLogged;
 
     /// <summary>This is always a two-instance test: one host, one client.</summary>
     private const int ExpectedPlayerCount = 2;
@@ -339,6 +366,11 @@ internal static class MpFuzz
     /// an asset load.
     /// </summary>
     private static readonly TimeSpan MapVoteTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>Bound for the opt-in picker probe's idle gate, deferred input retry, and picker
+    /// readiness wait. The probe must not turn a transient action-queue blocker into a false
+    /// failure, but it also must not postpone the combat indefinitely.</summary>
+    private static readonly TimeSpan PickerPaginationProbeTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>Real-time poll cadence for every wait in this file. Coarser than UndoFuzz's own
     /// 10ms IdlePollInterval on purpose: every wait here is bounded in minutes and spans a network
@@ -384,6 +416,12 @@ internal static class MpFuzz
     /// to happen at all.</summary>
     private static readonly TimeSpan DivergenceWatchAfterCommit = TimeSpan.FromSeconds(5);
 
+    /// <summary>Maximum time the MpFuzz driver may wait after the old combat ends for a
+    /// proposal that already entered the native replay commit path to finish. Native replay tears
+    /// down the old CombatManager before CommitCount advances, so the normal combat-loop lifetime
+    /// is not a sufficient bound for this transition.</summary>
+    private static readonly TimeSpan NativeReplayCommitTimeout = TimeSpan.FromMinutes(5);
+
     /// <summary>Bound for <see cref="WatchCardSelectionLoopAsync"/>'s own wait — via the file's
     /// EXISTING <see cref="WaitForConditionAsync"/> helper (Stopwatch + PollInterval, no new timer) —
     /// for NPlayerHand.IsInCardSelection to actually clear after this file has answered a prompt
@@ -427,6 +465,8 @@ internal static class MpFuzz
     private static readonly MethodInfo? MCheckIfSelectionComplete = AccessTools.Method(typeof(NPlayerHand), "CheckIfSelectionComplete"); // NPlayerHand.cs:1251
     private static readonly MethodInfo? MOnSelectModeConfirmButtonPressed = AccessTools.Method(typeof(NPlayerHand), "OnSelectModeConfirmButtonPressed"); // NPlayerHand.cs:1246
 
+    // CombatReplayWriter._replay is the game's native current-combat journal; this private field name
+    // is verified in decompiled/.../Multiplayer/Replay/CombatReplayWriter.cs:27.
     /// <summary>Number of debug characters <see cref="NMultiplayerTestCharacterPaginator"/> offers —
     /// its private `_characters` array is a fixed 5-element Ironclad/Silent/Regent/Necrobinder/Defect
     /// set (NMultiplayerTestCharacterPaginator.cs:47-54), verified directly against source rather
@@ -460,6 +500,8 @@ internal static class MpFuzz
         try
         {
             if (!CommandLineHelper.HasArg(MpFuzzArg)) return;
+
+            NativeReplayProbe.LogActivationRequirement();
 
             if (CommandLineHelper.HasArg("undosync-fuzz") || CommandLineHelper.HasArg("undosync-uitest"))
             {
@@ -550,6 +592,27 @@ internal static class MpFuzz
                     + "exercise that path at all).");
             }
 
+            _pickerPaginationProbeRequested = isHost && CommandLineHelper.HasArg(PickerPaginationProbeArg);
+            _pickerPaginationProbePassed = false;
+            _pickerPaginationProbeFailed = false;
+            _pickerPaginationLastLoggedChoiceCount = -1;
+            _pickerPaginationProbeFailure = "";
+            _pickerPaginationProbeTask = null;
+            if (_pickerPaginationProbeRequested)
+            {
+                Log.Write($"[MpFuzz] --{PickerPaginationProbeArg} detected on host — postponing the "
+                    + "first regular undo proposal until >8 real native sync-point choices exist.");
+            }
+
+            _proposeAfterPlayerChoiceRequested = isHost && CommandLineHelper.HasArg(ProposeAfterPlayerChoiceArg);
+            _proposeAfterPlayerChoiceWaitLogged = false;
+            if (_proposeAfterPlayerChoiceRequested)
+            {
+                Log.Write($"[MpFuzz] --{ProposeAfterPlayerChoiceArg} detected on host — postponing "
+                    + "restore proposals until a real native PlayerChoice event is recorded, then "
+                    + "restricting targets to prefixes that include that first choice.");
+            }
+
             Log.Write($"[MpFuzz] --{MpFuzzArg} detected — role={role}"
                 + (isHost ? "" : $" clientId={clientId}")
                 + " — will run once game startup completes.");
@@ -608,6 +671,14 @@ internal static class MpFuzz
     /// summary so a divergence is visible in both the immediate per-occurrence "[MpFuzz][divergence]"
     /// line and the run's final verdict, without needing to scroll back.</summary>
     private static string _lastDivergenceDetail = "";
+
+    /// <summary>Number of committed native replays whose post-replay state did not become usable
+    /// within <see cref="NativeReplayReadyTimeout"/>. This is deliberately independent of the old
+    /// StateSnapshot/UiRefresh fidelity counters: production undo now restores by replaying the
+    /// game's native CombatReplay event journal.</summary>
+    private static int _nativeReplayFailures;
+
+    private static readonly TimeSpan NativeReplayReadyTimeout = TimeSpan.FromSeconds(15);
 
     /// <summary>
     /// Installs a Harmony POSTFIX on
@@ -679,35 +750,46 @@ internal static class MpFuzz
 
     /// <summary>
     /// The debug multiplayer scene remains the listener for its <see cref="StartRunLobby"/> even after
-    /// that scene has been replaced by the real run scene.  A later client departure therefore reaches
-    /// <c>NMultiplayerTest.RemotePlayerDisconnected</c> with freed UI nodes and throws before
-    /// StartRunLobby can finish broadcasting its PlayerLeftMessage.  That blocks the real RunLobby's
-    /// departure event, which is the very signal this fuzz mode needs to exercise.  Skip only that stale
-    /// debug-UI callback after a run has begun; this patch is installed solely by --undosync-mpfuzz.
+    /// that scene has been replaced by the real run scene.  A later departure therefore reaches either
+    /// <c>NMultiplayerTest.RemotePlayerDisconnected</c> or <c>NMultiplayerTest.LocalPlayerDisconnected</c>
+    /// with freed UI nodes and throws before StartRunLobby can finish its disconnect propagation.  Skip
+    /// only those stale local/remote debug-UI callbacks after a run has begun; the game's disconnect
+    /// propagation remains intact.  This patch is installed solely by --undosync-mpfuzz.
     /// </summary>
     private static void InstallStaleDebugDisconnectGuardPatch()
     {
         try
         {
             var harmony = new Harmony("undosync.mpfuzz");
-            var original = AccessTools.Method(typeof(NMultiplayerTest), "RemotePlayerDisconnected");
             var prefix = new HarmonyMethod(AccessTools.Method(typeof(MpFuzz), nameof(AllowDebugDisconnectUiUpdate)));
-            harmony.Patch(original, prefix: prefix);
-            Log.Write("[MpFuzz] Patched NMultiplayerTest.RemotePlayerDisconnected (mpfuzz-only) to skip its stale UI update after run start.");
+            var remoteOriginal = AccessTools.Method(typeof(NMultiplayerTest), "RemotePlayerDisconnected");
+            if (remoteOriginal == null)
+                Log.Write("[MpFuzz] WARNING: stale debug disconnect guard reflection target unavailable: NMultiplayerTest.RemotePlayerDisconnected");
+            else
+                harmony.Patch(remoteOriginal, prefix: prefix);
+
+            var localOriginal = AccessTools.Method(typeof(NMultiplayerTest), "LocalPlayerDisconnected");
+            if (localOriginal == null)
+                Log.Write("[MpFuzz] WARNING: stale debug disconnect guard reflection target unavailable: NMultiplayerTest.LocalPlayerDisconnected");
+            else
+                harmony.Patch(localOriginal, prefix: prefix);
+
+            if (remoteOriginal != null && localOriginal != null)
+                Log.Write("[MpFuzz] Patched NMultiplayerTest.RemotePlayerDisconnected and NMultiplayerTest.LocalPlayerDisconnected (mpfuzz-only) to skip stale local/remote debug UI callbacks after run start; game disconnect propagation remains intact.");
         }
         catch (Exception ex)
         {
-            Log.Write($"[MpFuzz] WARNING: failed to install stale debug disconnect guard: {ex.Message}");
+            Log.Write($"[MpFuzz] WARNING: failed to install stale local/remote debug disconnect UI guards; game disconnect propagation was not intentionally suppressed: {ex.Message}");
         }
     }
 
-    /// <summary>Harmony prefix for the debug-scene guard above. Returning false skips only the dead
-    /// scene's cosmetic node update; StartRunLobby still completes its own disconnect propagation.</summary>
+    /// <summary>Harmony prefix for both debug-scene guards above. Returning false skips only the dead
+    /// scene's cosmetic node update; StartRunLobby still completes the game's disconnect propagation.</summary>
     private static bool AllowDebugDisconnectUiUpdate()
     {
         if (RunManager.Instance?.IsInProgress != true)
             return true;
-        Log.Write("[MpFuzz] Skipped stale NMultiplayerTest disconnect UI update after run start.");
+        Log.Write("[MpFuzz] Skipped stale NMultiplayerTest local/remote disconnect UI update after run start; game disconnect propagation remains intact.");
         return false;
     }
 
@@ -766,6 +848,7 @@ internal static class MpFuzz
 
     private static async Task RunAsync(bool isHost, ulong clientId)
     {
+        _nativeReplayFailures = 0;
         string role = isHost ? "host" : "client";
         Log.Write($"[MpFuzz] ==================== starting: role={role} ====================");
 
@@ -923,6 +1006,12 @@ internal static class MpFuzz
             Log.Write($"[MpFuzz] combat entered: role={role} netId={myNetId} playersInCombat={players?.Count.ToString() ?? "null"} "
                 + $"players=[{playersDesc}] checksumTrackerEnabled={checksumEnabled}");
 
+            if (NativeReplayProbe.IsEnabled)
+            {
+                await NativeReplayProbe.RunAsync(isHost, clientId);
+                return;
+            }
+
             // Step 9: STEP 2 + STEP 3 — drive OUR OWN local player through the combat, and (via
             // DriveOurCombatAsync's own ProposeRestoreIfDue hook + WatchCommitsLoopAsync)
             // propose/watch synchronized undos alongside it. Resolve `me` again (the map-vote step's
@@ -958,9 +1047,6 @@ internal static class MpFuzz
 
             var loadoutResult = await InjectLoadoutAsync(role, me, roomTypeUsed);
 
-            int restoreSectionFailuresBefore = StateSnapshot.RestoreSectionFailureCount;
-            int uiRefreshFailuresBefore = UiRefresh.UiRefreshFailureCount;
-            int orbInvariantViolationsBefore = UiRefresh.OrbInvariantViolationCount;
             int staleIsEmptyBefore = UndoSyncMod.StaleIsEmptyObservations;
 
             var outcome = await DriveOurCombatAsync(role, me, characterId);
@@ -986,9 +1072,6 @@ internal static class MpFuzz
             outcome.DeckCardsInjected = loadoutResult.DeckCardsInjected;
             outcome.CardsUpgraded = loadoutResult.CardsUpgraded;
 
-            int restoreSectionFailureDelta = StateSnapshot.RestoreSectionFailureCount - restoreSectionFailuresBefore;
-            int uiRefreshFailureDelta = UiRefresh.UiRefreshFailureCount - uiRefreshFailuresBefore;
-            int orbInvariantViolationDelta = UiRefresh.OrbInvariantViolationCount - orbInvariantViolationsBefore;
             // See UndoSyncMod.IsActionQueueIdle's doc comment for the mechanism this counts: a
             // combat where this is nonzero proves ActionQueueSet.IsEmpty actually went stale (not
             // just that the fix code path exists) — see this file's own top-of-file design note and
@@ -1014,6 +1097,14 @@ internal static class MpFuzz
             // no DriveError), AND real progress (TurnsPlayed and CardsPlayed both above zero). A run
             // that did not drive a combat must never read as a pass — the else branch below names
             // exactly which of these failed, rather than only ever blaming divergences.
+            if (_pickerPaginationProbeRequested && !_pickerPaginationProbePassed)
+            {
+                _pickerPaginationProbeFailure = string.IsNullOrEmpty(_pickerPaginationProbeFailure)
+                    ? "combat ended before the live picker pagination probe reached >8 real sync-point choices"
+                    : _pickerPaginationProbeFailure;
+                outcome.DriveError ??= _pickerPaginationProbeFailure;
+            }
+            bool pickerPaginationProbeOk = !_pickerPaginationProbeRequested || _pickerPaginationProbePassed;
             bool zeroDivergences = _divergenceCount == 0;
             bool combatActuallyCompleted = outcome.Completed && outcome.DriveError == null;
             bool madeRealProgress = outcome.TurnsPlayed > 0 && outcome.CardsPlayed > 0;
@@ -1023,8 +1114,7 @@ internal static class MpFuzz
             // detection is worthless if nothing ever restored for the two peers to possibly disagree
             // about the RESULT of).
             bool restoresActuallyCommitted = outcome.RestoresCommitted > 0;
-            bool zeroFidelityFailures = outcome.FidelityFailures == 0;
-            bool zeroOrbInvariantViolations = orbInvariantViolationDelta == 0;
+            bool zeroNativeReplayFailures = _nativeReplayFailures == 0;
             bool zeroSelectionViolations = UndoProtocol.SelectionPendingViolations == 0;
 
             // Both peers dump their whole ring so the same ids can be diffed side by side.
@@ -1041,7 +1131,7 @@ internal static class MpFuzz
                 + $"divergenceCount={_divergenceCount} "
                 + $"restoresProposed={outcome.RestoresProposed} "
                 + $"restoresCommitted={outcome.RestoresCommitted} "
-                + $"fidelityFailures={outcome.FidelityFailures} "
+                + $"nativeReplayFailures={_nativeReplayFailures} "
                 + $"divergencesAfterRestore={outcome.DivergencesAfterRestore} "
                 + $"cardSelectionsAnswered={outcome.CardSelectionsAnswered} "
                 + $"selectionViolations={UndoProtocol.SelectionPendingViolations} "
@@ -1076,9 +1166,8 @@ internal static class MpFuzz
                 + $"departuresDuringProposal={UndoProtocol.DeparturesDuringProposalCount} "
                 + $"proposalsResolvedAfterDeparture={UndoProtocol.ProposalsResolvedAfterDepartureCount} "
                 + $"stuckAfterRestoreCount={(outcome.StuckAfterRestore ? 1 : 0)} "
-                + $"restoreSectionFailureDelta={restoreSectionFailureDelta} "
-                + $"uiRefreshFailureDelta={uiRefreshFailureDelta} "
-                + $"orbInvariantViolationDelta={orbInvariantViolationDelta} "
+                + $"pickerPaginationProbeRequested={_pickerPaginationProbeRequested} "
+                + $"pickerPaginationProbePassed={_pickerPaginationProbePassed} "
                 + $"staleIsEmptyDelta={staleIsEmptyDelta}"
                 + (outcome.DriveError != null ? $" driveError=\"{outcome.DriveError}\"" : "")
                 + (outcome.StuckAfterRestore ? $" stuckAfterRestore=\"{outcome.StuckAfterRestoreDetail}\"" : ""));
@@ -1100,12 +1189,13 @@ internal static class MpFuzz
             }
 
             if (zeroDivergences && combatActuallyCompleted && madeRealProgress && restoresActuallyCommitted
-                && zeroFidelityFailures && zeroOrbInvariantViolations && zeroSelectionViolations)
+                && pickerPaginationProbeOk
+                && zeroNativeReplayFailures && zeroSelectionViolations)
             {
                 Log.Write($"[MpFuzz] SUCCESS role={role} netId={myNetId} characterId={outcome.CharacterId} "
                     + $"— combat driven with "
-                    + $"{outcome.RestoresCommitted} restore(s) committed, zero checksum divergences, "
-                    + "zero fidelity failures, zero orb invariant violations, and zero selection "
+                    + $"{outcome.RestoresCommitted} native replay restore(s) committed, zero checksum "
+                    + "divergences, zero native replay readiness failures, and zero selection "
                     + "violations. See the summary line above for the full counts.");
             }
             else
@@ -1139,15 +1229,14 @@ internal static class MpFuzz
                         + "restoresCommitted=0) — step 3 exists to prove cross-peer restore fidelity, "
                         + "which a run that never actually restored cannot do");
                 }
-                if (!zeroFidelityFailures)
+                if (!pickerPaginationProbeOk)
                 {
-                    reasons.Add($"{outcome.FidelityFailures} restore fidelity failure(s) on this peer "
-                        + "— see the ChecksumHook RESTORE FIDELITY line(s) above");
+                    reasons.Add($"picker pagination probe FAILED: {_pickerPaginationProbeFailure}");
                 }
-                if (!zeroOrbInvariantViolations)
+                if (!zeroNativeReplayFailures)
                 {
-                    reasons.Add($"{orbInvariantViolationDelta} orb invariant violation(s) "
-                        + "(UiRefresh.OrbInvariantViolationCount)");
+                    reasons.Add($"{_nativeReplayFailures} native replay restore(s) did not reach "
+                        + "usable post-replay combat state within the bounded wait");
                 }
                 if (!zeroSelectionViolations)
                 {
@@ -1288,14 +1377,22 @@ internal static class MpFuzz
         // repeated invocations of the same role do not keep landing on the same character.
         int seed = HashCode.Combine(role, System.Environment.ProcessId, DateTime.UtcNow.Ticks);
         var rng = new Random(seed);
-        int index = rng.Next(0, CharacterCount);
+        int index = CommandLineHelper.HasArg(ForceSilentArg) ? 1 : rng.Next(0, CharacterCount);
 
         paginator.SetIndex(index);
         var picked = paginator.Character;
 
-        Log.Write($"[MpFuzz] role={role} randomized character: index={index}/{CharacterCount} "
-            + $"picked={picked.Id.Entry} (was {before.Id.Entry}) "
-            + $"seed={seed} (from role={role}, pid={System.Environment.ProcessId}, ticks).");
+        if (CommandLineHelper.HasArg(ForceSilentArg))
+        {
+            Log.Write($"[MpFuzz] role={role} force flag chose Silent character: index={index}/{CharacterCount} "
+                + $"picked={picked.Id.Entry} (was {before.Id.Entry}).");
+        }
+        else
+        {
+            Log.Write($"[MpFuzz] role={role} randomized character: index={index}/{CharacterCount} "
+                + $"picked={picked.Id.Entry} (was {before.Id.Entry}) "
+                + $"seed={seed} (from role={role}, pid={System.Environment.ProcessId}, ticks).");
+        }
 
         return picked.Id.Entry;
     }
@@ -1663,6 +1760,38 @@ internal static class MpFuzz
             }
         }
 
+        // Diagnostic seed for the native PlayerChoice replay test. Use the same real-network
+        // command path as the other loadout entries so the resulting CardModel action is recorded
+        // by the ordinary CombatReplay journal. This is deliberately opt-in; normal mpfuzz loadouts
+        // remain unchanged when the proposal-after-choice flag is absent.
+        if (_proposeAfterPlayerChoiceRequested)
+        {
+            const string survivorId = "SURVIVOR";
+            int survivorCountBefore = PileType.Hand.GetPile(me).Cards
+                .Count(card => card.Id.Entry == survivorId);
+            bool survivorSeeded = await IssueLoadoutCommandAndWaitAsync(
+                role,
+                me,
+                "card SURVIVOR Hand",
+                () => PileType.Hand.GetPile(me).Cards
+                    .Count(card => card.Id.Entry == survivorId) > survivorCountBefore);
+            if (survivorSeeded)
+            {
+                int survivorCountAfter = PileType.Hand.GetPile(me).Cards
+                    .Count(card => card.Id.Entry == survivorId);
+                Log.Write($"[MpFuzz] role={role} native PlayerChoice test seed succeeded: "
+                    + $"'card SURVIVOR Hand' increased hand count {survivorCountBefore}->{survivorCountAfter}.");
+            }
+            else
+            {
+                int survivorCountAfter = PileType.Hand.GetPile(me).Cards
+                    .Count(card => card.Id.Entry == survivorId);
+                Log.Write($"[MpFuzz] role={role} native PlayerChoice test seed FAILED: "
+                    + $"'card SURVIVOR Hand' did not increase hand count "
+                    + $"({survivorCountBefore}->{survivorCountAfter}); continuing loadout injection.");
+            }
+        }
+
         // --- Upgrades ------------------------------------------------------------------------------
         // Targets whatever is CURRENTLY in me's hand — the fresh encounter's own dealt starting hand,
         // already in place by this point since SwitchToRandomEncounterAsync (called before this method)
@@ -1844,6 +1973,9 @@ internal static class MpFuzz
         var outcome = new UndoFuzz.CombatOutcome { CombatIndex = 0, BaseSeed = $"mpfuzz-{role}", Seed = $"mpfuzz-{role}", CharacterId = characterId };
         var rng = new Random();
         var proposeRng = new Random();
+        int commitCountBeforeDrive = UndoProtocol.CommitCount;
+        int transitionsBeforeDrive = UndoProtocol.NativeReplayTransitionsStartedCount;
+        int proposalsBeforeDrive = outcome.RestoresProposed;
 
         Log.Write($"[MpFuzz] role={role} driving combat "
             + $"(idleWaitTimeout={UndoFuzz.MultiplayerIdleWaitTimeout.TotalMinutes}m, "
@@ -1867,7 +1999,7 @@ internal static class MpFuzz
         // it concurrently via a fire-and-forget Task is safe under this file's own single-threaded,
         // cooperative-interleaving-via-await model (same assumption every other polling loop in this
         // mod already relies on — see e.g. UndoFuzz's own "_gameErrors" doc comment).
-        _ = WatchCommitsLoopAsync(role, outcome);
+        _ = WatchCommitsLoopAsync(role, outcome, transitionsBeforeDrive);
 
         // Step 9 addendum, REVISED — see this method's own doc comment ("IN-COMBAT CARD-SELECTION
         // PROMPTS") for why the earlier CardSelectCmd.UseSelector install was abandoned and replaced
@@ -1891,7 +2023,165 @@ internal static class MpFuzz
 
         await UndoFuzz.DriveCombatAsync(0, me, rng, outcome);
 
+        // Native replay replaces the live CombatManager. Consequently the first driver can return
+        // through its old `while (CombatManager.Instance.IsInProgress)` loop exactly when the old
+        // combat is torn down, before UndoProtocol.CommitCount is published by CommitAsync. If we
+        // returned to RunAsync here, it would print a false failure before the new combat existed.
+        // Wait for the native commit, verify the new combat's real readiness, then continue with a
+        // freshly resolved Player from the rebuilt RunState. No snapshot or UI refresh is involved.
+        if (HasPendingNativeReplay(outcome, proposalsBeforeDrive, transitionsBeforeDrive))
+        {
+            await ContinueAfterPendingNativeReplayAsync(
+                role,
+                outcome,
+                rng,
+                commitCountBeforeDrive);
+        }
+        else
+        {
+            // No native transition was observed: the combat ended naturally, so do not leave the
+            // multiplayer-only callback installed for a later combat or teardown callback.
+            UndoFuzz.MpProposeRestoreHook = null;
+        }
+
         return outcome;
+    }
+
+    /// <summary>Returns whether this fuzzer iteration still has a native replay in flight. Host
+    /// proposals are visible through <paramref name="outcome"/>; the transition counter is needed
+    /// for clients, which receive the proposal and arm the same production barrier without ever
+    /// incrementing the host-only proposal counter.</summary>
+    private static bool HasPendingNativeReplay(
+        UndoFuzz.CombatOutcome outcome,
+        int proposalsBeforeDrive,
+        int transitionsBeforeDrive)
+    {
+        if (outcome.RestoresProposed > proposalsBeforeDrive)
+            return true;
+
+        return UndoProtocol.NativeReplayTransitionsStartedCount > transitionsBeforeDrive;
+    }
+
+    /// <summary>
+    /// Completes the hand-off from the pre-replay combat driver to the native replay-created combat.
+    /// The proposal count is the MpFuzz-local indication that a restore may still be in flight; the
+    /// authoritative completion signal is UndoProtocol.CommitCount. Once that advances, readiness
+    /// is checked against the rebuilt native game objects and the same production combat driver is
+    /// resumed with a Player resolved from the new RunState.
+    /// </summary>
+    private static async Task ContinueAfterPendingNativeReplayAsync(
+        string role,
+        UndoFuzz.CombatOutcome outcome,
+        Random rng,
+        int commitCountBeforeDrive,
+        int continuationCount = 0)
+    {
+        try
+        {
+            bool committed = await WaitForConditionAsync(
+                () => UndoProtocol.CommitCount > commitCountBeforeDrive,
+                NativeReplayCommitTimeout);
+            if (!committed)
+            {
+                outcome.DriveError = $"native replay was proposed but CommitCount did not advance from {commitCountBeforeDrive} within {NativeReplayCommitTimeout.TotalSeconds}s";
+                Log.Write($"[MpFuzz] role={role} POST-REPLAY PROGRESS FAILURE — {outcome.DriveError}.");
+                return;
+            }
+
+            uint committedId = UndoProtocol.LastCommittedChecksumId;
+            bool ready = await WaitForNativeReplayReadyAsync(role, committedId);
+            if (!ready)
+            {
+                outcome.DriveError = $"native replay commit id={committedId} advanced CommitCount but never became ready";
+                Log.Write($"[MpFuzz] role={role} POST-REPLAY PROGRESS FAILURE — {outcome.DriveError}.");
+                return;
+            }
+
+            if (ChecksumHook.TryGetSyncPoint(committedId, out var restoredPoint))
+            {
+                    // Arm UndoFuzz's existing external-restore watch before the resumed driver issues its
+                    // first action. This is only metadata about the native commit; it does not restore or
+                    // copy state.
+                    UndoFuzz.NotifyExternalRestore(restoredPoint);
+            }
+            else
+            {
+                    Log.Write($"[MpFuzz] role={role} WARNING — native replay commit id={committedId} has no local sync-point journal entry; "
+                        + "stuck-after-restore watch is unavailable on this peer. Continuing with rebuilt combat.");
+            }
+
+            var rebuiltState = RunManager.Instance?.DebugOnlyGetState();
+            var rebuiltMe = rebuiltState != null ? LocalContext.GetMe(rebuiltState) : null;
+            if (rebuiltMe == null)
+            {
+                    outcome.DriveError = "native replay became ready but the rebuilt RunState had no local Player";
+                    Log.Write($"[MpFuzz] role={role} POST-REPLAY PROGRESS FAILURE — {outcome.DriveError}.");
+                return;
+            }
+
+            int turnsBefore = outcome.TurnsPlayed;
+            int cardsBefore = outcome.CardsPlayed;
+
+                // The first commit watcher survives all native transitions. Only re-arm the synchronous
+                // proposal hook for this rebuilt driver's idle windows; starting another watcher here
+                // would double-count commits and divergence observations.
+            UndoFuzz.MpProposeRestoreHook = () => ProposeRestoreIfDue(role, outcome, rng);
+            int rebuiltCardSelectSeed = HashCode.Combine(
+                    "cardselect-rebuilt", role, System.Environment.ProcessId, DateTime.UtcNow.Ticks);
+            var rebuiltCardSelectRng = new Random(rebuiltCardSelectSeed);
+            Log.Write($"[MpFuzz] role={role} starting WatchCardSelectionLoopAsync for rebuilt combat "
+                    + $"after native replay id={committedId} (seed={rebuiltCardSelectSeed}).");
+            _ = WatchCardSelectionLoopAsync(role, outcome, rebuiltCardSelectRng);
+            Log.Write($"[MpFuzz] role={role} resuming combat driver after native replay id={committedId} "
+                    + $"(turns={turnsBefore}, cards={cardsBefore}); rebuilt local player netId={rebuiltMe.NetId}.");
+
+            int proposalsBeforeRebuiltDrive = outcome.RestoresProposed;
+            int transitionsBeforeRebuiltDrive = UndoProtocol.NativeReplayTransitionsStartedCount;
+            int commitCountBeforeRebuiltDrive = UndoProtocol.CommitCount;
+            await UndoFuzz.DriveCombatAsync(0, rebuiltMe, rng, outcome);
+            bool nextReplayPending = HasPendingNativeReplay(
+                outcome,
+                proposalsBeforeRebuiltDrive,
+                transitionsBeforeRebuiltDrive);
+
+            if (outcome.TurnsPlayed == turnsBefore
+                && outcome.CardsPlayed == cardsBefore)
+            {
+                    outcome.DriveError ??= "native replay became ready but the resumed combat driver made no action progress";
+                    Log.Write($"[MpFuzz] role={role} POST-REPLAY PROGRESS FAILURE — no turn/card counter advanced "
+                        + $"after native replay id={committedId}.");
+            }
+            else
+            {
+                    Log.Write($"[MpFuzz] role={role} POST-REPLAY PROGRESS confirmed for id={committedId}: "
+                        + $"turns={outcome.TurnsPlayed - turnsBefore}, cards={outcome.CardsPlayed - cardsBefore}.");
+            }
+
+            if (nextReplayPending)
+            {
+                if (continuationCount + 1 >= MaxProposalsPerCombat)
+                {
+                    Log.Write($"[MpFuzz] role={role} native replay continuation reached the proposal cap "
+                        + $"({MaxProposalsPerCombat}) while another transition was pending.");
+                    return;
+                }
+
+                await ContinueAfterPendingNativeReplayAsync(
+                    role,
+                    outcome,
+                    rng,
+                    commitCountBeforeRebuiltDrive,
+                    continuationCount + 1);
+                return;
+            }
+
+            UndoFuzz.MpProposeRestoreHook = null;
+        }
+        finally
+        {
+            // Natural combat completion and every bounded failure path leave no callback behind.
+            UndoFuzz.MpProposeRestoreHook = null;
+        }
     }
 
     // ==================================================================================
@@ -1946,9 +2236,242 @@ internal static class MpFuzz
     /// itself in RunAsync's step-10 summary instead of reporting restoresProposed=0 with no further
     /// clue — see the summary block's new "propose skip breakdown" line.
     /// </summary>
+    /// <summary>
+    /// Runs the opt-in picker probe after the synchronous combat hook has returned to the main
+    /// loop. The first wait uses the same exact CanUndoRedo() guard as the production path. The
+    /// deferred callback re-checks that guard immediately before injecting Left and re-schedules
+    /// itself while the local queue is briefly busy, so a scheduling race is not reported as a
+    /// probe failure. Once input has been injected, the existing bounded condition helper waits
+    /// until the real picker exists before a deferred inspection calls InspectPaginationForFuzzer.
+    /// </summary>
+    private static async Task RunPickerPaginationProbeAsync(
+        string role,
+        TaskCompletionSource<UndoPicker.PaginationProbeResult> probeCompletion)
+    {
+        var deadline = Stopwatch.StartNew();
+        try
+        {
+            bool idle = await WaitForConditionAsync(
+                UndoSyncMod.CanUndoRedo, PickerPaginationProbeTimeout);
+            if (!idle)
+            {
+                string blockers = UndoSyncMod.DescribeUndoRedoBlockers();
+                Log.Write($"[MpFuzz] role={role} picker pagination probe timed out before deferred "
+                    + $"input scheduling; blockers={blockers}.");
+                throw new TimeoutException(
+                    $"CanUndoRedo remained false before picker input scheduling: {blockers}");
+            }
+
+            var inputCompletion = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            string lastBlockers = "";
+
+            void RetryOrInjectLeft()
+            {
+                if (inputCompletion.Task.IsCompleted)
+                    return;
+
+                // This is deliberately the last operation before genuine native input injection.
+                if (UndoSyncMod.CanUndoRedo())
+                {
+                    Input.ParseInputEvent(new InputEventKey
+                    {
+                        Keycode = Key.Left,
+                        Pressed = true,
+                        Echo = false,
+                    });
+                    Log.Write($"[MpFuzz] role={role} picker pagination probe native Left input injected.");
+                    inputCompletion.TrySetResult(true);
+                    return;
+                }
+
+                string blockers = UndoSyncMod.DescribeUndoRedoBlockers();
+                if (!string.Equals(blockers, lastBlockers, StringComparison.Ordinal))
+                {
+                    lastBlockers = blockers;
+                    Log.Write($"[MpFuzz] role={role} picker pagination probe deferred input still "
+                        + $"blocked; blockers={blockers}; retrying within "
+                        + $"{PickerPaginationProbeTimeout.TotalSeconds}s.");
+                }
+
+                if (deadline.Elapsed >= PickerPaginationProbeTimeout)
+                {
+                    Log.Write($"[MpFuzz] role={role} picker pagination probe input retry timed out; "
+                        + $"blockers={blockers}.");
+                    inputCompletion.TrySetResult(false);
+                    return;
+                }
+
+                Callable.From(RetryOrInjectLeft).CallDeferred();
+            }
+
+            Callable.From(RetryOrInjectLeft).CallDeferred();
+            bool inputFinished = await WaitForConditionAsync(
+                () => inputCompletion.Task.IsCompleted, PickerPaginationProbeTimeout);
+            if (!inputFinished || !inputCompletion.Task.Result)
+            {
+                string blockers = UndoSyncMod.DescribeUndoRedoBlockers();
+                Log.Write($"[MpFuzz] role={role} picker pagination probe did not inject Left "
+                    + $"within {PickerPaginationProbeTimeout.TotalSeconds}s; blockers={blockers}.");
+                throw new TimeoutException(
+                    $"deferred picker input did not reach a CanUndoRedo window: {blockers}");
+            }
+
+            bool pickerOpen = await WaitForConditionAsync(
+                () => UndoPicker.IsOpen
+                    && UndoPicker.CurrentPopup is { } popup
+                    && GodotObject.IsInstanceValid(popup),
+                PickerPaginationProbeTimeout);
+            if (!pickerOpen)
+            {
+                Log.Write($"[MpFuzz] role={role} picker pagination probe timed out waiting for the "
+                    + $"open native picker; blockers={UndoSyncMod.DescribeUndoRedoBlockers()}.");
+                throw new TimeoutException("UndoPicker did not become open after Left input");
+            }
+
+            // Wait until Open() has produced a live popup, then use one more deferred main-thread
+            // turn before inspection so the popup/control tree is settled. The outer condition wait
+            // checks the prior picker-open semantics; it is a bounded readiness gate, not a fixed
+            // sleep.
+            var inspectionCompletion = new TaskCompletionSource<UndoPicker.PaginationProbeResult>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            Callable.From(() =>
+            {
+                try
+                {
+                    if (!UndoPicker.IsOpen
+                        || UndoPicker.CurrentPopup is not { } popup
+                        || !GodotObject.IsInstanceValid(popup))
+                    {
+                        throw new InvalidOperationException(
+                            "picker closed before pagination controls became ready");
+                    }
+
+                    inspectionCompletion.TrySetResult(UndoPicker.InspectPaginationForFuzzer());
+                }
+                catch (Exception ex)
+                {
+                    inspectionCompletion.TrySetException(ex);
+                }
+            }).CallDeferred();
+
+            bool inspectionFinished = await WaitForConditionAsync(
+                () => inspectionCompletion.Task.IsCompleted, PickerPaginationProbeTimeout);
+            if (!inspectionFinished)
+                throw new TimeoutException("pagination controls did not become ready for inspection");
+
+            probeCompletion.TrySetResult(inspectionCompletion.Task.GetAwaiter().GetResult());
+        }
+        catch (Exception ex)
+        {
+            probeCompletion.TrySetException(ex);
+        }
+    }
+
     private static void ProposeRestoreIfDue(string role, UndoFuzz.CombatOutcome outcome, Random rng)
     {
         if (role != "host") return; // only the host ever proposes — see this method's own doc comment
+
+        // This opt-in branch is reached from the driver's already-confirmed idle window. The
+        // journal is native ChecksumHook history; the combat-start anchor is not an undo choice,
+        // so the count below is exactly the choice count inspected by UndoPicker. No synthetic
+        // points or snapshots are created. The branch is never evaluated in normal mpfuzz runs.
+        if (_pickerPaginationProbeRequested && !_pickerPaginationProbePassed)
+        {
+            // A completed failed task is terminal for this run: final-verdict state remains intact,
+            // but later idle-window hooks must not re-consume and re-log the same failure.
+            if (_pickerPaginationProbeFailed) return;
+
+            int nativeChoiceCount = Math.Max(0, ChecksumHook.SyncPointsNewestFirst().Count - 1);
+            if (nativeChoiceCount <= 8)
+            {
+                if (nativeChoiceCount != _pickerPaginationLastLoggedChoiceCount)
+                {
+                    _pickerPaginationLastLoggedChoiceCount = nativeChoiceCount;
+                    Log.Write($"[MpFuzz] role={role} picker pagination probe waiting for >8 real "
+                        + $"native choices (current={nativeChoiceCount}); regular proposal postponed.");
+                }
+                return;
+            }
+
+            if (_pickerPaginationProbeTask == null)
+            {
+                var probeCompletion = new TaskCompletionSource<UndoPicker.PaginationProbeResult>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                _pickerPaginationProbeTask = probeCompletion.Task;
+                try
+                {
+                    // The hook is a synchronous Action. The async probe below owns all waiting, while
+                    // the actual input and inspection remain on the game's main-thread deferred
+                    // boundary, matching the real hotkey path. The hook only polls the task below; it
+                    // never touches the picker or any Godot UI control itself.
+                    Callable.From(() =>
+                    {
+                        _ = RunPickerPaginationProbeAsync(role, probeCompletion);
+                    }).CallDeferred();
+                    Log.Write($"[MpFuzz] role={role} picker pagination probe started with "
+                        + $"{nativeChoiceCount} real native choices; regular proposal postponed until "
+                        + "the main-thread probe completes.");
+                }
+                catch (Exception ex)
+                {
+                    probeCompletion.TrySetException(ex);
+                    Log.Write($"[MpFuzz] role={role} picker pagination probe dispatch failed: {ex}");
+                    return;
+                }
+            }
+
+            Task<UndoPicker.PaginationProbeResult> probeTask = _pickerPaginationProbeTask;
+            if (!probeTask.IsCompleted)
+            {
+                Log.Write($"[MpFuzz] role={role} picker pagination probe still pending; "
+                    + "regular proposal postponed.");
+                return;
+            }
+
+            try
+            {
+                // The task is known complete, so this does not block the hook. GetResult deliberately
+                // observes both faulted and canceled tasks; no fire-and-forget probe exception can go
+                // unobserved, and the non-null task prevents a second probe from being started.
+                if (probeTask.IsCanceled)
+                {
+                    _pickerPaginationProbeFailed = true;
+                    _pickerPaginationProbeFailure = "probe task was canceled";
+                    outcome.DriveError ??= "live picker pagination probe was canceled";
+                    Log.Write($"[MpFuzz] role={role} picker pagination probe FAIL: "
+                        + _pickerPaginationProbeFailure);
+                    return;
+                }
+
+                var probe = probeTask.GetAwaiter().GetResult();
+                Log.Write($"[MpFuzz] role={role} picker pagination probe "
+                    + $"{(probe.Passed ? "PASS" : "FAIL")}: {probe.Detail} "
+                    + $"(choices={probe.TotalChoices}, first={probe.FirstPage.FirstChoice}-"
+                    + $"{probe.FirstPage.LastChoice}, second={probe.SecondPage.FirstChoice}-"
+                    + $"{probe.SecondPage.LastChoice}, firstCards={probe.FirstPage.CardCount}, "
+                    + $"secondCards={probe.SecondPage.CardCount}, closed={probe.ClosedWithoutSelection}).");
+                if (!probe.Passed)
+                {
+                    _pickerPaginationProbeFailed = true;
+                    _pickerPaginationProbeFailure = probe.Detail;
+                    outcome.DriveError ??= $"live picker pagination probe failed: {probe.Detail}";
+                    return;
+                }
+
+                _pickerPaginationProbePassed = true;
+            }
+            catch (Exception ex)
+            {
+                _pickerPaginationProbeFailed = true;
+                _pickerPaginationProbeFailure = ex.Message;
+                outcome.DriveError ??= $"live picker pagination probe threw: {ex.Message}";
+                Log.Write($"[MpFuzz] role={role} picker pagination probe FAIL: {ex}");
+                return;
+            }
+        }
+
+        if (_pickerPaginationProbeFailed) return;
 
         if (outcome.RestoresProposed >= MaxProposalsPerCombat)
         {
@@ -1977,7 +2500,49 @@ internal static class MpFuzz
             return;
         }
 
-        var target = UndoFuzz.PickRandomOlderSyncPoint(rng);
+        SyncPoint? target;
+        int firstPlayerChoiceEventIndex = -1;
+        int currentEventCount = 0;
+        if (_proposeAfterPlayerChoiceRequested)
+        {
+            if (!NativeReplayJournal.TryGetCurrentReplayChoiceBounds(
+                    out firstPlayerChoiceEventIndex,
+                    out currentEventCount))
+            {
+                if (!_proposeAfterPlayerChoiceWaitLogged)
+                {
+                    _proposeAfterPlayerChoiceWaitLogged = true;
+                    Log.Write($"[MpFuzz] role={role} --{ProposeAfterPlayerChoiceArg} waiting: "
+                        + "current native CombatReplay has no recorded PlayerChoice event yet; "
+                        + "restore proposal postponed.");
+                }
+                return;
+            }
+
+            var stored = ChecksumHook.SyncPointsNewestFirst();
+            if (ChecksumHook.TryGetCombatStart(out var startPoint)
+                && stored.All(sp => sp.ChecksumId != startPoint.ChecksumId))
+                stored.Add(startPoint);
+
+            var candidates = stored
+                .Skip(1)
+                .Where(sp => sp.EventCount > firstPlayerChoiceEventIndex)
+                .ToList();
+            if (candidates.Count == 0)
+            {
+                Log.Write($"[MpFuzz] role={role} --{ProposeAfterPlayerChoiceArg} waiting: "
+                    + $"firstChoiceEventIndex={firstPlayerChoiceEventIndex} currentEventCount={currentEventCount}; "
+                    + "no older sync-point target includes that choice yet; restore proposal postponed.");
+                return;
+            }
+
+            target = candidates[rng.Next(candidates.Count)];
+        }
+        else
+        {
+            target = UndoFuzz.PickRandomOlderSyncPoint(rng);
+        }
+
         if (target == null)
         {
             outcome.ProposeSkippedNoTarget++;
@@ -1988,6 +2553,12 @@ internal static class MpFuzz
         outcome.RestoresProposed++;
         Log.Write($"[MpFuzz] role={role} PROPOSING restore -> id={target.ChecksumId} "
             + $"({target.Context}) (proposal {outcome.RestoresProposed}/{MaxProposalsPerCombat}).");
+        if (_proposeAfterPlayerChoiceRequested)
+        {
+            Log.Write($"[MpFuzz] role={role} proposal native-choice gate passed: "
+                + $"firstChoiceEventIndex={firstPlayerChoiceEventIndex} "
+                + $"currentEventCount={currentEventCount} targetEventCount={target.EventCount}.");
+        }
         UndoProtocol.ProposeTarget(target.ChecksumId);
     }
 
@@ -1998,28 +2569,44 @@ internal static class MpFuzz
     /// DriveOurCombatAsync above and running for as long as CombatManager.Instance.IsInProgress, it
     /// watches UndoProtocol.CommitCount every PollInterval tick for restores that landed on THIS peer
     /// via the real vote/commit path, and for each newly observed commit:
-    ///   1. Records ChecksumHook.LastRestoreFidelityOk into outcome.FidelityFailures if false.
-    ///   2. Looks the committed SyncPoint back up (ChecksumHook.TryGetSyncPoint) and hands it to
-    ///      UndoFuzz.NotifyExternalRestore, which arms DriveCombatAsync's own preexisting
-    ///      stuck-after-restore watch for it — see that method's own doc comment for why this is
-    ///      the SAME mechanism the headless/UI paths already use, not a second one (requirement 3:
-    ///      "the driver can still act afterwards").
-    ///   3. Starts WatchForDivergenceAfterCommitAsync to check, a few seconds later, whether
+    ///   1. Waits for the native replay completion state: a current combat, enabled player actions,
+    ///      and literal action queues idle. This replaces the old snapshot fidelity check and the
+    ///      old UndoFuzz external-restore notification, both of which no longer describe production.
+    ///   2. Starts WatchForDivergenceAfterCommitAsync to check, a few seconds later, whether
     ///      MpFuzz's own cross-peer divergence counter grew — the headline finding this whole
     ///      harness exists to catch, logged unmissably and tagged with the checksum id if so.
-    ///   4. Increments outcome.RestoresCommitted.
+    ///   3. Increments outcome.RestoresCommitted.
     ///
     /// Wrapped in try/catch, same as every other fire-and-forget task in this mod (e.g.
     /// TimeoutWatchdog in UndoProtocol.cs): an unhandled exception in a fire-and-forget Task would
     /// otherwise fail silently.
     /// </summary>
-    private static async Task WatchCommitsLoopAsync(string role, UndoFuzz.CombatOutcome outcome)
+    private static async Task WatchCommitsLoopAsync(
+        string role,
+        UndoFuzz.CombatOutcome outcome,
+        int transitionsBeforeDrive)
     {
         try
         {
             int lastObservedCommitCount = UndoProtocol.CommitCount;
-            while (CombatManager.Instance is { IsInProgress: true })
+            int proposalsBeforeDrive = outcome.RestoresProposed;
+            var pendingReplayWait = Stopwatch.StartNew();
+            while (true)
             {
+                bool combatActive = CombatManager.Instance is { IsInProgress: true };
+                bool restorePending = HasPendingNativeReplay(
+                    outcome,
+                    proposalsBeforeDrive,
+                    transitionsBeforeDrive);
+                if (!combatActive && !restorePending)
+                    break;
+                if (!combatActive && pendingReplayWait.Elapsed > NativeReplayCommitTimeout)
+                {
+                    Log.Write($"[MpFuzz] role={role} WatchCommitsLoopAsync stopped after "
+                        + $"{NativeReplayCommitTimeout.TotalSeconds}s with a pending native replay "
+                        + $"(proposed={outcome.RestoresProposed}, committed={outcome.RestoresCommitted}).");
+                    break;
+                }
                 await Task.Delay(PollInterval);
 
                 int commitCountNow = UndoProtocol.CommitCount;
@@ -2029,22 +2616,13 @@ internal static class MpFuzz
                     uint committedId = UndoProtocol.LastCommittedChecksumId;
                     outcome.RestoresCommitted++;
 
-                    bool fidelityOk = ChecksumHook.LastRestoreFidelityOk;
-                    if (!fidelityOk)
+                    bool nativeReplayReady = await WaitForNativeReplayReadyAsync(role, committedId);
+                    if (!nativeReplayReady)
                     {
-                        outcome.FidelityFailures++;
-                        Log.Write($"[MpFuzz] role={role} RESTORE FIDELITY FAILURE — committed "
-                            + $"id={committedId} (restore #{outcome.RestoresCommitted} this combat). "
-                            + "See the ChecksumHook RESTORE FIDELITY line(s) above for the byte-level diff.");
+                        _nativeReplayFailures++;
                     }
                     Log.Write($"[MpFuzz] role={role} restore committed -> id={committedId} "
-                        + $"(commitCount={commitCountNow}, fidelityOk={fidelityOk}).");
-
-                    if (ChecksumHook.TryGetSyncPoint(committedId, out var sp))
-                        UndoFuzz.NotifyExternalRestore(sp);
-                    else
-                        Log.Write($"[MpFuzz] role={role} committed id={committedId} but its sync point "
-                            + "is no longer resolvable — cannot arm the stuck-after-restore watch for it.");
+                        + $"(commitCount={commitCountNow}, nativeReplayReady={nativeReplayReady}).");
 
                     _ = WatchForDivergenceAfterCommitAsync(role, committedId, outcome);
                 }
@@ -2054,6 +2632,52 @@ internal static class MpFuzz
         {
             Log.Write($"[MpFuzz] WatchCommitsLoopAsync ERROR: {ex}");
         }
+    }
+
+    /// <summary>
+    /// Observes the state that the native replay path promises after its completion quorum releases
+    /// input. The check is intentionally made from the live game objects rather than from a stored
+    /// snapshot: replay tears down and recreates the run, so the useful signal is that the new combat
+    /// is active, actions are enabled again, and the literal action queues have drained. A bounded
+    /// wait keeps a broken replay from silently becoming a successful fuzzer iteration.
+    /// </summary>
+    private static async Task<bool> WaitForNativeReplayReadyAsync(string role, uint committedChecksumId)
+    {
+        string lastDetail = "not checked";
+        bool ready = await WaitForConditionAsync(() =>
+        {
+            var combat = CombatManager.Instance;
+            var runManager = RunManager.Instance;
+            if (combat == null || runManager == null || !combat.IsInProgress)
+            {
+                lastDetail = $"combatInProgress={combat?.IsInProgress.ToString() ?? "null"}";
+                return false;
+            }
+
+            if (combat.PlayerActionsDisabled)
+            {
+                lastDetail = "playerActionsDisabled=true";
+                return false;
+            }
+
+            if (!UndoSyncMod.IsActionQueueIdle(runManager.ActionQueueSet, out var queueDetail))
+            {
+                lastDetail = queueDetail;
+                return false;
+            }
+
+            lastDetail = "combat active, actions enabled, literal queues idle";
+            return true;
+        }, NativeReplayReadyTimeout);
+
+        if (!ready)
+        {
+            Log.Write($"[MpFuzz] role={role} NATIVE REPLAY READINESS FAILURE — committed "
+                + $"id={committedChecksumId} did not reach usable post-replay combat state within "
+                + $"{NativeReplayReadyTimeout.TotalSeconds}s; lastState={lastDetail}.");
+        }
+
+        return ready;
     }
 
     /// <summary>

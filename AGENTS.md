@@ -26,6 +26,29 @@
 - Before declaring a cause fixed, compare a reproducible before/after case.
   State clearly when a conclusion is source-derived but not live-verified.
 
+## Subagent delegation
+
+- One subagent must own exactly one module or other cohesive, bounded write
+  scope.
+- Concurrent agents must never have overlapping files or modules in their
+  assigned scopes.
+- A coding delegate edits only its own scope, runs its scoped checks, and
+  reports the exact changed files and verification evidence.
+- The parent agent reviews and integrates the delegate's work.
+- Delegates must not commit, push, or publish releases.
+
+## Parent review and staged UI validation
+
+- Never treat delegate code as integrated merely because it builds.  The parent
+  must review its call sites and lifecycle across teardown and recreate before
+  integration.
+- Behavior that touches native UI must first pass a focused real-game UI test
+  with explicit evidence, followed by a separate full integration run.
+- An integration run requires a terminal success or failure verdict.  If it
+  stalls, classify the stall from live state and logs before terminating it.
+- Delegates still own only their bounded scope and cannot self-approve their
+  changes.
+
 ## Verification standards
 
 - A quiet run is not a passing run.  Prove that the target mechanism executed:
