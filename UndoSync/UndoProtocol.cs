@@ -123,6 +123,7 @@ public record struct UndoCommitMessage : INetMessage
     public uint agreedChecksumId;
     public int round;
     public CombatReplay canonicalReplay;
+    public ReplayHeaderManifest manifest;
 
     public void Serialize(PacketWriter writer)
     {
@@ -130,6 +131,7 @@ public record struct UndoCommitMessage : INetMessage
         writer.WriteUInt(agreedChecksumId);
         writer.WriteInt(round);
         writer.Write(canonicalReplay);
+        manifest.Serialize(writer);
     }
 
     public void Deserialize(PacketReader reader)
@@ -138,6 +140,34 @@ public record struct UndoCommitMessage : INetMessage
         agreedChecksumId = reader.ReadUInt();
         round = reader.ReadInt();
         canonicalReplay = reader.Read<CombatReplay>();
+        manifest = default;
+        manifest.Deserialize(reader);
+    }
+}
+
+public record struct UndoCommitReceiptMessage : INetMessage
+{
+    public bool ShouldBroadcast => true;
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.Info;
+    public bool ShouldBuffer => true;
+
+    public uint targetChecksumId;
+    public int round;
+    public ulong reporterNetId;
+
+    public void Serialize(PacketWriter writer)
+    {
+        writer.WriteUInt(targetChecksumId);
+        writer.WriteInt(round);
+        writer.WriteULong(reporterNetId);
+    }
+
+    public void Deserialize(PacketReader reader)
+    {
+        targetChecksumId = reader.ReadUInt();
+        round = reader.ReadInt();
+        reporterNetId = reader.ReadULong();
     }
 }
 
@@ -471,6 +501,14 @@ internal static class UndoProtocol
     /// alongside _quiesceRound by ResetQuiesce for the same reason.</summary>
     private static int _commitRound;
 
+    private static uint? _commitReceiptTargetId;
+    private static int _commitReceiptRound;
+    private static NativeReplayRestorePlan? _commitReceiptPlan;
+    private static uint _commitReceiptAgreedChecksumId;
+    private static readonly HashSet<ulong> _commitReceiptExpected = new();
+    private static readonly HashSet<ulong> _commitReceipts = new();
+    private static int _commitReceiptGeneration;
+
     /// <summary>
     /// Fuzz-only auto-accept for the undo vote (MpFuzz step 3, Part A). When true,
     /// OnProposalReceived below skips ShowVotePopup and instead calls SubmitLocalVote(accept: true)
@@ -768,6 +806,7 @@ internal static class UndoProtocol
             _registeredService.UnregisterMessageHandler<UndoQuiesceRequestMessage>(OnQuiesceRequestReceived);
             _registeredService.UnregisterMessageHandler<UndoQuiesceReportMessage>(OnQuiesceReportReceived);
             _registeredService.UnregisterMessageHandler<UndoCommitMessage>(OnCommitReceived);
+            _registeredService.UnregisterMessageHandler<UndoCommitReceiptMessage>(OnCommitReceiptReceived);
             _registeredService.UnregisterMessageHandler<UndoCommitFailedMessage>(OnCommitFailedReceived);
             _registeredService.UnregisterMessageHandler<UndoCancelMessage>(OnCancelReceived);
         }
@@ -776,12 +815,14 @@ internal static class UndoProtocol
         svc.RegisterMessageHandler<UndoQuiesceRequestMessage>(OnQuiesceRequestReceived);
         svc.RegisterMessageHandler<UndoQuiesceReportMessage>(OnQuiesceReportReceived);
         svc.RegisterMessageHandler<UndoCommitMessage>(OnCommitReceived);
+        svc.RegisterMessageHandler<UndoCommitReceiptMessage>(OnCommitReceiptReceived);
         svc.RegisterMessageHandler<UndoCommitFailedMessage>(OnCommitFailedReceived);
         svc.RegisterMessageHandler<UndoCancelMessage>(OnCancelReceived);
         _registeredService = svc;
         ResetPending();
         ResetQuiesce();
         ResetBarrier();
+        ResetCommitReceiptGate();
         Log.Write($"[UndoProtocol] Handlers registered. service={svc.Type} netId={svc.NetId}");
     }
 
@@ -1235,19 +1276,31 @@ internal static class UndoProtocol
             return;
         }
 
-        Log.Write($"[UndoProtocol] Commit received for id={msg.targetChecksumId} agreedChecksumId={msg.agreedChecksumId}");
+        Log.Write($"[UndoProtocol] Client received commit for id={msg.targetChecksumId} "
+            + $"agreedChecksumId={msg.agreedChecksumId} manifest="
+            + NativeReplayJournal.DescribeManifest(msg.manifest));
         if (!NativeReplayJournal.TryCreateRestorePlan(
                 msg.canonicalReplay,
+                msg.manifest,
                 msg.targetChecksumId,
                 out NativeReplayRestorePlan plan,
-                out string planDetail))
+                out string manifestDetail))
         {
-            Log.Write($"[UndoProtocol] Commit rejected: host canonical native replay was invalid for id={msg.targetChecksumId}: {planDetail}");
+            Log.Write($"[UndoProtocol] Commit rejected before restore: native replay manifest was invalid for id={msg.targetChecksumId}: {manifestDetail}");
             RequestCommitRetryOrGiveUp(msg.targetChecksumId, msg.round);
             ResetPending();
             ResetQuiesce();
             return;
         }
+        Log.Write($"[UndoProtocol] Client validated commit manifest for id={msg.targetChecksumId}: "
+            + NativeReplayJournal.DescribeManifest(msg.manifest));
+        svc.SendMessage(new UndoCommitReceiptMessage
+        {
+            targetChecksumId = msg.targetChecksumId,
+            round = msg.round,
+            reporterNetId = MyNetId,
+        });
+        Log.Write($"[UndoProtocol] Client commit receipt sent: id={msg.targetChecksumId} round={msg.round}");
         // The barrier is already up by now — armed back in OnProposalReceived when this peer first
         // saw the proposal for this same target, not here (arming on commit receipt was measured
         // too late — see the "── Cross-peer restore barrier ──" section header). Defensive check
@@ -1261,6 +1314,37 @@ internal static class UndoProtocol
         _ = CommitAsync(plan, msg.agreedChecksumId, msg.round);
         ResetPending(); // no-op by now on every peer except a host that somehow reached here (it never does — self-broadcast)
         ResetQuiesce();
+    }
+
+    private static void OnCommitReceiptReceived(UndoCommitReceiptMessage msg, ulong senderId)
+    {
+        if (_registeredService?.Type != NetGameType.Host || _commitReceiptTargetId != msg.targetChecksumId
+            || _commitReceiptRound != msg.round || senderId != msg.reporterNetId
+            || !_commitReceiptExpected.Contains(msg.reporterNetId))
+        {
+            Log.Write($"[UndoProtocol] Commit receipt ignored: sender={senderId} reporter={msg.reporterNetId} id={msg.targetChecksumId} round={msg.round}");
+            return;
+        }
+
+        if (_commitReceipts.Add(msg.reporterNetId))
+        {
+            Log.Write($"[UndoProtocol] Commit receipt received: peer={msg.reporterNetId} id={msg.targetChecksumId} round={msg.round} ({_commitReceipts.Count}/{_commitReceiptExpected.Count})");
+            CheckCommitReceiptQuorum();
+        }
+    }
+
+    private static void CheckCommitReceiptQuorum()
+    {
+        if (_commitReceiptTargetId is not uint targetId || _commitReceiptPlan is null
+            || !_commitReceiptExpected.All(id => _commitReceipts.Contains(id)))
+            return;
+
+        NativeReplayRestorePlan plan = _commitReceiptPlan;
+        uint agreedChecksumId = _commitReceiptAgreedChecksumId;
+        int round = _commitReceiptRound;
+        ResetCommitReceiptGate();
+        Log.Write($"[UndoProtocol] Commit receipt quorum complete: id={targetId} round={round}; starting host replay");
+        _ = CommitAsync(plan, agreedChecksumId, round);
     }
 
     /// <summary>Host-only: dispatch for UndoCommitFailedMessage — see that message's own doc comment.
@@ -1280,6 +1364,7 @@ internal static class UndoProtocol
         ClosePopup();
         ResetPending();
         ResetQuiesce(); // no-op if this cancel arrived during the vote phase, before any quiesce round started
+        ResetCommitReceiptGate();
         // Release THIS peer's own barrier for the cancelled target — armed back in
         // OnProposalReceived/ProposeTarget when the (now-cancelled) proposal first arrived here.
         // ReleaseBarrierForTarget already no-ops on a mismatched/stale target, so this is harmless
@@ -1564,18 +1649,87 @@ internal static class UndoProtocol
                 return;
             }
 
+            if (!NativeReplayJournal.TryCreateManifest(
+                    canonicalReplay,
+                    targetId,
+                    canonicalPlan.EventCount,
+                    out ReplayHeaderManifest manifest,
+                    out string manifestDetail))
+            {
+                Log.Write($"[UndoProtocol] Quiesce agreement could not create the native replay manifest for id={targetId}: {manifestDetail}");
+                AdvanceQuiesceRoundOrGiveUp(targetId, round, "native replay manifest unavailable");
+                return;
+            }
+
+            Log.Write($"[UndoProtocol] Host sending commit for id={targetId} agreedChecksumId={agreed} "
+                + $"manifest={NativeReplayJournal.DescribeManifest(manifest)}");
+
+            BeginCommitReceiptGate(targetId, agreed, round, canonicalPlan);
             _registeredService?.SendMessage(new UndoCommitMessage
             {
                 targetChecksumId = targetId,
                 agreedChecksumId = agreed,
                 round = round,
                 canonicalReplay = canonicalReplay,
+                manifest = manifest,
             });
-            _ = CommitAsync(canonicalPlan, agreed, round);
+            CheckCommitReceiptQuorum();
             ResetQuiesce();
             return;
         }
         AdvanceQuiesceRoundOrGiveUp(targetId, round, reportDump);
+    }
+
+    private static void BeginCommitReceiptGate(
+        uint targetId,
+        uint agreedChecksumId,
+        int round,
+        NativeReplayRestorePlan canonicalPlan)
+    {
+        var lobbyIds = RunManager.Instance?.RunLobby?.PlayerIds;
+        _commitReceiptExpected.Clear();
+        if (lobbyIds != null)
+            _commitReceiptExpected.UnionWith(lobbyIds);
+        if (_commitReceiptExpected.Count == 0)
+            _commitReceiptExpected.UnionWith(AllPlayerIds());
+        _commitReceiptExpected.Add(MyNetId);
+        _commitReceipts.Clear();
+        _commitReceiptTargetId = targetId;
+        _commitReceiptRound = round;
+        _commitReceiptAgreedChecksumId = agreedChecksumId;
+        _commitReceiptPlan = canonicalPlan;
+        _commitReceipts.Add(MyNetId); // host validation completed before the broadcast
+        int generation = ++_commitReceiptGeneration;
+        Log.Write($"[UndoProtocol] Commit broadcast waiting receipts: id={targetId} round={round} peers={string.Join(",", _commitReceiptExpected)}");
+        _ = CommitReceiptTimeoutWatchdog(generation, targetId, round);
+    }
+
+    private static async Task CommitReceiptTimeoutWatchdog(int generation, uint targetId, int round)
+    {
+        try
+        {
+            var tree = NGame.Instance?.GetTree();
+            if (tree == null) return;
+            for (int i = 0; i < TimeoutFrames; i++)
+            {
+                if (_commitReceiptGeneration != generation || _commitReceiptTargetId != targetId)
+                    return;
+                await NGame.Instance!.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+            }
+            if (_commitReceiptGeneration != generation || _commitReceiptTargetId != targetId)
+                return;
+            Log.Write($"[UndoProtocol] Commit receipt timeout: id={targetId} round={round} receipts={_commitReceipts.Count}/{_commitReceiptExpected.Count}; cancelling");
+            _registeredService?.SendMessage(new UndoCancelMessage { targetChecksumId = targetId, byNetId = MyNetId });
+            ClosePopup();
+            ReleaseBarrierForTarget(targetId);
+            ResetPending();
+            ResetQuiesce();
+            ResetCommitReceiptGate();
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"[UndoProtocol] Commit receipt timeout ERROR: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -1986,6 +2140,7 @@ internal static class UndoProtocol
         // invoked, the old network service is no longer a valid failure channel: all failures after
         // that point are logged locally and never send an old-service retry, cancel, ack, or resume.
         bool resolved = false;
+        bool nativeReplayGateEntered = false;
         try
         {
             var tree = NGame.Instance?.GetTree();
@@ -2056,6 +2211,11 @@ internal static class UndoProtocol
                     // Invalidate every old barrier watchdog before the game service is torn down.
                     // ResetBarrier deliberately does not touch the game's new-session input flag;
                     // NativeReplayCompletion owns that flag after the official reload completes.
+                    NativeReplayActionGate.Enter(targetId, canonicalPlan.EventCount);
+                    NativeReplayCompletion.ArmPreCheckpointMonitoring(
+                        canonicalPlan,
+                        RunManager.Instance?.ChecksumTracker);
+                    nativeReplayGateEntered = true;
                     ResetBarrier();
                     resolved = true;
 
@@ -2064,14 +2224,29 @@ internal static class UndoProtocol
                     if (!restore.Success)
                     {
                         Log.Write($"[UndoProtocol] NATIVE REPLAY RESTORE FAILED locally for id={targetId} canonicalEvents={canonicalPlan.EventCount}: {restore.Detail}");
+                        await NativeReplayRestorer.RecoverToMainMenuAsync(
+                            $"restore failed target={targetId}: {restore.Detail}");
+                        return;
+                    }
+
+                    if (!restore.Checkpoint.HasValue)
+                    {
+                        const string missingCheckpoint = "restore returned success without a native checkpoint.";
+                        Log.Write($"[UndoProtocol] NATIVE REPLAY RESTORE FAILED locally for id={targetId}: {missingCheckpoint}");
+                        await NativeReplayRestorer.RecoverToMainMenuAsync(
+                            $"restore missing checkpoint target={targetId}");
                         return;
                     }
 
                     NativeReplayCompletionResult completion =
-                        await NativeReplayCompletion.WaitForQuorumAsync(canonicalPlan);
+                        await NativeReplayCompletion.WaitForQuorumAsync(
+                            canonicalPlan,
+                            restore.Checkpoint.Value);
                     if (!completion.Success)
                     {
                         Log.Write($"[UndoProtocol] NATIVE REPLAY COMPLETION FAILED locally for id={targetId} canonicalEvents={canonicalPlan.EventCount}: {completion.Detail}");
+                        await NativeReplayRestorer.RecoverToMainMenuAsync(
+                            $"completion failed target={targetId}: {completion.Detail}");
                         return;
                     }
 
@@ -2088,6 +2263,18 @@ internal static class UndoProtocol
         catch (Exception ex)
         {
             Log.Write($"[UndoProtocol] CommitAsync ERROR: {ex}");
+            if (nativeReplayGateEntered || NativeReplayActionGate.IsActive)
+            {
+                try
+                {
+                    await NativeReplayRestorer.RecoverToMainMenuAsync(
+                        $"CommitAsync exception target={targetId}: {ex.GetType().Name}: {ex.Message}");
+                }
+                catch (Exception cleanupEx)
+                {
+                    Log.Write($"[UndoProtocol] CommitAsync failure cleanup ERROR: {cleanupEx}");
+                }
+            }
         }
         finally
         {
@@ -2767,6 +2954,17 @@ internal static class UndoProtocol
         _accepted.Clear();
     }
 
+    private static void ResetCommitReceiptGate()
+    {
+        _commitReceiptTargetId = null;
+        _commitReceiptRound = 0;
+        _commitReceiptPlan = null;
+        _commitReceiptAgreedChecksumId = 0;
+        _commitReceiptExpected.Clear();
+        _commitReceipts.Clear();
+        _commitReceiptGeneration++;
+    }
+
     /// <summary>Clears all barrier bookkeeping on this peer WITHOUT touching
     /// CombatManager.PlayerActionsDisabled itself — used when the barrier's own outcome no longer
     /// matters (a net service change in EnsureHandlersRegistered, or combat ending in
@@ -2790,13 +2988,15 @@ internal static class UndoProtocol
     internal static void ResetOnCombatEnd()
     {
         UndoPicker.Close();
-        if (_pendingTargetId == null && _quiesceTargetId == null && _barrierTargetId == null) return;
+        if (_pendingTargetId == null && _quiesceTargetId == null && _barrierTargetId == null && _commitReceiptTargetId == null) return;
         Log.Write("[UndoProtocol] Combat ended — clearing pending proposal"
             + (_quiesceTargetId != null ? " and in-flight quiesce-quorum handshake" : "")
+            + (_commitReceiptTargetId != null ? " and in-flight commit receipt gate" : "")
             + (_barrierTargetId != null ? " and in-flight restore barrier" : ""));
         ClosePopup();
         ResetPending();
         ResetQuiesce();
+        ResetCommitReceiptGate();
         ResetBarrier();
     }
 }

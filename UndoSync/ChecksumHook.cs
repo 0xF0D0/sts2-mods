@@ -53,6 +53,19 @@ internal static class ChecksumHook
     private static uint? _pendingTurnStartId;
     private static string _pendingTurnStartContext = "";
 
+    // The rejoin path creates a new CombatManager asynchronously. A combat being merely
+    // "in progress" is not enough to form a restore checkpoint: before the player-side
+    // TurnStarted callback, the native setup still has Energy=0 and the opening hand in Draw.
+    // Keep a tiny lifecycle generation here (not a state snapshot) so the restorer can require
+    // the same native boundary on every peer before it calls GenerateChecksum.
+    private static int _combatSetUpGeneration;
+    private static int _lastPlayerTurnStartedGeneration = -1;
+
+    internal static int GetCombatSetUpGeneration() => _combatSetUpGeneration;
+
+    internal static bool HasPlayerTurnStartedAfter(int priorCombatSetUpGeneration) =>
+        _lastPlayerTurnStartedGeneration > priorCombatSetUpGeneration;
+
 
     // ---- Fuzz-only divergence diagnostics (--undosync-mpfuzz) --------------------------------
     // See MpFuzz.cs's own top-of-file doc comment for the harness this instruments, and
@@ -131,6 +144,11 @@ internal static class ChecksumHook
                 _combatStartPoint = null;
                 Log.Write($"[ChecksumHook] Subscribed to ChecksumTracker and cleared ordinary history. net={RunManager.Instance?.NetService?.Type} netId={RunManager.Instance?.NetService?.NetId}");
             }
+
+            // During a native restore this is the first durable object that belongs to the new
+            // service. Attach the failure monitor here, before CombatSetUp/TurnStarted can emit
+            // the game's automatic checksum, rather than waiting until our own checkpoint exists.
+            NativeReplayCompletion.AttachPreCheckpointMonitoring(RunManager.Instance, tracker);
         }
 
         // CombatManager.Instance (CombatManager.cs:91) is a static singleton, but guard anyway
@@ -254,6 +272,7 @@ internal static class ChecksumHook
             var context = _pendingTurnStartContext;
             _pendingTurnStartId = null;
             _pendingTurnStartContext = "";
+            _lastPlayerTurnStartedGeneration = _combatSetUpGeneration;
             TryStoreSyncPoint(id, context);
         }
         catch (Exception ex)
@@ -272,6 +291,7 @@ internal static class ChecksumHook
     {
         try
         {
+            _combatSetUpGeneration++;
             if (_preserveCombatStartAnchorForReplay)
             {
                 // Official replay re-entry raises CombatSetUp before the first new native

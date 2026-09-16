@@ -33,7 +33,10 @@ using MegaCrit.Sts2.Core.Saves;
 
 namespace UndoSync;
 
-internal sealed record NativeReplayRestoreResult(bool Success, string Detail);
+internal sealed record NativeReplayRestoreResult(
+    bool Success,
+    string Detail,
+    NetChecksumData? Checkpoint = null);
 
 /// <summary>
 /// Rebuilds a multiplayer run through the game's loaded-lobby path and replays the
@@ -53,6 +56,8 @@ internal static class NativeReplayRestorer
     private static readonly TimeSpan HostServiceObservationWindow = TimeSpan.FromSeconds(10);
     private static int NativeReplayChoiceSuppressionCount;
     private static int NativeReplayReadyActionSuppressionCount;
+    private static readonly object FailureCleanupGate = new();
+    private static TaskCompletionSource? FailureCleanupCompletion;
 
     private static readonly FieldInfo? LoadRunLobbyField =
         AccessTools.Field(typeof(NMultiplayerLoadGameScreen), "_runLobby");
@@ -137,8 +142,19 @@ internal static class NativeReplayRestorer
 
         try
         {
+            LogRestore(
+                $"pre-menu fadeout requested transitionIn={NGame.Instance.Transition.InTransition} "
+                + $"mainMenu={NGame.Instance.MainMenu != null}");
+            await NGame.Instance.Transition.FadeOut(ReplayFadeDuration);
+            LogRestore(
+                $"pre-menu fadeout completed transitionIn={NGame.Instance.Transition.InTransition} "
+                + $"mainMenu={NGame.Instance.MainMenu != null}");
+            LogRestore(
+                $"before ReturnToMainMenu transitionIn={NGame.Instance.Transition.InTransition}");
             await NGame.Instance.ReturnToMainMenu();
-            LogRestore("after ReturnToMainMenu");
+            LogRestore(
+                $"after ReturnToMainMenu transitionIn={NGame.Instance.Transition.InTransition} "
+                + $"mainMenu={NGame.Instance.MainMenu != null}");
             if (!await WaitForConditionAsync(
                     () => NGame.Instance.MainMenu != null,
                     MainMenuTimeout))
@@ -188,6 +204,10 @@ internal static class NativeReplayRestorer
             LoadRunLobby lobby = await WaitForLoadedLobbyAsync(
                 loadScreen,
                 plan.InitialRun.Players.Count);
+            // Capture before Embark: CombatSetUp belongs to the new native CombatManager and is
+            // asynchronous with this call. The exact player-side TurnStarted after it is the first
+            // point at which the opening hand/energy and auto-pre-play hooks are canonical.
+            int combatSetUpGenerationBeforeEmbark = ChecksumHook.GetCombatSetUpGeneration();
             InvokeEmbarkPressed(plan.InitialRun.GameMode, loadScreen);
 
             if (!await WaitForConditionAsync(
@@ -196,6 +216,20 @@ internal static class NativeReplayRestorer
             {
                 return Failure("The official multiplayer load completed without reaching combat readiness.");
             }
+
+            if (!await WaitForConditionAsync(
+                    () => ChecksumHook.HasPlayerTurnStartedAfter(combatSetUpGenerationBeforeEmbark),
+                    LoadTimeout))
+            {
+                return Failure("The official multiplayer load reached combat but never completed its player-side TurnStarted boundary.");
+            }
+
+            if (NativeReplayCompletion.TryGetPreCheckpointFailure(out string preCheckpointFailure))
+            {
+                return Failure($"Native replay failed before checkpoint generation: {preCheckpointFailure}");
+            }
+
+            LogRestore("canonical player-side TurnStarted observed after official load; barrier remains active.");
 
             if (!await WaitForConditionAsync(
                     () => RunManager.Instance?.ActionQueueSet is { } queues
@@ -216,21 +250,22 @@ internal static class NativeReplayRestorer
             RunManager.Instance.PlayerChoiceSynchronizer.FastForwardChoiceIds(plan.Replay.choiceIds);
             RunManager.Instance.RewardsSetSynchronizer.FastForwardRewardIds(plan.Replay.rewardIds);
 
-            // Keep the native transition black until NativeReplayCompletion observes the
-            // final-checksum quorum and performs the matching FadeIn.
-            await NGame.Instance.Transition.FadeOut(ReplayFadeDuration);
+            Stopwatch preparedStopwatch = Stopwatch.StartNew();
 
             if (!SetPlayerActionsDisabled())
             {
                 return Failure("Could not set the new CombatManager.PlayerActionsDisabled flag.");
             }
 
+            Stopwatch dispatchStopwatch;
             {
                 using ReplayChoiceSuppressionScope suppressionScope =
                     new ReplayChoiceSuppressionScope();
                 using ReplayReadyActionSuppressionScope readyActionSuppressionScope =
                     new ReplayReadyActionSuppressionScope();
+                dispatchStopwatch = Stopwatch.StartNew();
                 bool replayed = await ReplayEventsAsync(plan.Replay, plan.EventCount);
+                dispatchStopwatch.Stop();
                 if (!replayed)
                 {
                     return Failure($"Native replay failed while processing the first {plan.EventCount} events.");
@@ -260,16 +295,39 @@ internal static class NativeReplayRestorer
                 return Failure($"Could not install the native replay prefix: {installDetail}");
             }
 
-            RunManager.Instance.ChecksumTracker.GenerateChecksum(
-                "UndoSync native replay restore",
-                null);
+            if (NativeReplayCompletion.TryGetPreCheckpointFailure(out preCheckpointFailure))
+            {
+                return Failure($"Native replay failed before checkpoint generation: {preCheckpointFailure}");
+            }
+
+            preparedStopwatch.Stop();
+            LogRestore(
+                $"NATIVE_REPLAY_TIMING events={plan.EventCount} "
+                + $"dispatchMs={dispatchStopwatch.ElapsedMilliseconds} "
+                + $"preparedMs={preparedStopwatch.ElapsedMilliseconds}");
+
+            LogRestore(
+                $"retained-through-replay handoff to NativeReplayCompletion transitionIn={NGame.Instance.Transition.InTransition} "
+                + $"mainMenu={NGame.Instance.MainMenu != null} events={plan.EventCount}");
+
+            NativeReplayCheckpointResult checkpointResult =
+                await NativeReplayCompletion.PrepareCheckpointAsync(plan);
+            if (!checkpointResult.Success || !checkpointResult.Checkpoint.HasValue)
+            {
+                return Failure($"Native replay checkpoint protocol failed: {checkpointResult.Detail}");
+            }
+
+            NetChecksumData checkpoint = checkpointResult.Checkpoint.Value;
+            LogRestore($"checkpoint quorum approved id={checkpoint.id} hash={checkpoint.checksum} "
+                + $"generation={checkpointResult.Generation} target={plan.TargetChecksumId} events={plan.EventCount}.");
 
             return new NativeReplayRestoreResult(
                 true,
                 $"Restored role={oldRole} platform={oldPlatform} localNetId={localNetId} "
                 + $"hostNetId={hostNetId?.ToString() ?? "none"} mode={plan.InitialRun.GameMode} "
                 + $"players={plan.InitialRun.Players.Count} events={plan.EventCount}; "
-                + "native replay prefix installed, final checksum generated, player actions remain disabled.");
+                + "native replay prefix installed, checkpoint generated, player actions remain disabled.",
+                checkpoint);
         }
         catch (Exception ex)
         {
@@ -555,6 +613,7 @@ internal static class NativeReplayRestorer
                                 + $"ownerId={action.OwnerId}");
                         }
 
+                        NativeReplayActionGate.PermitReplayEnqueue(action, "CombatReplayEvent.GameAction");
                         RunManager.Instance.ActionQueueSet.EnqueueWithoutSynchronizing(action);
                         if (action is EndPlayerTurnAction || action is ReadyToBeginEnemyTurnAction)
                         {
@@ -571,11 +630,12 @@ internal static class NativeReplayRestorer
                                 + $"eventType={replayEvent.eventType}");
                         }
 
-                        RunManager.Instance.ActionQueueSet.EnqueueWithoutSynchronizing(
-                            RunManager.Instance.ActionQueueSynchronizer.GetHookActionForId(
-                                replayEvent.hookId!.Value,
-                                replayEvent.playerId!.Value,
-                                replayEvent.gameActionType!.Value));
+                        GameAction hookAction = RunManager.Instance.ActionQueueSynchronizer.GetHookActionForId(
+                            replayEvent.hookId!.Value,
+                            replayEvent.playerId!.Value,
+                            replayEvent.gameActionType!.Value);
+                        NativeReplayActionGate.PermitReplayEnqueue(hookAction, "CombatReplayEvent.HookAction");
+                        RunManager.Instance.ActionQueueSet.EnqueueWithoutSynchronizing(hookAction);
                         break;
 
                     case CombatReplayEventType.ResumeAction:
@@ -586,8 +646,9 @@ internal static class NativeReplayRestorer
                                 + $"eventType={replayEvent.eventType} actionId={replayEvent.actionId!.Value}");
                         }
 
-                        RunManager.Instance.ActionQueueSet.ResumeActionWithoutSynchronizing(
-                            replayEvent.actionId!.Value);
+                        uint resumeActionId = replayEvent.actionId!.Value;
+                        NativeReplayActionGate.PermitReplayResume(resumeActionId);
+                        RunManager.Instance.ActionQueueSet.ResumeActionWithoutSynchronizing(resumeActionId);
                         break;
 
                     case CombatReplayEventType.PlayerChoice:
@@ -706,6 +767,88 @@ internal static class NativeReplayRestorer
     private static NativeReplayRestoreResult Failure(string detail)
     {
         return new NativeReplayRestoreResult(false, detail);
+    }
+
+    /// <summary>
+    /// A failed native restore has no trustworthy pre-restore state to resume: this mode keeps no
+    /// snapshots and a checksum divergence proves at least one peer has already advanced. Return to
+    /// the game's main-menu lifecycle, then explicitly reveal it. The game ReturnToMainMenu path
+    /// deliberately leaves its transition black, so FadeIn belongs here rather than being implied.
+    /// </summary>
+    internal static Task RecoverToMainMenuAsync(string reason)
+    {
+        NativeReplayCompletion.CancelPreCheckpointMonitoring($"failure cleanup: {reason}");
+        lock (FailureCleanupGate)
+        {
+            if (FailureCleanupCompletion != null)
+            {
+                return FailureCleanupCompletion.Task;
+            }
+
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            FailureCleanupCompletion = completion;
+            _ = RecoverToMainMenuCoreAsync(reason, completion);
+            return completion.Task;
+        }
+    }
+
+    private static async Task RecoverToMainMenuCoreAsync(string reason, TaskCompletionSource completion)
+    {
+        LogRestore($"failure cleanup begin reason={reason}");
+        NGame? game = NGame.Instance;
+        bool fadeInCompleted = false;
+        try
+        {
+            if (game != null)
+            {
+                // Completion failure may originate from an ENet/disconnect callback.  Hop through
+                // the game's process frame before mutating the Godot menu/transition lifecycle.
+                await game.AwaitProcessFrame();
+            }
+
+            if (game != null && game.MainMenu == null)
+            {
+                await game.ReturnToMainMenu();
+                LogRestore("failure cleanup reached main menu");
+            }
+
+            if (game?.Transition != null)
+            {
+                await game.Transition.FadeIn();
+                fadeInCompleted = true;
+                LogRestore("failure cleanup FadeIn completed");
+            }
+
+            completion.TrySetResult();
+        }
+        catch (Exception ex)
+        {
+            LogRestore($"failure cleanup ERROR detail={Describe(ex)}");
+            if (!fadeInCompleted && game?.Transition != null)
+            {
+                try
+                {
+                    await game.Transition.FadeIn();
+                    LogRestore("failure cleanup fallback FadeIn completed");
+                }
+                catch (Exception fadeEx)
+                {
+                    LogRestore($"failure cleanup fallback FadeIn ERROR detail={Describe(fadeEx)}");
+                }
+            }
+            completion.TrySetException(ex);
+        }
+        finally
+        {
+            NativeReplayActionGate.Release("failure cleanup completed");
+            lock (FailureCleanupGate)
+            {
+                if (ReferenceEquals(FailureCleanupCompletion, completion))
+                {
+                    FailureCleanupCompletion = null;
+                }
+            }
+        }
     }
 
     private static string Describe(Exception? exception)

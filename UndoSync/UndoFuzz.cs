@@ -2210,6 +2210,12 @@ internal static class UndoFuzz
             // (ActionExecutor.cs:31, :86).
             if (RunManager.Instance.ActionExecutor.IsPaused)
             {
+                if (NativeReplayActionGate.IsActive)
+                {
+                    Log.Write($"[Fuzz] combat={combatIndex} ActionExecutor remains paused while the native replay barrier is active; deferring driver startup.");
+                    return;
+                }
+
                 Log.Write($"[Fuzz] combat={combatIndex} ActionExecutor was paused after combat start — unpausing (queued actions would never execute otherwise)");
                 RunManager.Instance.ActionExecutor.Unpause();
             }
