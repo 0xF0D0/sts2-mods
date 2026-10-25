@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Transport;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace UndoSyncMinimal;
+namespace UndoSync;
 
 public enum UndoMinimalOp { Request, Propose, Vote, Start, Done, Resume, Cancel, StartReceived }
 

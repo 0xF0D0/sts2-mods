@@ -1,0 +1,64 @@
+[UndoSync pid=27649] INIT five-modules
+[UndoSync pid=27649] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=27649] BIND players=3
+[UndoSync pid=27649] HISTORY_BEGIN
+[UndoSync pid=27649] BOUNDARY events=0
+[UndoSync pid=27649] BOUNDARY events=1
+[UndoSync pid=27649] VOTE peer=1 accepted=True
+[UndoSync pid=27649] PROPOSE session=67ba7091c1c84dc192b324c3e54beccd target=0
+[UndoSync pid=27649] UI_WAITING target=0
+[UndoSync pid=27649] VOTE peer=1001 accepted=True
+[UndoSync pid=27649] VOTE peer=2001 accepted=True
+[UndoSync pid=27649] [UndoPicker] closed
+[UndoSync pid=27649] START_RECEIVED_ALL session=67ba7091c1c84dc192b324c3e54beccd
+[UndoSync pid=27649] RESTORE_BEGIN role=Host events=0
+[UndoSync pid=27649] UNBIND replay=True
+[UndoSync pid=27649] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=27649] RESTORE_HOST_LISTENING
+[UndoSync pid=27649] BIND players=3
+[UndoSync pid=27649] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=27649] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=27649] HISTORY_COMMIT events=0
+[UndoSync pid=27649] RESUME session=67ba7091c1c84dc192b324c3e54beccd peers=3 checksum=4058208785
+[UndoSync pid=27649] BOUNDARY events=1
+[UndoSync pid=27649] VOTE peer=1001 accepted=True
+[UndoSync pid=27649] PROPOSE session=7ed299dd65a24842aa0ff7f0558ab42d target=0
+[UndoSync pid=27649] UI_VOTE target=0
+[UndoSync pid=27649] VOTE peer=1001 accepted=True
+[UndoSync pid=27649] VOTE peer=1 accepted=True
+[UndoSync pid=27649] [UndoPicker] closed
+[UndoSync pid=27649] UI_WAITING target=0
+[UndoSync pid=27649] VOTE peer=2001 accepted=True
+[UndoSync pid=27649] [UndoPicker] closed
+[UndoSync pid=27649] START_RECEIVED_ALL session=7ed299dd65a24842aa0ff7f0558ab42d
+[UndoSync pid=27649] RESTORE_BEGIN role=Host events=0
+[UndoSync pid=27649] UNBIND replay=True
+[UndoSync pid=27649] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=27649] RESTORE_HOST_LISTENING
+[UndoSync pid=27649] BIND players=3
+[UndoSync pid=27649] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=27649] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=27649] HISTORY_COMMIT events=0
+[UndoSync pid=27649] RESUME session=7ed299dd65a24842aa0ff7f0558ab42d peers=3 checksum=4058208785
+[UndoSync pid=27649] BOUNDARY events=1
+[UndoSync pid=27649] VOTE peer=2001 accepted=True
+[UndoSync pid=27649] PROPOSE session=8b98ceaec6b54706bc823d618379620b target=0
+[UndoSync pid=27649] UI_VOTE target=0
+[UndoSync pid=27649] VOTE peer=2001 accepted=True
+[UndoSync pid=27649] VOTE peer=1 accepted=True
+[UndoSync pid=27649] [UndoPicker] closed
+[UndoSync pid=27649] UI_WAITING target=0
+[UndoSync pid=27649] VOTE peer=1001 accepted=True
+[UndoSync pid=27649] [UndoPicker] closed
+[UndoSync pid=27649] START_RECEIVED_ALL session=8b98ceaec6b54706bc823d618379620b
+[UndoSync pid=27649] RESTORE_BEGIN role=Host events=0
+[UndoSync pid=27649] UNBIND replay=True
+[UndoSync pid=27649] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=27649] RESTORE_HOST_LISTENING
+[UndoSync pid=27649] BIND players=3
+[UndoSync pid=27649] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=27649] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=27649] HISTORY_COMMIT events=0
+[UndoSync pid=27649] RESUME session=8b98ceaec6b54706bc823d618379620b peers=3 checksum=4058208785
+[UndoSync pid=27649] BOUNDARY events=1
+[UndoSync pid=27649] UNBIND replay=False

@@ -16,7 +16,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("MinimalHarness")]
 
-namespace UndoSyncMinimal;
+namespace UndoSync;
 
 [ModInitializer(nameof(Initialize))]
 public static class Hooks
@@ -28,13 +28,13 @@ public static class Hooks
     private static readonly FieldInfo QueuesField = AccessTools.Field(typeof(ActionQueueSet), "_actionQueues");
     private static readonly FieldInfo VisualQueueField = AccessTools.Field(typeof(NCardPlayQueue), "_playQueue");
     private static readonly string LogPath = Path.Combine(
-        OS.GetUserDataDir(), "logs", $"UndoSyncMinimal-{System.Environment.ProcessId}.log");
+        OS.GetUserDataDir(), "logs", $"UndoSync-{System.Environment.ProcessId}.log");
     private static int _lastCount = -1;
     private static int _idleFrames;
 
     public static void Initialize()
     {
-        new Harmony("com.beomsu.undosyncminimal").PatchAll(typeof(Hooks).Assembly);
+        new Harmony("com.beomsu.undosync").PatchAll(typeof(Hooks).Assembly);
         RunManager.Instance.RunStarted += Bind;
         NGame.Instance!.GetTree().ProcessFrame += Tick;
         Log("INIT five-modules");
@@ -42,7 +42,7 @@ public static class Hooks
 
     internal static void Log(string message)
     {
-        string line = $"[UndoSyncMinimal pid={System.Environment.ProcessId}] {message}";
+        string line = $"[UndoSync pid={System.Environment.ProcessId}] {message}";
         GD.Print(line);
         try
         {

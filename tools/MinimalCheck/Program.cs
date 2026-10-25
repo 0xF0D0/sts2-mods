@@ -5,12 +5,12 @@ using System.Text.Json;
 if (args.Length != 2) throw new ArgumentException("Usage: MinimalCheck <mod-project-dir> <game-data-dir>");
 string modRoot = Path.GetFullPath(args[0]);
 string gameRoot = Path.GetFullPath(args[1]);
-string assemblyPath = Path.Combine(modRoot, "bin/Release/net9.0/UndoSyncMinimal.dll");
+string assemblyPath = Path.Combine(modRoot, "bin/Release/net9.0/UndoSync.dll");
 var modules = Directory.GetDirectories(modRoot)
     .Select(Path.GetFileName).Where(n => n is not "bin" and not "obj").Order().ToArray();
 Require(modules.SequenceEqual(new[] { "History", "Hook", "Network", "Replay", "UI" }), "exactly five production modules");
-using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(modRoot, "UndoSyncMinimal.json")));
-Require(manifest.RootElement.GetProperty("id").GetString() == "UndoSyncMinimal", "manifest identity");
+using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(modRoot, "UndoSync.json")));
+Require(manifest.RootElement.GetProperty("id").GetString() == "UndoSync", "manifest identity");
 string runtime = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
 var paths = Directory.GetFiles(runtime, "*.dll").Concat(Directory.GetFiles(gameRoot, "*.dll"))
     .Append(assemblyPath).GroupBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).Select(group => group.First());
@@ -72,9 +72,9 @@ foreach (var member in reflectionMembers)
 var queues = game.GetType("MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSet", true)!;
 var nested = queues.GetNestedType("ActionQueue", BindingFlags.NonPublic)!;
 Require(nested.GetField("actions", all)?.FieldType.GetGenericArguments().Single().Name == "GameAction", "literal queue contains GameAction");
-var message = mod.GetType("UndoSyncMinimal.UndoMinimalMessage", true)!;
+var message = mod.GetType("UndoSync.UndoMinimalMessage", true)!;
 Require(message.IsPublic && message.IsValueType && message.GetInterfaces().Any(i => i.Name == "INetMessage"), "discoverable native wire message");
-var entry = mod.GetType("UndoSyncMinimal.Hooks", true)!;
+var entry = mod.GetType("UndoSync.Hooks", true)!;
 Require(entry.GetCustomAttributesData().Any(a => a.AttributeType.Name == "ModInitializerAttribute")
     && entry.GetMethod("Initialize", BindingFlags.Public | BindingFlags.Static) is not null, "mod initializer");
 Console.WriteLine($"PASS metadata-only: five modules, manifest, {patches} patch targets and injected parameters, {reflectionMembers.Length + 1} reflection surfaces, message, initializer.");

@@ -24,7 +24,7 @@ def no_game():
         raise RuntimeError('UDP 33771 is occupied: ' + p.stdout)
 
 def deploy():
-    for name, source in [('UndoSyncMinimal', REPO/'UndoSyncMinimal'), ('MinimalHarness', REPO/'tools/MinimalHarness')]:
+    for name, source in [('UndoSync', REPO/'UndoSync'), ('MinimalHarness', REPO/'tools/MinimalHarness')]:
         target = MODS/name
         target.mkdir(exist_ok=True)
         for file in [source/'bin/Release/net9.0'/f'{name}.dll', source/f'{name}.json']:
@@ -34,7 +34,7 @@ def prepare():
     no_game()
     root = Path(tempfile.mkdtemp(prefix='undosync-extended-'))
     state = {'backups': {}, 'hashes': {}, 'pids': []}
-    for tag, path in [(f'account-{i}', ACCOUNTS/str(i)) for i in IDS.values()] + [(f'mod-{n}', MODS/n) for n in ['UndoSyncMinimal', 'MinimalHarness']]:
+    for tag, path in [(f'account-{i}', ACCOUNTS/str(i)) for i in IDS.values()] + [(f'mod-{n}', MODS/n) for n in ['UndoSync', 'MinimalHarness']]:
         if tag in state['backups']:
             continue
         state['backups'][tag] = path.exists()
@@ -44,7 +44,7 @@ def prepare():
     save(root/'fixture.json', state)
     deploy()
     known = [p.name for p in MODS.iterdir() if p.is_dir()]
-    order = ['UndoSyncMinimal', 'MinimalHarness'] + [n for n in known if n not in ['UndoSyncMinimal', 'MinimalHarness']]
+    order = ['UndoSync', 'MinimalHarness'] + [n for n in known if n not in ['UndoSync', 'MinimalHarness']]
     for identity in set(IDS.values()):
         account = ACCOUNTS/str(identity)
         account.mkdir(exist_ok=True)
@@ -54,7 +54,7 @@ def prepare():
         settings.update(seen_ea_disclaimer=True, skip_intro_logo=True, fullscreen=False,
                         window_position={'X': 80, 'Y': 80}, window_size={'X': 1280, 'Y': 720})
         settings['mod_settings'] = {'mods_enabled': True, 'mod_list': [
-            {'id': n, 'source': 'mods_directory', 'is_enabled': n in ['UndoSyncMinimal', 'MinimalHarness']} for n in order
+            {'id': n, 'source': 'mods_directory', 'is_enabled': n in ['UndoSync', 'MinimalHarness']} for n in order
         ] + [{'id': n, 'source': 'steam_workshop', 'is_enabled': False} for n in ['UndoSync', 'SaveMerger']]}
         for name in ['settings.save', 'settings.save.backup']:
             save(account/name, settings)
@@ -67,7 +67,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A'):
     roles = ['ui'] if suite in ('choice-ui', 'picker-ui') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
     record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'processes': {}}
-    record['dlls'] = {n: hashes(MODS/n) for n in ['UndoSyncMinimal', 'MinimalHarness']}
+    record['dlls'] = {n: hashes(MODS/n) for n in ['UndoSync', 'MinimalHarness']}
     started = time.monotonic()
     try:
         for role in roles:

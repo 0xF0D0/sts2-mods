@@ -1,0 +1,83 @@
+{
+  "label": "promoted3",
+  "peers": 3,
+  "suite": "regression",
+  "seed": "MINIMAL_MP_A",
+  "headless": false,
+  "processes": {
+    "host": {
+      "pid": 27649,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-harness=host",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-63y3_cb5/promoted3",
+        "--minimal-peers=3",
+        "--minimal-suite=regression",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    },
+    "client": {
+      "pid": 27680,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1001",
+        "--minimal-harness=client",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-63y3_cb5/promoted3",
+        "--minimal-peers=3",
+        "--minimal-suite=regression",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    },
+    "client2": {
+      "pid": 27681,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "2001",
+        "--minimal-harness=client2",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-63y3_cb5/promoted3",
+        "--minimal-peers=3",
+        "--minimal-suite=regression",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    }
+  },
+  "dlls": {
+    "UndoSync": {
+      "UndoSync.dll": "384c359b88376546275d24eaea18c0e608a80854a78319bcedbd3ccb07ebb829",
+      "UndoSync.json": "36f1fa0c075795924323bf661373215d3ee58c9c776c46f4d7bc75236879c8ad"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "25297bca8c468fa0fc307a1c07baddc8173f5c666b7095b043499c74faa42cbd",
+      "MinimalHarness.json": "a0be927e70a20895c7b5fc1affa81b4860e98e855a1aacb0261eeba68111e65e"
+    }
+  },
+  "verdict": "PASS"
+}

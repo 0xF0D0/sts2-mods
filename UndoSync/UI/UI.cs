@@ -13,7 +13,7 @@ using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.addons.mega_text;
 
-namespace UndoSyncMinimal;
+namespace UndoSync;
 
 internal static class UI
 {

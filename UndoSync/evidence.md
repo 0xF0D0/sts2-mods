@@ -245,3 +245,53 @@ requesting this commit. This adds human confirmation of the visible local ENet
 flow; it does not establish Steam P2P or separate-machine transport coverage.
 The three preview processes remain open for the user; no launch/termination or
 installed-file change is part of the commit operation.
+
+
+# Promoted production identity: UndoSync
+
+The user requested replacing the old UndoSync implementation with the validated
+minimal core. The production project, namespace, DLL, manifest and install ID
+are now UndoSync. Prototype UndoSyncMinimal sources were removed. All five
+production module files were compared against commit 13bd339 after namespace,
+Harmony ID and log identity substitution: no other behavior changed. The
+existing manifest version was retained; no release or follow-up commit created.
+Legacy UndoFuzz/MpFuzz sources are preserved outside production compilation in
+tools/LegacyFuzz, unported. Active harness and metadata checker target UndoSync.
+
+Release warnings-as-errors build and metadata-only check passed (five modules,
+12 patches, 14 reflection surfaces). Source scans found no active prototype
+assembly or namespace references. git diff --check passed.
+
+Real visible three-process run promoted3: host PID 27649, client 27680, client2
+27681, all exit 0/HARNESS_PASS, each undos=3 and divergences=0. Each requester
+already agreed, native waiting popup only; other participants explicitly voted.
+Actual attacks reduced enemy HP before undo; full native state/HP/history were
+restored each time; native avatar online indicators and remote cursors checked
+on all peers; post-replay attack synchronized. All replay-completion checksums
+were 4058208785. No NullReferenceException, FRAME_FAIL, HISTORY_FAIL or UNDO_FAIL
+in that run. Native shutdown resource diagnostics remain outside the result.
+
+Core DLL SHA-256: 384c359b88376546275d24eaea18c0e608a80854a78319bcedbd3ccb07ebb829
+
+Retained run/role/core logs and cleanup proof:
+tools/MinimalHarness/results/2026-10-25/promoted3/.
+Raw logs, snapshots and backup fixture:
+/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-63y3_cb5.
+After all games exited, prior UndoSync/MinimalHarness installations and default
+accounts 1/1001/2001/3001 were restored with SHA-256 comparison. Earlier manual
+Steam settings and prototype install backup were restored before this run.
+No game process remains and UDP 33771 is free. Existing AGENTS.md edits remain
+outside this migration. Steam P2P, four-player completion and broad loadout
+fuzzing remain unverified.
+
+
+# v0.1.8 release packaging
+
+User explicitly requested running the update distribution workflow. Manifest
+version advanced from 0.1.7 to 0.1.8. tools/package.sh UndoSync completed and
+MinimalCheck passed again. ZIP contains only UndoSync/UndoSync.dll and
+UndoSync/UndoSync.json; manifest identity/version validated. DLL bytes match the
+promoted3 tested DLL (384c359b88376546275d24eaea18c0e608a80854a78319bcedbd3ccb07ebb829).
+ZIP SHA-256: f93062dc14c132d6e98ccfa5e40315fe0ccdaa1cfe4492be8b02e64bd56dac33.
+Steam P2P, four-player completion and broad loadout fuzzing exclusions apply to
+this release as well. No additional gameplay code changed during packaging.

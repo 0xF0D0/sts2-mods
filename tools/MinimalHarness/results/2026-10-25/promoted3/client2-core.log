@@ -1,0 +1,44 @@
+[UndoSync pid=27681] INIT five-modules
+[UndoSync pid=27681] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=27681] BIND players=3
+[UndoSync pid=27681] HISTORY_BEGIN
+[UndoSync pid=27681] BOUNDARY events=0
+[UndoSync pid=27681] BOUNDARY events=1
+[UndoSync pid=27681] UI_VOTE target=0
+[UndoSync pid=27681] [UndoPicker] closed
+[UndoSync pid=27681] UI_WAITING target=0
+[UndoSync pid=27681] [UndoPicker] closed
+[UndoSync pid=27681] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=27681] UNBIND replay=True
+[UndoSync pid=27681] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=27681] BIND players=3
+[UndoSync pid=27681] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=27681] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=27681] HISTORY_COMMIT events=0
+[UndoSync pid=27681] RESUME session=67ba7091c1c84dc192b324c3e54beccd peers=3 checksum=4058208785
+[UndoSync pid=27681] BOUNDARY events=1
+[UndoSync pid=27681] UI_VOTE target=0
+[UndoSync pid=27681] [UndoPicker] closed
+[UndoSync pid=27681] UI_WAITING target=0
+[UndoSync pid=27681] [UndoPicker] closed
+[UndoSync pid=27681] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=27681] UNBIND replay=True
+[UndoSync pid=27681] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=27681] BIND players=3
+[UndoSync pid=27681] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=27681] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=27681] HISTORY_COMMIT events=0
+[UndoSync pid=27681] RESUME session=7ed299dd65a24842aa0ff7f0558ab42d peers=3 checksum=4058208785
+[UndoSync pid=27681] BOUNDARY events=1
+[UndoSync pid=27681] UI_WAITING target=0
+[UndoSync pid=27681] [UndoPicker] closed
+[UndoSync pid=27681] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=27681] UNBIND replay=True
+[UndoSync pid=27681] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=27681] BIND players=3
+[UndoSync pid=27681] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=27681] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=27681] HISTORY_COMMIT events=0
+[UndoSync pid=27681] RESUME session=8b98ceaec6b54706bc823d618379620b peers=3 checksum=4058208785
+[UndoSync pid=27681] BOUNDARY events=1
+[UndoSync pid=27681] UNBIND replay=False

@@ -36,7 +36,7 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Unlocks;
-using UndoSyncMinimal;
+using UndoSync;
 
 namespace MinimalHarness;
 
@@ -138,7 +138,7 @@ public static class Harness
             if (_suite == "preview")
             {
                 var window = NGame.Instance.GetWindow();
-                window.Title = $"UndoSyncMinimal — {_role} — PID {System.Environment.ProcessId}";
+                window.Title = $"UndoSync — {_role} — PID {System.Environment.ProcessId}";
                 int index = Array.IndexOf(Roles, _role);
                 window.Size = new Vector2I(1000, 700);
                 window.Position = new Vector2I(20 + index * 1020, 80);

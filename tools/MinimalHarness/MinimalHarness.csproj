@@ -8,7 +8,7 @@
     <STS2DataDir Condition="'$(STS2DataDir)' == ''">$(HOME)/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_arm64</STS2DataDir>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../UndoSyncMinimal/UndoSyncMinimal.csproj" />
+    <ProjectReference Include="../../UndoSync/UndoSync.csproj" />
     <Reference Include="sts2">
       <HintPath>$(STS2DataDir)/sts2.dll</HintPath>
       <Private>false</Private>

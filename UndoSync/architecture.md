@@ -1,4 +1,4 @@
-# UndoSyncMinimal
+# UndoSync
 
 ## Purpose and scope
 
@@ -6,8 +6,8 @@ Rebuild b770's combat undo as exactly five production modules: Hook, History,
 Replay, Network, UI. Same-build, cooperative players only. No malicious-client
 model, reconnect recovery, redo, persisted history, extensibility framework, or
 compatibility with old UndoSync wire messages. Steam multiplayer uses native
-host identity; ENet restore is limited to the localhost harness on port 33771. The old `UndoSync/` project remains
-untouched. The new assembly and manifest are `UndoSyncMinimal`.
+host identity; ENet restore is limited to the localhost harness on port 33771. The production project, assembly, namespace and manifest are `UndoSync`.
+The validated minimal implementation replaces the former snapshot implementation.
 
 ## Owners and calls
 
@@ -164,3 +164,6 @@ continue the first unfinished gate. Do not commit or publish without a request.
   /var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-nme6cxrp.
   Earlier manual Steam UI settings backup (restore after game exit):
   /var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-ui-preview-jzi1x83g.
+
+- Promotion: minimal implementation now owns UndoSync/. Legacy fuzz drivers are
+  preserved under tools/LegacyFuzz and excluded from production compilation.

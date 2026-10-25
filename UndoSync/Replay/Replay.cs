@@ -18,7 +18,7 @@ using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace UndoSyncMinimal;
+namespace UndoSync;
 
 internal static class Replay
 {
@@ -165,7 +165,7 @@ internal static class Replay
         manager.CombatReplayWriter.IsEnabled = true;
         AccessTools.PropertySetter(typeof(RunManager), nameof(RunManager.ShouldSave)).Invoke(manager, new object[] { shouldSave });
         manager.ChecksumTracker.IsEnabled = true;
-        uint checksum = manager.ChecksumTracker.GenerateChecksum("UndoSyncMinimal replay complete", null).checksum;
+        uint checksum = manager.ChecksumTracker.GenerateChecksum("UndoSync replay complete", null).checksum;
         Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum}");
         return checksum;
     }

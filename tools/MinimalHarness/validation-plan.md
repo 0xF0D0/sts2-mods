@@ -105,3 +105,14 @@ not as a passing four-player Steam result. Never call the matrix exhaustive.
   coupled to V1 capture/restore and have not been ported to UndoSyncMinimal.
   MinimalHarness currently uses starter decks and a Toolbox fixture, not the
   prior broad randomized deck/relic/potion/upgrades driver.
+
+
+## Promotion into UndoSync
+
+User requested replacing the original UndoSync project with the validated
+minimal implementation. Production sources now live under UndoSync's five
+module directories, assembly/namespace/mod ID UndoSync. Harness and metadata
+checker target that same project. Old randomized fuzz drivers are preserved
+under tools/LegacyFuzz, uncompiled and unported. Historical artifact identities
+remain unchanged. Previous interactive fixture accounts/mods and manual Steam
+settings were restored before this migration; no game was running.

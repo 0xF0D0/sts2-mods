@@ -6,7 +6,7 @@ using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Replay;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
-namespace UndoSyncMinimal;
+namespace UndoSync;
 
 internal static class History
 {
