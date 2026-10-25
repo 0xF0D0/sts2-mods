@@ -1,0 +1,13 @@
+[UndoSyncMinimal pid=96326] INIT five-modules
+[UndoSyncMinimal pid=96326] NETWORK_ATTACH role=Client id=2001
+[UndoSyncMinimal pid=96326] BIND players=3
+[UndoSyncMinimal pid=96326] HISTORY_BEGIN
+[UndoSyncMinimal pid=96326] BOUNDARY events=9
+[UndoSyncMinimal pid=96326] BOUNDARY events=10
+[UndoSyncMinimal pid=96326] BOUNDARY events=13
+[UndoSyncMinimal pid=96326] BOUNDARY events=16
+[UndoSyncMinimal pid=96326] BOUNDARY events=19
+[UndoSyncMinimal pid=96326] CANCEL session=f5cfd7cdd85b408f9e955eb0055d5986 started=False reason=Undo cancelled by a peer.
+[UndoSyncMinimal pid=96326] CANCEL session=24c986947383446388e32aee28065779 started=False reason=Undo cancelled by a peer.
+[UndoSyncMinimal pid=96326] CANCEL session=20be17ec241b461fa636e918c742c7c4 started=False reason=Undo cancelled by a peer.
+[UndoSyncMinimal pid=96326] UNBIND replay=False

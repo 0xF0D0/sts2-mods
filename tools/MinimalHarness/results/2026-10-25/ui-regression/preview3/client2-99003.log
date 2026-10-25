@@ -1,0 +1,7 @@
+[MinimalHarness pid=99003 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=99003 role=client2 stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] PREVIEW_READY players=3 automaticPlay=false automaticVote=false

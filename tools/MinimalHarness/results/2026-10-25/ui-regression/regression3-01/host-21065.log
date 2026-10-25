@@ -1,0 +1,30 @@
+[MinimalHarness pid=21065 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=21065 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=21065 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=21065 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=21065 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=21065 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=21065 role=host stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=21065 role=host stage=manual-report-regression] CHECK regression-opening all real peer native states match
+[MinimalHarness pid=21065 role=host stage=manual-report-regression] CHECK opening native roster connected
+[MinimalHarness pid=21065 role=host stage=manual-report-regression] CHECK opening avatar 1 online
+[MinimalHarness pid=21065 role=host stage=manual-report-regression] CHECK opening avatar 1001 online
+[MinimalHarness pid=21065 role=host stage=manual-report-regression] CHECK opening avatar 2001 online
+[MinimalHarness pid=21065 role=host stage=manual-report-regression] CHECK opening cursor 1001 bound
+[MinimalHarness pid=21065 role=host stage=manual-report-regression] CHECK opening cursor 2001 bound
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=21065 role=host stage=regression-host] PLAY card=CARD.STRIKE_SILENT owner=1 events=0
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK native manual card accepted
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK post-action native state available
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK damaged-host all real peer native states match
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK proposer already accepted its own proposal
+[MinimalHarness pid=21065 role=host stage=regression-host] CHECK proposer native waiting popup exists
+[MinimalHarness pid=21065 role=host stage=regression-host] PROPOSER_UI header=Undo Proposed
+[MinimalHarness pid=21065 role=host stage=regression-host] REGRESSION_UI_READY waiting popup inspection
+[MinimalHarness pid=21065 role=host stage=regression-host] HARNESS_FAIL System.InvalidOperationException: real multiplayer replay resumed
+   at MinimalHarness.Harness.Require(Boolean value, String reason)
+   at MinimalHarness.Harness.RegressionAsync()
+   at MinimalHarness.Harness.RunAsync()

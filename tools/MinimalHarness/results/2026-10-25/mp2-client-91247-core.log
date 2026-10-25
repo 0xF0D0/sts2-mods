@@ -1,0 +1,33 @@
+[UndoSyncMinimal pid=91247] INIT five-modules
+[UndoSyncMinimal pid=91247] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=91247] BIND players=2
+[UndoSyncMinimal pid=91247] HISTORY_BEGIN
+[UndoSyncMinimal pid=91247] BOUNDARY events=0
+[UndoSyncMinimal pid=91247] BOUNDARY events=1
+[UndoSyncMinimal pid=91247] BOUNDARY events=2
+[UndoSyncMinimal pid=91247] CANCEL session=5d6cae23d7f44fb48cef29ca22cafadd started=False reason=Undo cancelled by a peer.
+[UndoSyncMinimal pid=91247] RESTORE_BEGIN role=Client events=1
+[UndoSyncMinimal pid=91247] UNBIND replay=True
+[UndoSyncMinimal pid=91247] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=91247] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=91247] BIND players=2
+[UndoSyncMinimal pid=91247] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=91247] REPLAY_EVENT index=0 kind=GameAction
+[UndoSyncMinimal pid=91247] REPLAY_DONE events=1 waits=0 choices=0 checksum=2878827343
+[UndoSyncMinimal pid=91247] HISTORY_COMMIT events=1
+[UndoSyncMinimal pid=91247] RESUME session=b830dc9235484f78bfce3a84f52a7b15 peers=2 checksum=2878827343
+[UndoSyncMinimal pid=91247] BOUNDARY events=2
+[UndoSyncMinimal pid=91247] BOUNDARY events=3
+[UndoSyncMinimal pid=91247] RESTORE_BEGIN role=Client events=2
+[UndoSyncMinimal pid=91247] UNBIND replay=True
+[UndoSyncMinimal pid=91247] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=91247] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=91247] BIND players=2
+[UndoSyncMinimal pid=91247] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=91247] REPLAY_EVENT index=0 kind=GameAction
+[UndoSyncMinimal pid=91247] REPLAY_EVENT index=1 kind=GameAction
+[UndoSyncMinimal pid=91247] REPLAY_DONE events=2 waits=0 choices=0 checksum=4131693616
+[UndoSyncMinimal pid=91247] HISTORY_COMMIT events=2
+[UndoSyncMinimal pid=91247] RESUME session=6674f7a1d80b4224b48570b78bdb8491 peers=2 checksum=4131693616
+[UndoSyncMinimal pid=91247] BOUNDARY events=3
+[UndoSyncMinimal pid=91247] BOUNDARY events=4

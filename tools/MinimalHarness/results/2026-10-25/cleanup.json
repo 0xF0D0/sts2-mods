@@ -1,0 +1,16 @@
+{
+  "tested-UndoSyncMinimal": {
+    "UndoSyncMinimal.dll": "bf3026e89e16ffabd916994e74e5ad53a8916abdf71c80af9e1db6013b116332",
+    "UndoSyncMinimal.json": "ff25bbbc64e26fd9821945a230460f8af005e9aa225261186b6d7c2b1f0b8252"
+  },
+  "restored-mod-UndoSyncMinimal": true,
+  "tested-MinimalHarness": {
+    "MinimalHarness.dll": "748553eab4f503dcbfc48982676f2fd9c52eebaf27f64710675949d5514b6958",
+    "MinimalHarness.json": "a0be927e70a20895c7b5fc1affa81b4860e98e855a1aacb0261eeba68111e65e"
+  },
+  "restored-mod-MinimalHarness": true,
+  "restored-account-1": true,
+  "restored-account-1001": true,
+  "gameProcessesGone": true,
+  "port33771Free": true
+}

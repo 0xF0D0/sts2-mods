@@ -1,0 +1,53 @@
+[UndoSyncMinimal pid=98777] INIT five-modules
+[MinimalHarness pid=98777 role=ui stage=startup] HARNESS_INIT
+[UndoSyncMinimal pid=98777] NETWORK_ATTACH role=Singleplayer id=1
+[UndoSyncMinimal pid=98777] BIND players=1
+[UndoSyncMinimal pid=98777] HISTORY_BEGIN
+[UndoSyncMinimal pid=98777] BOUNDARY events=0
+[MinimalHarness pid=98777 role=ui stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=98777 role=ui stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=98777 role=ui stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=98777 role=ui stage=combat-entry] COMBAT_READY players=1 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK idle native player phase
+[MinimalHarness pid=98777 role=ui stage=ui-picker] PLAY card=CARD.DEFEND_IRONCLAD owner=1 events=0
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK native manual card accepted
+[UndoSyncMinimal pid=98777] BOUNDARY events=1
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK idle native player phase
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK post-action native state available
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK picker has earlier checkpoint
+[MinimalHarness pid=98777 role=ui stage=ui-picker] UI_READY press Left and click earliest checkpoint using native input
+[UndoSyncMinimal pid=98777] [UndoPicker] tree GenericPopup : NGenericPopup pos=(-261, -300) size=(522, 600)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree   VerticalPopup : NVerticalPopup pos=(-51, -59) size=(573, 659)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree     Header : MegaLabel pos=(-0.5, 56) size=(1, 72)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree     NoButton : NPopupYesNoButton pos=(0, -152) size=(180, 72)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree       Visuals : Control pos=(0, -8) size=(196, 96)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(-20.999998, 44) size=(48, 48)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree     YesButton : NPopupYesNoButton pos=(-180, -152) size=(180, 72)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree       Visuals : Control pos=(-17, -8) size=(196, 96)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(150.99998, 44.999996) size=(48, 48.000004)
+[UndoSyncMinimal pid=98777] [UndoPicker] tree     Description : MegaRichTextLabel pos=(-0.5, -20) size=(1, 0)
+[UndoSyncMinimal pid=98777] [UndoPicker] body rect pos=(50, 115) size=(473, 389) -> scale=0.6016667 holderSize=(212.5, 285.90332)
+[UndoSyncMinimal pid=98777] [UndoPicker] item steps=1 targetId=0 context='PlayCardAction card: CARD.DEFEND_IRONCLAD'
+[UndoSyncMinimal pid=98777] [UndoPicker] rendered page=1/1 choices=1-1 ncardNodes=1
+[UndoSyncMinimal pid=98777] [UndoPicker] opened with 1 choices across 1 pages (native chrome), renderWindow=8, restartCombat=True
+[UndoSyncMinimal pid=98777] [UndoPicker] closed
+[UndoSyncMinimal pid=98777] [UndoPicker] restart-combat button pressed, targetId=0
+[UndoSyncMinimal pid=98777] [UndoPicker] closed
+[UndoSyncMinimal pid=98777] [UndoPicker] restart-combat confirmed, targetId=0
+[UndoSyncMinimal pid=98777] PROPOSE session=2456df7297c745a48a25ffde34992ac9 target=0
+[UndoSyncMinimal pid=98777] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=98777] START_RECEIVED_ALL session=2456df7297c745a48a25ffde34992ac9
+[UndoSyncMinimal pid=98777] RESTORE_BEGIN role=Singleplayer events=0
+[UndoSyncMinimal pid=98777] UNBIND replay=True
+[UndoSyncMinimal pid=98777] NETWORK_ATTACH role=Singleplayer id=1
+[UndoSyncMinimal pid=98777] BIND players=1
+[UndoSyncMinimal pid=98777] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=98777] REPLAY_DONE events=0 waits=0 choices=0 checksum=1454047852
+[UndoSyncMinimal pid=98777] HISTORY_COMMIT events=0
+[UndoSyncMinimal pid=98777] RESUME session=2456df7297c745a48a25ffde34992ac9 peers=1 checksum=1454047852
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK idle native player phase
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK UI-triggered undo restores opening native state
+[MinimalHarness pid=98777 role=ui stage=ui-picker] UI_RESTORED native view ready for visual inspection
+[MinimalHarness pid=98777 role=ui stage=ui-picker] CHECK zero native state divergences
+[MinimalHarness pid=98777 role=ui stage=ui-picker] HARNESS_PASS peers=1 suite=picker-ui cards=1 undos=1 selections=0 divergences=0
+[UndoSyncMinimal pid=98777] UNBIND replay=False

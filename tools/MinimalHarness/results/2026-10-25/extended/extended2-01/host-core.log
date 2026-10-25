@@ -1,0 +1,6 @@
+[UndoSyncMinimal pid=95299] INIT five-modules
+[UndoSyncMinimal pid=95299] NETWORK_ATTACH role=Host id=1
+[UndoSyncMinimal pid=95299] BIND players=2
+[UndoSyncMinimal pid=95299] HISTORY_BEGIN
+[UndoSyncMinimal pid=95299] BOUNDARY events=6
+[UndoSyncMinimal pid=95299] UNBIND replay=False

@@ -1,0 +1,73 @@
+[MinimalHarness pid=22588 role=client stage=startup] HARNESS_INIT
+[MinimalHarness pid=22588 role=client stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=22588 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=22588 role=client stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=22588 role=client stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=22588 role=client stage=manual-report-regression] CHECK regression-opening all real peer native states match
+[MinimalHarness pid=22588 role=client stage=manual-report-regression] CHECK opening native roster connected
+[MinimalHarness pid=22588 role=client stage=manual-report-regression] CHECK opening avatar 1001 online
+[MinimalHarness pid=22588 role=client stage=manual-report-regression] CHECK opening avatar 1 online
+[MinimalHarness pid=22588 role=client stage=manual-report-regression] CHECK opening avatar 2001 online
+[MinimalHarness pid=22588 role=client stage=manual-report-regression] CHECK opening cursor 1 bound
+[MinimalHarness pid=22588 role=client stage=manual-report-regression] CHECK opening cursor 2001 bound
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK damaged-host all real peer native states match
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK other participant must explicitly vote
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK real multiplayer replay resumed
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK enemy HP and full native state restored
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK restored-host native roster connected
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK restored-host avatar 1001 online
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK restored-host avatar 1 online
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK restored-host avatar 2001 online
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK restored-host cursor 1 bound
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK restored-host cursor 2001 bound
+[MinimalHarness pid=22588 role=client stage=regression-host] CHECK restored-state-host all real peer native states match
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-client] PLAY card=CARD.STRIKE_SILENT owner=1001 events=0
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK native manual card accepted
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK post-action native state available
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK damaged-client all real peer native states match
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK proposer already accepted its own proposal
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK proposer native waiting popup exists
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK proposer sees waiting rather than accept
+[MinimalHarness pid=22588 role=client stage=regression-client] PROPOSER_UI header=Undo Proposed
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK real multiplayer replay resumed
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK enemy HP and full native state restored
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK restored-client native roster connected
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK restored-client avatar 1001 online
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK restored-client avatar 1 online
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK restored-client avatar 2001 online
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK restored-client cursor 1 bound
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK restored-client cursor 2001 bound
+[MinimalHarness pid=22588 role=client stage=regression-client] CHECK restored-state-client all real peer native states match
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK damaged-client2 all real peer native states match
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK other participant must explicitly vote
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK real multiplayer replay resumed
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK enemy HP and full native state restored
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK restored-client2 native roster connected
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK restored-client2 avatar 1001 online
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK restored-client2 avatar 1 online
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK restored-client2 avatar 2001 online
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK restored-client2 cursor 1 bound
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK restored-client2 cursor 2001 bound
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK restored-state-client2 all real peer native states match
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK post-replay-real-attack all real peer native states match
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK final native roster connected
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK final avatar 1001 online
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK final avatar 1 online
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK final avatar 2001 online
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK final cursor 1 bound
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK final cursor 2001 bound
+[MinimalHarness pid=22588 role=client stage=regression-client2] CHECK zero native state divergences
+[MinimalHarness pid=22588 role=client stage=regression-client2] HARNESS_PASS peers=3 suite=regression cards=1 undos=3 selections=0 divergences=0

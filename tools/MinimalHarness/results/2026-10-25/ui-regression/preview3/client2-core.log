@@ -1,0 +1,91 @@
+[UndoSyncMinimal pid=99003] INIT five-modules
+[MinimalHarness pid=99003 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=99003 role=client2 stage=boot] CHECK real client joined native lobby
+[UndoSyncMinimal pid=99003] NETWORK_ATTACH role=Client id=2001
+[UndoSyncMinimal pid=99003] BIND players=3
+[UndoSyncMinimal pid=99003] HISTORY_BEGIN
+[UndoSyncMinimal pid=99003] BOUNDARY events=0
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=99003 role=client2 stage=combat-entry] PREVIEW_READY players=3 automaticPlay=false automaticVote=false
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] [UndoPicker] nothing to undo (sync points=1)
+[UndoSyncMinimal pid=99003] BOUNDARY events=1
+[UndoSyncMinimal pid=99003] [UndoPicker] tree GenericPopup : NGenericPopup pos=(-261, -300) size=(522, 600)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree   VerticalPopup : NVerticalPopup pos=(-51, -59) size=(573, 659)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     Header : MegaLabel pos=(-0.5, 56) size=(1, 72)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     NoButton : NPopupYesNoButton pos=(0, -152) size=(180, 72)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       Visuals : Control pos=(0, -8) size=(196, 96)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(-20.999998, 44) size=(48, 48)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     YesButton : NPopupYesNoButton pos=(-180, -152) size=(180, 72)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       Visuals : Control pos=(-17, -8) size=(196, 96)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(150.99998, 44.999996) size=(48, 48.000004)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     Description : MegaRichTextLabel pos=(-0.5, -20) size=(1, 0)
+[UndoSyncMinimal pid=99003] [UndoPicker] body rect pos=(50, 115) size=(473, 389) -> scale=0.6016667 holderSize=(212.5, 285.90332)
+[UndoSyncMinimal pid=99003] [UndoPicker] item steps=1 targetId=0 context='PlayCardAction card: CARD.DEFEND_SILENT'
+[UndoSyncMinimal pid=99003] [UndoPicker] rendered page=1/1 choices=1-1 ncardNodes=1
+[UndoSyncMinimal pid=99003] [UndoPicker] opened with 1 choices across 1 pages (native chrome), renderWindow=8, restartCombat=True
+[UndoSyncMinimal pid=99003] [UndoPicker] closed
+[UndoSyncMinimal pid=99003] UI_VOTE target=0
+[UndoSyncMinimal pid=99003] [UndoPicker] closed
+[UndoSyncMinimal pid=99003] UI_WAITING target=0
+[UndoSyncMinimal pid=99003] [UndoPicker] closed
+[UndoSyncMinimal pid=99003] RESTORE_BEGIN role=Client events=0
+[UndoSyncMinimal pid=99003] UNBIND replay=True
+[UndoSyncMinimal pid=99003] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=99003] NETWORK_ATTACH role=Client id=2001
+[UndoSyncMinimal pid=99003] BIND players=3
+[UndoSyncMinimal pid=99003] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=99003] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSyncMinimal pid=99003] HISTORY_COMMIT events=0
+[UndoSyncMinimal pid=99003] RESUME session=21a7fc5280da4097b41ba1c1860f13db peers=3 checksum=4058208785
+[UndoSyncMinimal pid=99003] BOUNDARY events=1
+[UndoSyncMinimal pid=99003] BOUNDARY events=2
+[UndoSyncMinimal pid=99003] [UndoPicker] tree GenericPopup : NGenericPopup pos=(-261, -300) size=(522, 600)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree   VerticalPopup : NVerticalPopup pos=(-51, -59) size=(573, 659)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     Header : MegaLabel pos=(-0.5, 56) size=(1, 72)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     NoButton : NPopupYesNoButton pos=(0, -152) size=(180, 72)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       Visuals : Control pos=(0, -8) size=(196, 96)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(-20.999998, 44) size=(48, 48)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     YesButton : NPopupYesNoButton pos=(-180, -152) size=(180, 72)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       Visuals : Control pos=(-17, -8) size=(196, 96)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(150.99998, 44.999996) size=(48, 48.000004)
+[UndoSyncMinimal pid=99003] [UndoPicker] tree     Description : MegaRichTextLabel pos=(-0.5, -20) size=(1, 0)
+[UndoSyncMinimal pid=99003] [UndoPicker] body rect pos=(50, 115) size=(473, 389) -> scale=0.6016667 holderSize=(212.5, 285.90332)
+[UndoSyncMinimal pid=99003] [UndoPicker] item steps=1 targetId=1 context='PlayCardAction card: CARD.STRIKE_SILENT'
+[UndoSyncMinimal pid=99003] [UndoPicker] item steps=2 targetId=0 context='PlayCardAction card: CARD.NEUTRALIZE'
+[UndoSyncMinimal pid=99003] [UndoPicker] rendered page=1/1 choices=1-2 ncardNodes=2
+[UndoSyncMinimal pid=99003] [UndoPicker] opened with 2 choices across 1 pages (native chrome), renderWindow=8, restartCombat=True
+[UndoSyncMinimal pid=99003] [UndoPicker] closed
+[UndoSyncMinimal pid=99003] UI_VOTE target=0
+[UndoSyncMinimal pid=99003] [UndoPicker] closed
+[UndoSyncMinimal pid=99003] UI_WAITING target=0
+[UndoSyncMinimal pid=99003] [UndoPicker] closed
+[UndoSyncMinimal pid=99003] RESTORE_BEGIN role=Client events=0
+[UndoSyncMinimal pid=99003] UNBIND replay=True
+[UndoSyncMinimal pid=99003] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=99003] CANCEL session=6367d685d6da48638b14214264141251 started=True reason=Run exited during undo.
+[UndoSyncMinimal pid=99003] UNBIND replay=True
+[UndoSyncMinimal pid=99003] UNDO_FAIL session=6367d685d6da48638b14214264141251 System.Threading.Tasks.TaskCanceledException: A task was canceled.

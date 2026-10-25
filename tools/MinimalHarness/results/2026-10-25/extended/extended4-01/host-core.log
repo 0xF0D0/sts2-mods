@@ -1,0 +1,21 @@
+[UndoSyncMinimal pid=97164] INIT five-modules
+[UndoSyncMinimal pid=97164] NETWORK_ATTACH role=Host id=1
+[UndoSyncMinimal pid=97164] BIND players=4
+[UndoSyncMinimal pid=97164] HISTORY_BEGIN
+[UndoSyncMinimal pid=97164] BOUNDARY events=12
+[UndoSyncMinimal pid=97164] BOUNDARY events=13
+[UndoSyncMinimal pid=97164] BOUNDARY events=16
+[UndoSyncMinimal pid=97164] BOUNDARY events=19
+[UndoSyncMinimal pid=97164] BOUNDARY events=20
+[UndoSyncMinimal pid=97164] BOUNDARY events=24
+[UndoSyncMinimal pid=97164] PROPOSE session=201f65bf672045998e7d505bf248e397 target=20
+[UndoSyncMinimal pid=97164] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=97164] VOTE peer=2001 accepted=True
+[UndoSyncMinimal pid=97164] VOTE peer=1001 accepted=True
+[UndoSyncMinimal pid=97164] VOTE peer=3001 accepted=False
+[UndoSyncMinimal pid=97164] CANCEL session=201f65bf672045998e7d505bf248e397 started=False reason=Undo rejected by a player.
+[UndoSyncMinimal pid=97164] PROPOSE session=044cb8f530534050bab6155ea02cd213 target=20
+[UndoSyncMinimal pid=97164] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=97164] VOTE peer=1001 accepted=True
+[UndoSyncMinimal pid=97164] VOTE peer=2001 accepted=True
+[UndoSyncMinimal pid=97164] UNBIND replay=False

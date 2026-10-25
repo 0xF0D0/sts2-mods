@@ -1,0 +1,43 @@
+[MinimalHarness pid=96488 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=96488 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=96488 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=96488 role=host stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=96488 role=host stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=96488 role=host stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=96488 role=host stage=combat-entry] NATIVE_SELECTION player=1 choice=0 count=1
+[MinimalHarness pid=96488 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=96488 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=96488 role=host stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK opening-hooks all real peer native states match
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK opening native local choice synchronized
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=opening-hooks] PLAY card=CARD.DEFEND_SILENT owner=1 events=9
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK native manual card accepted
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK post-action native state available
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=opening-hooks] CHECK target-A all real peer native states match
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=concurrent-input] PLAY card=CARD.DEFEND_SILENT owner=1 events=16
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK native manual card accepted
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK idle native player phase
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK post-action native state available
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK concurrent-done all real peer native states match
+[MinimalHarness pid=96488 role=host stage=concurrent-input] EVENT_COVERAGE kind=None count=0
+[MinimalHarness pid=96488 role=host stage=concurrent-input] EVENT_COVERAGE kind=GameAction count=3
+[MinimalHarness pid=96488 role=host stage=concurrent-input] EVENT_COVERAGE kind=HookAction count=3
+[MinimalHarness pid=96488 role=host stage=concurrent-input] EVENT_COVERAGE kind=ResumeAction count=5
+[MinimalHarness pid=96488 role=host stage=concurrent-input] EVENT_COVERAGE kind=PlayerChoice count=5
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK real HookAction recorded
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK real PlayerChoice recorded
+[MinimalHarness pid=96488 role=host stage=concurrent-input] CHECK real ResumeAction recorded
+[MinimalHarness pid=96488 role=host stage=one-reject] CHECK one rejection preserves native state
+[MinimalHarness pid=96488 role=host stage=vote-timeout] CHECK withheld vote times out without state mutation
+[MinimalHarness pid=96488 role=host stage=requester-host] HARNESS_FAIL System.OperationCanceledException: Parent classified and aborted run.
+   at MinimalHarness.Harness.Wait(Func`1 predicate, Int32 seconds)
+   at MinimalHarness.Harness.UndoTo(Int32 target, String snapshot, String requester, String label)
+   at MinimalHarness.Harness.ExtendedAsync()
+   at MinimalHarness.Harness.RunAsync()

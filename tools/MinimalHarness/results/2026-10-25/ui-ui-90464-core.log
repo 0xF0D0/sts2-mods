@@ -1,0 +1,17 @@
+[UndoSyncMinimal pid=90464] INIT five-modules
+[UndoSyncMinimal pid=90464] NETWORK_ATTACH role=Singleplayer id=1
+[UndoSyncMinimal pid=90464] BIND players=1
+[UndoSyncMinimal pid=90464] HISTORY_BEGIN
+[UndoSyncMinimal pid=90464] BOUNDARY events=0
+[UndoSyncMinimal pid=90464] BOUNDARY events=1
+[UndoSyncMinimal pid=90464] UI_PICKER targets=1
+[UndoSyncMinimal pid=90464] PROPOSE session=95941779941e46e295d4bbd1da130482 target=0
+[UndoSyncMinimal pid=90464] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=90464] RESTORE_BEGIN role=Singleplayer events=0
+[UndoSyncMinimal pid=90464] UNBIND replay=True
+[UndoSyncMinimal pid=90464] NETWORK_ATTACH role=Singleplayer id=1
+[UndoSyncMinimal pid=90464] BIND players=1
+[UndoSyncMinimal pid=90464] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=90464] REPLAY_DONE events=0 waits=0 choices=0 checksum=3602342075
+[UndoSyncMinimal pid=90464] HISTORY_COMMIT events=0
+[UndoSyncMinimal pid=90464] RESUME session=95941779941e46e295d4bbd1da130482 peers=1 checksum=3602342075

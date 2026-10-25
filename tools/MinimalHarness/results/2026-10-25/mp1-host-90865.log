@@ -1,0 +1,19 @@
+[MinimalHarness pid=90865 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=90865 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=90865 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=90865 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=90865 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=90865 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=90865 role=host stage=combat-entry] COMBAT_READY players=2 encounter=ENCOUNTER.NIBBITS_WEAK
+[MinimalHarness pid=90865 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90865 role=host stage=initial-actions] PLAY card=CARD.DEFEND_IRONCLAD owner=1 events=0
+[MinimalHarness pid=90865 role=host stage=initial-actions] CHECK native manual card accepted
+[MinimalHarness pid=90865 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90865 role=host stage=initial-actions] CHECK post-action native state available
+[MinimalHarness pid=90865 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90865 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90865 role=host stage=reject] CHECK rejected proposal leaves native state unchanged
+[MinimalHarness pid=90865 role=host stage=host-undo] HARNESS_FAIL System.TimeoutException: host-undo: busy=True status=Rebuilding and replaying… count=2 run=False combat=False sync= executor=
+   at MinimalHarness.Harness.Wait(Func`1 predicate, Int32 seconds)
+   at MinimalHarness.Harness.MultiplayerAsync()
+   at MinimalHarness.Harness.RunAsync()

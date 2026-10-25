@@ -1,0 +1,22 @@
+[MinimalHarness pid=21082 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=21082 role=client2 stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=21082 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=21082 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=21082 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=21082 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=21082 role=client2 stage=manual-report-regression] CHECK regression-opening all real peer native states match
+[MinimalHarness pid=21082 role=client2 stage=manual-report-regression] CHECK opening native roster connected
+[MinimalHarness pid=21082 role=client2 stage=manual-report-regression] CHECK opening avatar 2001 online
+[MinimalHarness pid=21082 role=client2 stage=manual-report-regression] CHECK opening avatar 1 online
+[MinimalHarness pid=21082 role=client2 stage=manual-report-regression] CHECK opening avatar 1001 online
+[MinimalHarness pid=21082 role=client2 stage=manual-report-regression] CHECK opening cursor 1 bound
+[MinimalHarness pid=21082 role=client2 stage=manual-report-regression] CHECK opening cursor 1001 bound
+[MinimalHarness pid=21082 role=client2 stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=21082 role=client2 stage=regression-host] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=21082 role=client2 stage=regression-host] CHECK damaged-host all real peer native states match
+[MinimalHarness pid=21082 role=client2 stage=regression-host] CHECK other participant must explicitly vote
+[MinimalHarness pid=21082 role=client2 stage=regression-host] REGRESSION_UI_READY waiting popup inspection
+[MinimalHarness pid=21082 role=client2 stage=regression-host] HARNESS_FAIL System.InvalidOperationException: real multiplayer replay resumed
+   at MinimalHarness.Harness.Require(Boolean value, String reason)
+   at MinimalHarness.Harness.RegressionAsync()
+   at MinimalHarness.Harness.RunAsync()

@@ -1,0 +1,8 @@
+[MinimalHarness pid=98985 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=98985 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=98985 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=98985 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=98985 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=98985 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=98985 role=host stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=98985 role=host stage=combat-entry] PREVIEW_READY players=3 automaticPlay=false automaticVote=false

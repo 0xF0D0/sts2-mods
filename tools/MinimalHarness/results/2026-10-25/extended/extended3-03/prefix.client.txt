@@ -1,0 +1,16 @@
+0 HookAction player=1001 action= hook=2 resume= choice=
+1 PlayerChoice player=1001 action= hook= resume= choice=0
+2 HookAction player=1 action= hook=0 resume= choice=
+3 PlayerChoice player=1 action= hook= resume= choice=0
+4 ResumeAction player= action= hook= resume=1 choice=
+5 ResumeAction player= action= hook= resume=0 choice=
+6 HookAction player=2001 action= hook=1 resume= choice=
+7 PlayerChoice player=2001 action= hook= resume= choice=0
+8 ResumeAction player= action= hook= resume=4 choice=
+9 GameAction player=1 action=NetPlayCardAction hook= resume= choice=
+10 GameAction player=1001 action=NetPlayCardAction hook= resume= choice=
+11 PlayerChoice player=1001 action= hook= resume= choice=1
+12 ResumeAction player= action= hook= resume=7 choice=
+13 GameAction player=2001 action=NetPlayCardAction hook= resume= choice=
+14 PlayerChoice player=2001 action= hook= resume= choice=1
+15 ResumeAction player= action= hook= resume=9 choice=

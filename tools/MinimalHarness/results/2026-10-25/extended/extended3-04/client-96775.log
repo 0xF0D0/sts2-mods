@@ -1,0 +1,92 @@
+[MinimalHarness pid=96775 role=client stage=startup] HARNESS_INIT
+[MinimalHarness pid=96775 role=client stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=96775 role=client stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=96775 role=client stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=96775 role=client stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=96775 role=client stage=combat-entry] NATIVE_SELECTION player=1001 choice=0 count=1
+[MinimalHarness pid=96775 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=96775 role=client stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=96775 role=client stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK opening-hooks all real peer native states match
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK opening native local choice synchronized
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=opening-hooks] PLAY card=CARD.SURVIVOR owner=1001 events=10
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK native manual card accepted
+[MinimalHarness pid=96775 role=client stage=opening-hooks] NATIVE_SELECTION player=1001 choice=1 count=1
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK post-action native state available
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=opening-hooks] CHECK target-A all real peer native states match
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=concurrent-input] PLAY card=CARD.DEFEND_SILENT owner=1001 events=16
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK native manual card accepted
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK post-action native state available
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK concurrent-done all real peer native states match
+[MinimalHarness pid=96775 role=client stage=concurrent-input] EVENT_COVERAGE kind=None count=0
+[MinimalHarness pid=96775 role=client stage=concurrent-input] EVENT_COVERAGE kind=GameAction count=3
+[MinimalHarness pid=96775 role=client stage=concurrent-input] EVENT_COVERAGE kind=HookAction count=3
+[MinimalHarness pid=96775 role=client stage=concurrent-input] EVENT_COVERAGE kind=ResumeAction count=5
+[MinimalHarness pid=96775 role=client stage=concurrent-input] EVENT_COVERAGE kind=PlayerChoice count=5
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK real HookAction recorded
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK real PlayerChoice recorded
+[MinimalHarness pid=96775 role=client stage=concurrent-input] CHECK real ResumeAction recorded
+[MinimalHarness pid=96775 role=client stage=one-reject] CHECK one rejection preserves native state
+[MinimalHarness pid=96775 role=client stage=vote-timeout] CHECK withheld vote times out without state mutation
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK requester-host terminal resume: Undo complete
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK requester-host exact target state and history truncation
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK requester-host replay did not invoke the live choice selector
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK requester-host-resumed all real peer native states match
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=requester-host] PLAY card=CARD.DEFEND_SILENT owner=1001 events=16
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK native manual card accepted
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK post-action native state available
+[MinimalHarness pid=96775 role=client stage=requester-host] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=requester-client] CHECK requester-client terminal resume: Undo complete
+[MinimalHarness pid=96775 role=client stage=requester-client] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=requester-client] CHECK requester-client exact target state and history truncation
+[MinimalHarness pid=96775 role=client stage=requester-client] CHECK requester-client replay did not invoke the live choice selector
+[MinimalHarness pid=96775 role=client stage=requester-client] CHECK requester-client-resumed all real peer native states match
+[MinimalHarness pid=96775 role=client stage=requester-client] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=requester-client2] CHECK requester-client2 terminal resume: Undo complete
+[MinimalHarness pid=96775 role=client stage=requester-client2] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=requester-client2] CHECK requester-client2 exact target state and history truncation
+[MinimalHarness pid=96775 role=client stage=requester-client2] CHECK requester-client2 replay did not invoke the live choice selector
+[MinimalHarness pid=96775 role=client stage=requester-client2] CHECK requester-client2-resumed all real peer native states match
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] TURN_ADVANCED from=1 to=2
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK cross-enemy-turn-end all real peer native states match
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] PLAY card=CARD.DEFEND_SILENT owner=1001 events=25
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK native manual card accepted
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK post-action native state available
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK target-B all real peer native states match
+[MinimalHarness pid=96775 role=client stage=cross-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK cross-turn-replay terminal resume: Undo complete
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK cross-turn-replay exact target state and history truncation
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK cross-turn-replay replay did not invoke the live choice selector
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK cross-turn-replay-resumed all real peer native states match
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] PLAY card=CARD.DEFEND_SILENT owner=1001 events=28
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK native manual card accepted
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK post-action native state available
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK idle native player phase
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK extended-final all real peer native states match
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK every peer requested and cross-turn replay completed
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK local actions executed across repeated rebuilds and turn transition
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] CHECK zero native state divergences
+[MinimalHarness pid=96775 role=client stage=cross-turn-replay] HARNESS_PASS peers=3 suite=extended cards=5 undos=4 selections=2 divergences=0

@@ -1,0 +1,133 @@
+[UndoSyncMinimal pid=96775] INIT five-modules
+[UndoSyncMinimal pid=96775] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=96775] BIND players=3
+[UndoSyncMinimal pid=96775] HISTORY_BEGIN
+[UndoSyncMinimal pid=96775] BOUNDARY events=9
+[UndoSyncMinimal pid=96775] BOUNDARY events=10
+[UndoSyncMinimal pid=96775] BOUNDARY events=13
+[UndoSyncMinimal pid=96775] BOUNDARY events=16
+[UndoSyncMinimal pid=96775] BOUNDARY events=19
+[UndoSyncMinimal pid=96775] CANCEL session=f8a0e479ceff4397a6c763bbef75a57c started=False reason=Undo cancelled by a peer.
+[UndoSyncMinimal pid=96775] CANCEL session=d9a6cc53292b4f3b9991996409039f5c started=False reason=Undo timed out.
+[UndoSyncMinimal pid=96775] RESTORE_BEGIN role=Client events=16
+[UndoSyncMinimal pid=96775] UNBIND replay=True
+[UndoSyncMinimal pid=96775] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=96775] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=96775] BIND players=3
+[UndoSyncMinimal pid=96775] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=0 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=1 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=2 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=3 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=4 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=5 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=6 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=7 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=8 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=9 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=10 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=11 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=12 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=13 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=14 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=15 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_DONE events=16 waits=5 choices=5 checksum=4020987146
+[UndoSyncMinimal pid=96775] HISTORY_COMMIT events=16
+[UndoSyncMinimal pid=96775] RESUME session=cf652fcda23e412f89df28a6ffe35a3c peers=3 checksum=4020987146
+[UndoSyncMinimal pid=96775] BOUNDARY events=17
+[UndoSyncMinimal pid=96775] RESTORE_BEGIN role=Client events=16
+[UndoSyncMinimal pid=96775] UNBIND replay=True
+[UndoSyncMinimal pid=96775] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=96775] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=96775] BIND players=3
+[UndoSyncMinimal pid=96775] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=0 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=1 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=2 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=3 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=4 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=5 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=6 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=7 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=8 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=9 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=10 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=11 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=12 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=13 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=14 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=15 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_DONE events=16 waits=5 choices=5 checksum=4020987146
+[UndoSyncMinimal pid=96775] HISTORY_COMMIT events=16
+[UndoSyncMinimal pid=96775] RESUME session=46be42770d3e4ab58914d8a03d9cca68 peers=3 checksum=4020987146
+[UndoSyncMinimal pid=96775] BOUNDARY events=17
+[UndoSyncMinimal pid=96775] RESTORE_BEGIN role=Client events=16
+[UndoSyncMinimal pid=96775] UNBIND replay=True
+[UndoSyncMinimal pid=96775] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=96775] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=96775] BIND players=3
+[UndoSyncMinimal pid=96775] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=0 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=1 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=2 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=3 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=4 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=5 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=6 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=7 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=8 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=9 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=10 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=11 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=12 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=13 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=14 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=15 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_DONE events=16 waits=5 choices=5 checksum=4020987146
+[UndoSyncMinimal pid=96775] HISTORY_COMMIT events=16
+[UndoSyncMinimal pid=96775] RESUME session=adabbbf00311450eac20d6d07162da2d peers=3 checksum=4020987146
+[UndoSyncMinimal pid=96775] BOUNDARY events=22
+[UndoSyncMinimal pid=96775] BOUNDARY events=25
+[UndoSyncMinimal pid=96775] BOUNDARY events=26
+[UndoSyncMinimal pid=96775] BOUNDARY events=27
+[UndoSyncMinimal pid=96775] BOUNDARY events=28
+[UndoSyncMinimal pid=96775] RESTORE_BEGIN role=Client events=27
+[UndoSyncMinimal pid=96775] UNBIND replay=True
+[UndoSyncMinimal pid=96775] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=96775] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=96775] BIND players=3
+[UndoSyncMinimal pid=96775] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=0 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=1 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=2 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=3 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=4 kind=HookAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=5 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=6 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=7 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=8 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=9 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=10 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=11 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=12 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=13 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=14 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=15 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=16 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=17 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=18 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=19 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=20 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=21 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=22 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=23 kind=PlayerChoice
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=24 kind=ResumeAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=25 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_EVENT index=26 kind=GameAction
+[UndoSyncMinimal pid=96775] REPLAY_DONE events=27 waits=6 choices=6 checksum=3635309779
+[UndoSyncMinimal pid=96775] HISTORY_COMMIT events=27
+[UndoSyncMinimal pid=96775] RESUME session=daabc2821ba34f8e82be2016eea7b9e9 peers=3 checksum=3635309779
+[UndoSyncMinimal pid=96775] BOUNDARY events=28
+[UndoSyncMinimal pid=96775] BOUNDARY events=29
+[UndoSyncMinimal pid=96775] BOUNDARY events=30
+[UndoSyncMinimal pid=96775] UNBIND replay=False

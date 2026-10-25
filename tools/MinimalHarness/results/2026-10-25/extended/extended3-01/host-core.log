@@ -1,0 +1,23 @@
+[UndoSyncMinimal pid=95958] INIT five-modules
+[UndoSyncMinimal pid=95958] NETWORK_ATTACH role=Host id=1
+[UndoSyncMinimal pid=95958] BIND players=3
+[UndoSyncMinimal pid=95958] HISTORY_BEGIN
+[UndoSyncMinimal pid=95958] BOUNDARY events=9
+[UndoSyncMinimal pid=95958] BOUNDARY events=10
+[UndoSyncMinimal pid=95958] BOUNDARY events=13
+[UndoSyncMinimal pid=95958] BOUNDARY events=16
+[UndoSyncMinimal pid=95958] BOUNDARY events=19
+[UndoSyncMinimal pid=95958] PROPOSE session=4818627701de4d738a0cb28e5433ea14 target=16
+[UndoSyncMinimal pid=95958] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=95958] VOTE peer=2001 accepted=False
+[UndoSyncMinimal pid=95958] CANCEL session=4818627701de4d738a0cb28e5433ea14 started=False reason=Undo rejected or history differs.
+[UndoSyncMinimal pid=95958] PROPOSE session=5f13a85480b2416496e96a3d326eada7 target=16
+[UndoSyncMinimal pid=95958] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=95958] VOTE peer=1001 accepted=True
+[UndoSyncMinimal pid=95958] CANCEL session=5f13a85480b2416496e96a3d326eada7 started=False reason=Undo timed out.
+[UndoSyncMinimal pid=95958] PROPOSE session=1f653fb2a5584eeb91dffffa430643ea target=16
+[UndoSyncMinimal pid=95958] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=95958] VOTE peer=1001 accepted=True
+[UndoSyncMinimal pid=95958] VOTE peer=2001 accepted=False
+[UndoSyncMinimal pid=95958] CANCEL session=1f653fb2a5584eeb91dffffa430643ea started=False reason=Undo rejected or history differs.
+[UndoSyncMinimal pid=95958] UNBIND replay=False

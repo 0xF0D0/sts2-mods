@@ -1,0 +1,43 @@
+[MinimalHarness pid=95999 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=95999 role=client2 stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=95999 role=client2 stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=95999 role=client2 stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=95999 role=client2 stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=95999 role=client2 stage=combat-entry] NATIVE_SELECTION player=2001 choice=0 count=1
+[MinimalHarness pid=95999 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=95999 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=95999 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK opening-hooks all real peer native states match
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK opening native local choice synchronized
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] PLAY card=CARD.SURVIVOR owner=2001 events=13
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK native manual card accepted
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] NATIVE_SELECTION player=2001 choice=1 count=1
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK post-action native state available
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=opening-hooks] CHECK target-A all real peer native states match
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] PLAY card=CARD.DEFEND_SILENT owner=2001 events=16
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK native manual card accepted
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK idle native player phase
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK post-action native state available
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK concurrent-done all real peer native states match
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] EVENT_COVERAGE kind=None count=0
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] EVENT_COVERAGE kind=GameAction count=3
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] EVENT_COVERAGE kind=HookAction count=3
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] EVENT_COVERAGE kind=ResumeAction count=5
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] EVENT_COVERAGE kind=PlayerChoice count=5
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK real HookAction recorded
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK real PlayerChoice recorded
+[MinimalHarness pid=95999 role=client2 stage=concurrent-input] CHECK real ResumeAction recorded
+[MinimalHarness pid=95999 role=client2 stage=one-reject] CHECK one rejection preserves native state
+[MinimalHarness pid=95999 role=client2 stage=vote-timeout] CHECK withheld vote times out without state mutation
+[MinimalHarness pid=95999 role=client2 stage=requester-host] HARNESS_FAIL System.InvalidOperationException: requester-host terminal resume: Undo cancelled by a peer.
+   at MinimalHarness.Harness.Require(Boolean value, String reason)
+   at MinimalHarness.Harness.UndoTo(Int32 target, String snapshot, String requester, String label)
+   at MinimalHarness.Harness.ExtendedAsync()
+   at MinimalHarness.Harness.RunAsync()

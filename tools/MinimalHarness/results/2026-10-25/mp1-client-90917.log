@@ -1,0 +1,18 @@
+[MinimalHarness pid=90917 role=client stage=startup] HARNESS_INIT
+[MinimalHarness pid=90917 role=client stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=90917 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=90917 role=client stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=90917 role=client stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=90917 role=client stage=combat-entry] COMBAT_READY players=2 encounter=ENCOUNTER.NIBBITS_WEAK
+[MinimalHarness pid=90917 role=client stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90917 role=client stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90917 role=client stage=initial-actions] PLAY card=CARD.DEFEND_IRONCLAD owner=1001 events=1
+[MinimalHarness pid=90917 role=client stage=initial-actions] CHECK native manual card accepted
+[MinimalHarness pid=90917 role=client stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90917 role=client stage=initial-actions] CHECK post-action native state available
+[MinimalHarness pid=90917 role=client stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=90917 role=client stage=reject] CHECK rejected proposal leaves native state unchanged
+[MinimalHarness pid=90917 role=client stage=host-undo] HARNESS_FAIL System.InvalidOperationException: first replay completed
+   at MinimalHarness.Harness.Require(Boolean value, String reason)
+   at MinimalHarness.Harness.MultiplayerAsync()
+   at MinimalHarness.Harness.RunAsync()

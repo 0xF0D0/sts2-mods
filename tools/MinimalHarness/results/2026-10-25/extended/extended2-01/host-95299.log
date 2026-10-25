@@ -1,0 +1,15 @@
+[MinimalHarness pid=95299 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=95299 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=95299 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=95299 role=host stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=95299 role=host stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=95299 role=host stage=combat-entry] NATIVE_SELECTION player=1 choice=0 count=1
+[MinimalHarness pid=95299 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=95299 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=95299 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=95299 role=host stage=combat-entry] COMBAT_READY players=2 encounter=ENCOUNTER.NIBBITS_WEAK
+[MinimalHarness pid=95299 role=host stage=opening-hooks] HARNESS_FAIL System.InvalidOperationException: opening-hooks all real peer native states match
+   at MinimalHarness.Harness.Require(Boolean value, String reason)
+   at MinimalHarness.Harness.StateBarrier(String label)
+   at MinimalHarness.Harness.ExtendedAsync()
+   at MinimalHarness.Harness.RunAsync()

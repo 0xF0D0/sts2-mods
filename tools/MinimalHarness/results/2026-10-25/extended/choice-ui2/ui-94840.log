@@ -1,0 +1,21 @@
+[MinimalHarness pid=94840 role=ui stage=startup] HARNESS_INIT
+[MinimalHarness pid=94840 role=ui stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=94840 role=ui stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=94840 role=ui stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=94840 role=ui stage=combat-entry] COMBAT_READY players=1 encounter=ENCOUNTER.NIBBITS_WEAK
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK normal starter deck drew Survivor
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK Survivor native manual play accepted
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHOICE_UI_READY select one discard through native UI
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK idle native player phase
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK idle native player phase
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] PLAY card=CARD.NEUTRALIZE owner=1 events=5
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK native manual card accepted
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK idle native player phase
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK post-action native state available
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK native UI choice recorded
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK historical native UI choice replay completed
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK idle native player phase
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK historical choice exact native state
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHOICE_UI_REPLAYED inspect no selection prompt remains
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] CHECK zero native state divergences
+[MinimalHarness pid=94840 role=ui stage=native-choice-ui] HARNESS_PASS peers=1 suite=choice-ui cards=1 undos=1 selections=0 divergences=0

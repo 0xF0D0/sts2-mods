@@ -1,0 +1,170 @@
+[UndoSyncMinimal pid=99002] INIT five-modules
+[MinimalHarness pid=99002 role=client stage=startup] HARNESS_INIT
+[MinimalHarness pid=99002 role=client stage=boot] CHECK real client joined native lobby
+[UndoSyncMinimal pid=99002] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=99002] BIND players=3
+[UndoSyncMinimal pid=99002] HISTORY_BEGIN
+[UndoSyncMinimal pid=99002] BOUNDARY events=0
+[MinimalHarness pid=99002 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=99002 role=client stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=99002 role=client stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=99002 role=client stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=99002 role=client stage=combat-entry] PREVIEW_READY players=3 automaticPlay=false automaticVote=false
+[UndoSyncMinimal pid=99002] BOUNDARY events=1
+[UndoSyncMinimal pid=99002] UI_VOTE target=0
+[UndoSyncMinimal pid=99002] [UndoPicker] closed
+[UndoSyncMinimal pid=99002] UI_WAITING target=0
+[UndoSyncMinimal pid=99002] [UndoPicker] closed
+[UndoSyncMinimal pid=99002] RESTORE_BEGIN role=Client events=0
+[UndoSyncMinimal pid=99002] UNBIND replay=True
+[UndoSyncMinimal pid=99002] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=99002] NETWORK_ATTACH role=Client id=1001
+[UndoSyncMinimal pid=99002] BIND players=3
+[UndoSyncMinimal pid=99002] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=99002] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSyncMinimal pid=99002] HISTORY_COMMIT events=0
+[UndoSyncMinimal pid=99002] RESUME session=21a7fc5280da4097b41ba1c1860f13db peers=3 checksum=4058208785
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+[UndoSyncMinimal pid=99002] BOUNDARY events=1
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+ERROR: System.NullReferenceException: Object reference not set to an instance of an object.
+   at MegaCrit.Sts2.Core.Nodes.Multiplayer.NRemoteMouseCursorContainer.GetCursorPosition(UInt64 playerId)
+[UndoSyncMinimal pid=99002] BOUNDARY events=2
+[UndoSyncMinimal pid=99002] UI_VOTE target=0
+[UndoSyncMinimal pid=99002] [UndoPicker] closed
+[UndoSyncMinimal pid=99002] UI_WAITING target=0
+[UndoSyncMinimal pid=99002] [UndoPicker] closed
+[UndoSyncMinimal pid=99002] RESTORE_BEGIN role=Client events=0
+[UndoSyncMinimal pid=99002] UNBIND replay=True
+[UndoSyncMinimal pid=99002] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSyncMinimal pid=99002] CANCEL session=6367d685d6da48638b14214264141251 started=True reason=Run exited during undo.
+[UndoSyncMinimal pid=99002] UNBIND replay=True
+[UndoSyncMinimal pid=99002] UNDO_FAIL session=6367d685d6da48638b14214264141251 System.Threading.Tasks.TaskCanceledException: A task was canceled.

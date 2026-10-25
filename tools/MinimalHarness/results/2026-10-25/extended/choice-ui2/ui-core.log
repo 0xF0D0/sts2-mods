@@ -1,0 +1,24 @@
+[UndoSyncMinimal pid=94840] INIT five-modules
+[UndoSyncMinimal pid=94840] NETWORK_ATTACH role=Singleplayer id=1
+[UndoSyncMinimal pid=94840] BIND players=1
+[UndoSyncMinimal pid=94840] HISTORY_BEGIN
+[UndoSyncMinimal pid=94840] BOUNDARY events=0
+[UndoSyncMinimal pid=94840] BOUNDARY events=5
+[UndoSyncMinimal pid=94840] BOUNDARY events=6
+[UndoSyncMinimal pid=94840] PROPOSE session=303836339e2e4247b3f041990c245d8a target=5
+[UndoSyncMinimal pid=94840] VOTE peer=1 accepted=True
+[UndoSyncMinimal pid=94840] START_RECEIVED_ALL session=303836339e2e4247b3f041990c245d8a
+[UndoSyncMinimal pid=94840] RESTORE_BEGIN role=Singleplayer events=5
+[UndoSyncMinimal pid=94840] UNBIND replay=True
+[UndoSyncMinimal pid=94840] NETWORK_ATTACH role=Singleplayer id=1
+[UndoSyncMinimal pid=94840] BIND players=1
+[UndoSyncMinimal pid=94840] RESTORE_SEEDED action=0 hook=0
+[UndoSyncMinimal pid=94840] REPLAY_EVENT index=0 kind=GameAction
+[UndoSyncMinimal pid=94840] REPLAY_EVENT index=1 kind=GameAction
+[UndoSyncMinimal pid=94840] REPLAY_EVENT index=2 kind=GameAction
+[UndoSyncMinimal pid=94840] REPLAY_EVENT index=3 kind=PlayerChoice
+[UndoSyncMinimal pid=94840] REPLAY_EVENT index=4 kind=ResumeAction
+[UndoSyncMinimal pid=94840] REPLAY_DONE events=5 waits=1 choices=1 checksum=701338407
+[UndoSyncMinimal pid=94840] HISTORY_COMMIT events=5
+[UndoSyncMinimal pid=94840] RESUME session=303836339e2e4247b3f041990c245d8a peers=1 checksum=701338407
+[UndoSyncMinimal pid=94840] UNBIND replay=False

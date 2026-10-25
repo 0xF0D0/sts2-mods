@@ -1,0 +1,39 @@
+[MinimalHarness pid=91219 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=91219 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=91219 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=91219 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=91219 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=91219 role=host stage=combat-entry] COMBAT_READY players=2 encounter=ENCOUNTER.NIBBITS_WEAK
+[MinimalHarness pid=91219 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=initial-actions] PLAY card=CARD.DEFEND_IRONCLAD owner=1 events=0
+[MinimalHarness pid=91219 role=host stage=initial-actions] CHECK native manual card accepted
+[MinimalHarness pid=91219 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=initial-actions] CHECK post-action native state available
+[MinimalHarness pid=91219 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=initial-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=reject] CHECK rejected proposal leaves native state unchanged
+[MinimalHarness pid=91219 role=host stage=host-undo] CHECK first replay completed
+[MinimalHarness pid=91219 role=host stage=host-undo] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=host-undo] CHECK first replay matches saved native state and truncates history
+[MinimalHarness pid=91219 role=host stage=second-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=second-actions] PLAY card=CARD.DEFEND_IRONCLAD owner=1 events=1
+[MinimalHarness pid=91219 role=host stage=second-actions] CHECK native manual card accepted
+[MinimalHarness pid=91219 role=host stage=second-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=second-actions] CHECK post-action native state available
+[MinimalHarness pid=91219 role=host stage=second-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=second-actions] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=client-undo] CHECK client-requested replay completed
+[MinimalHarness pid=91219 role=host stage=client-undo] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=client-undo] CHECK second replay matches saved native state and truncates history
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=continued-input] PLAY card=CARD.STRIKE_IRONCLAD owner=1 events=2
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK native manual card accepted
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK post-action native state available
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK idle native player phase
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK local input executed before and after both replays
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK real peers final native state matches
+[MinimalHarness pid=91219 role=host stage=continued-input] CHECK zero native state divergences
+[MinimalHarness pid=91219 role=host stage=continued-input] HARNESS_PASS cards=3 undos=2 divergences=0

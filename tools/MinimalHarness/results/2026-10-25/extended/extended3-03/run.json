@@ -1,0 +1,77 @@
+{
+  "label": "extended3-03",
+  "peers": 3,
+  "suite": "extended",
+  "seed": "MINIMAL_MP_A",
+  "headless": true,
+  "processes": {
+    "host": {
+      "pid": 96488,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-harness=host",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-lpj0_j6o/extended3-03",
+        "--minimal-peers=3",
+        "--minimal-suite=extended",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--headless"
+      ],
+      "exit": 1
+    },
+    "client": {
+      "pid": 96500,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1001",
+        "--minimal-harness=client",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-lpj0_j6o/extended3-03",
+        "--minimal-peers=3",
+        "--minimal-suite=extended",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--headless"
+      ],
+      "exit": 1
+    },
+    "client2": {
+      "pid": 96501,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "2001",
+        "--minimal-harness=client2",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-lpj0_j6o/extended3-03",
+        "--minimal-peers=3",
+        "--minimal-suite=extended",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--headless"
+      ],
+      "exit": 1
+    }
+  },
+  "dlls": {
+    "UndoSyncMinimal": {
+      "UndoSyncMinimal.dll": "743ecb6e019bb5b6efbf443ce9ea60ddc048120c48d5239e406368f59bd072ec",
+      "UndoSyncMinimal.json": "ff25bbbc64e26fd9821945a230460f8af005e9aa225261186b6d7c2b1f0b8252"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "e2706648e4313d452aec12e01bd9b7d268e1f51d2ab67fe1d210129855c1447d",
+      "MinimalHarness.json": "a0be927e70a20895c7b5fc1affa81b4860e98e855a1aacb0261eeba68111e65e"
+    }
+  },
+  "verdict": "FAIL"
+}
