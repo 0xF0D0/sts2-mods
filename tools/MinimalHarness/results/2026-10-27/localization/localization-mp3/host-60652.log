@@ -1,0 +1,78 @@
+[MinimalHarness pid=60652 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=60652 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=60652 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=60652 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=60652 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=60652 role=host stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=60652 role=host stage=manual-report-regression] CHECK regression-opening all real peer native states match
+[MinimalHarness pid=60652 role=host stage=manual-report-regression] CHECK opening native roster connected
+[MinimalHarness pid=60652 role=host stage=manual-report-regression] CHECK opening avatar 1 online
+[MinimalHarness pid=60652 role=host stage=manual-report-regression] CHECK opening avatar 1001 online
+[MinimalHarness pid=60652 role=host stage=manual-report-regression] CHECK opening avatar 2001 online
+[MinimalHarness pid=60652 role=host stage=manual-report-regression] CHECK opening cursor 1001 bound
+[MinimalHarness pid=60652 role=host stage=manual-report-regression] CHECK opening cursor 2001 bound
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-host] PLAY card=CARD.STRIKE_SILENT owner=1 events=0
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK native manual card accepted
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK post-action native state available
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK damaged-host all real peer native states match
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK proposer already accepted its own proposal
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK proposer native waiting popup exists
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK proposer sees waiting rather than accept
+[MinimalHarness pid=60652 role=host stage=regression-host] PROPOSER_UI header=Undo Proposed
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK localized native popup title: Undo Proposed
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK native screenshot host-host-proposal
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK real multiplayer replay resumed
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK enemy HP and full native state restored
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK restored-host native roster connected
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK restored-host avatar 1 online
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK restored-host avatar 1001 online
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK restored-host avatar 2001 online
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK restored-host cursor 1001 bound
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK restored-host cursor 2001 bound
+[MinimalHarness pid=60652 role=host stage=regression-host] CHECK restored-state-host all real peer native states match
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK damaged-client all real peer native states match
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK other participant must explicitly vote
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK localized native popup title: Undo Proposal
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK native screenshot host-client-proposal
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK real multiplayer replay resumed
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK enemy HP and full native state restored
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK restored-client native roster connected
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK restored-client avatar 1 online
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK restored-client avatar 1001 online
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK restored-client avatar 2001 online
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK restored-client cursor 1001 bound
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK restored-client cursor 2001 bound
+[MinimalHarness pid=60652 role=host stage=regression-client] CHECK restored-state-client all real peer native states match
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK damaged-client2 all real peer native states match
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK other participant must explicitly vote
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK localized native popup title: Undo Proposal
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK native screenshot host-client2-proposal
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK real multiplayer replay resumed
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK enemy HP and full native state restored
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK restored-client2 native roster connected
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK restored-client2 avatar 1 online
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK restored-client2 avatar 1001 online
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK restored-client2 avatar 2001 online
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK restored-client2 cursor 1001 bound
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK restored-client2 cursor 2001 bound
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK restored-state-client2 all real peer native states match
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60652 role=host stage=regression-client2] CHECK post-replay-real-attack all real peer native states match
+[MinimalHarness pid=60652 role=host stage=regression-client2] HARNESS_FAIL System.OperationCanceledException: Parent classified and aborted run.
+   at MinimalHarness.Harness.Wait(Func`1 predicate, Int32 seconds)
+   at MinimalHarness.Harness.Barrier(String name)
+   at MinimalHarness.Harness.CheckConnectedUi(String label)
+   at MinimalHarness.Harness.RegressionAsync()
+   at MinimalHarness.Harness.RunAsync()

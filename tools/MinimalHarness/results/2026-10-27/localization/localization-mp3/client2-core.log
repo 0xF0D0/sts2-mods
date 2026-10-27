@@ -1,0 +1,49 @@
+[UndoSync pid=60667] INIT five-modules
+[UndoSync pid=60667] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=60667] BIND players=3
+[UndoSync pid=60667] HISTORY_BEGIN
+[UndoSync pid=60667] BOUNDARY events=0
+[UndoSync pid=60667] BOUNDARY events=1
+[UndoSync pid=60667] UI_VOTE target=0
+[UndoSync pid=60667] [UndoPicker] closed
+[UndoSync pid=60667] UI_WAITING target=0
+[UndoSync pid=60667] [UndoPicker] closed
+[UndoSync pid=60667] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=60667] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60667] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=60667] BIND players=3
+[UndoSync pid=60667] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60667] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=60667] HISTORY_COMMIT events=0
+[UndoSync pid=60667] RESUME session=adf971bb055649cb8fbf6d6c66551053 peers=3 checksum=4058208785
+[UndoSync pid=60667] BOUNDARY events=1
+[UndoSync pid=60667] UI_VOTE target=0
+[UndoSync pid=60667] [UndoPicker] closed
+[UndoSync pid=60667] UI_WAITING target=0
+[UndoSync pid=60667] [UndoPicker] closed
+[UndoSync pid=60667] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=60667] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[ERROR] [ENetClient] Timed out waiting for handshake ack!
+[UndoSync pid=60667] RESTORE_JOIN_RETRY attempt=1 error=Could not connect
+[UndoSync pid=60667] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=60667] BIND players=3
+[UndoSync pid=60667] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60667] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=60667] HISTORY_COMMIT events=0
+[UndoSync pid=60667] RESUME session=1e2b6bdb9ff94c6683e610ef5770ad07 peers=3 checksum=4058208785
+[UndoSync pid=60667] BOUNDARY events=1
+[UndoSync pid=60667] UI_WAITING target=0
+[UndoSync pid=60667] [UndoPicker] closed
+[UndoSync pid=60667] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=60667] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60667] NETWORK_ATTACH role=Client id=2001
+[UndoSync pid=60667] BIND players=3
+[UndoSync pid=60667] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60667] REPLAY_DONE events=0 waits=0 choices=0 checksum=4058208785
+[UndoSync pid=60667] HISTORY_COMMIT events=0
+[UndoSync pid=60667] RESUME session=c41f83c31dca46fca9e793f8810d56bd peers=3 checksum=4058208785
+[UndoSync pid=60667] BOUNDARY events=1
+[UndoSync pid=60667] UNBIND replay=False

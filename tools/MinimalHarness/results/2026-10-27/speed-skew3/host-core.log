@@ -1,0 +1,48 @@
+[UndoSync pid=3625] INIT five-modules
+[UndoSync pid=3625] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=3625] BIND players=3
+[UndoSync pid=3625] HISTORY_BEGIN
+[UndoSync pid=3625] BOUNDARY events=0
+[UndoSync pid=3625] BOUNDARY events=1
+[UndoSync pid=3625] BOUNDARY events=2
+[UndoSync pid=3625] VOTE peer=1001 accepted=True
+[UndoSync pid=3625] PROPOSE session=5740d2cab90240c0840d2d334d1b2a2d target=1
+[UndoSync pid=3625] UI_VOTE target=1
+[UndoSync pid=3625] VOTE peer=1 accepted=True
+[UndoSync pid=3625] VOTE peer=1001 accepted=True
+[UndoSync pid=3625] [UndoPicker] closed
+[UndoSync pid=3625] UI_WAITING target=1
+[UndoSync pid=3625] VOTE peer=2001 accepted=True
+[UndoSync pid=3625] [UndoPicker] closed
+[UndoSync pid=3625] START_RECEIVED_ALL session=5740d2cab90240c0840d2d334d1b2a2d
+[UndoSync pid=3625] RESTORE_BEGIN role=Host events=1
+[UndoSync pid=3625] UNBIND replay=True
+[UndoSync pid=3625] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=3625] RESTORE_HOST_LISTENING
+[UndoSync pid=3625] BIND players=3
+[UndoSync pid=3625] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=3625] REPLAY_EVENT index=0 kind=GameAction
+[UndoSync pid=3625] REPLAY_DONE events=1 waits=0 choices=0 checksum=534479772
+[UndoSync pid=3625] HISTORY_COMMIT events=1
+[UndoSync pid=3625] RESUME session=5740d2cab90240c0840d2d334d1b2a2d peers=3 checksum=534479772
+[UndoSync pid=3625] BOUNDARY events=2
+[UndoSync pid=3625] VOTE peer=1001 accepted=True
+[UndoSync pid=3625] PROPOSE session=a293ea66ff404183b2ba432fae23aea5 target=1
+[UndoSync pid=3625] UI_VOTE target=1
+[UndoSync pid=3625] VOTE peer=1 accepted=True
+[UndoSync pid=3625] VOTE peer=2001 accepted=True
+[UndoSync pid=3625] VOTE peer=1001 accepted=True
+[UndoSync pid=3625] [UndoPicker] closed
+[UndoSync pid=3625] START_RECEIVED_ALL session=a293ea66ff404183b2ba432fae23aea5
+[UndoSync pid=3625] RESTORE_BEGIN role=Host events=1
+[UndoSync pid=3625] UNBIND replay=True
+[UndoSync pid=3625] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=3625] RESTORE_HOST_LISTENING
+[UndoSync pid=3625] BIND players=3
+[UndoSync pid=3625] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=3625] REPLAY_EVENT index=0 kind=GameAction
+[UndoSync pid=3625] REPLAY_DONE events=1 waits=0 choices=0 checksum=534479772
+[UndoSync pid=3625] HISTORY_COMMIT events=1
+[UndoSync pid=3625] RESUME session=a293ea66ff404183b2ba432fae23aea5 peers=3 checksum=534479772
+[UndoSync pid=3625] BOUNDARY events=2
+[UndoSync pid=3625] UNBIND replay=False

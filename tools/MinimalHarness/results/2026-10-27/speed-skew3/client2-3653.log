@@ -1,0 +1,50 @@
+[MinimalHarness pid=3653 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=3653 role=client2 stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=3653 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=3653 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=3653 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=3653 role=client2 stage=combat-entry] CHECK speed skew uses three real peers
+[MinimalHarness pid=3653 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-target-client2 all real peer native states match
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK attack changed HP beyond replay target
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] SKEW_DELAY_BEGIN slow=client2
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK both faster peers reached production Done barrier during native action delay
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK slow peer has not resumed before native action finishes
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] SKEW_DELAY_END slow=client2 elapsedMs=8017
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skewed replay resumed through production consensus
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skewed replay restored exact native state and history
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK native action delay was applied
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-restored-client2 all real peer native states match
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-connected-client2 native roster connected
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-connected-client2 avatar 2001 online
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-connected-client2 avatar 1 online
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-connected-client2 avatar 1001 online
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-connected-client2 cursor 1 bound
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-client2] CHECK skew-connected-client2 cursor 1001 bound
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-target-host all real peer native states match
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK attack changed HP beyond replay target
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK fast peer waits without committing history or unlocking input
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] SKEW_FAST_WAITING slow=host
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skewed replay resumed through production consensus
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skewed replay restored exact native state and history
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-restored-host all real peer native states match
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-connected-host native roster connected
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-connected-host avatar 2001 online
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-connected-host avatar 1 online
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-connected-host avatar 1001 online
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-connected-host cursor 1 bound
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-connected-host cursor 1001 bound
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] PLAY card=CARD.STRIKE_SILENT owner=2001 events=1
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK native manual card accepted
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK post-action native state available
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK idle native player phase
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK skew-continued-state all real peer native states match
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] CHECK zero native state divergences
+[MinimalHarness pid=3653 role=client2 stage=speed-skew-host] HARNESS_PASS peers=3 suite=speed-skew cards=1 undos=2 selections=0 divergences=0

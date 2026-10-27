@@ -1,0 +1,69 @@
+[UndoSync pid=60865] INIT five-modules
+[UndoSync pid=60865] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=60865] BIND players=3
+[UndoSync pid=60865] HISTORY_BEGIN
+[UndoSync pid=60865] BOUNDARY events=0
+[UndoSync pid=60865] BOUNDARY events=1
+[UndoSync pid=60865] VOTE peer=1 accepted=True
+[UndoSync pid=60865] PROPOSE session=36ddee28825f465c85c9f1da0bc1bcbb target=0
+[UndoSync pid=60865] UI_WAITING target=0
+[UndoSync pid=60865] VOTE peer=1001 accepted=True
+[UndoSync pid=60865] VOTE peer=2001 accepted=True
+[UndoSync pid=60865] [UndoPicker] closed
+[UndoSync pid=60865] START_RECEIVED_ALL session=36ddee28825f465c85c9f1da0bc1bcbb
+[UndoSync pid=60865] RESTORE_BEGIN role=Host events=0
+[UndoSync pid=60865] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60865] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=60865] RESTORE_HOST_LISTENING
+[UndoSync pid=60865] BIND players=3
+[UndoSync pid=60865] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60865] REPLAY_DONE events=0 waits=0 choices=0 checksum=818948746
+[UndoSync pid=60865] HISTORY_COMMIT events=0
+[UndoSync pid=60865] RESUME session=36ddee28825f465c85c9f1da0bc1bcbb peers=3 checksum=818948746
+[UndoSync pid=60865] BOUNDARY events=1
+[UndoSync pid=60865] VOTE peer=1001 accepted=True
+[UndoSync pid=60865] PROPOSE session=0d768572df6145668b82f233c3b0754c target=0
+[UndoSync pid=60865] UI_VOTE target=0
+[UndoSync pid=60865] VOTE peer=1001 accepted=True
+[UndoSync pid=60865] VOTE peer=1 accepted=True
+[UndoSync pid=60865] VOTE peer=2001 accepted=True
+[UndoSync pid=60865] [UndoPicker] closed
+[UndoSync pid=60865] START_RECEIVED_ALL session=0d768572df6145668b82f233c3b0754c
+[UndoSync pid=60865] RESTORE_BEGIN role=Host events=0
+[UndoSync pid=60865] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60865] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=60865] RESTORE_HOST_LISTENING
+[UndoSync pid=60865] BIND players=3
+[UndoSync pid=60865] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60865] REPLAY_DONE events=0 waits=0 choices=0 checksum=818948746
+[UndoSync pid=60865] HISTORY_COMMIT events=0
+[UndoSync pid=60865] RESUME session=0d768572df6145668b82f233c3b0754c peers=3 checksum=818948746
+[UndoSync pid=60865] BOUNDARY events=1
+[UndoSync pid=60865] VOTE peer=2001 accepted=True
+[UndoSync pid=60865] PROPOSE session=20669513f28a41b6a65b93b06f56abcd target=0
+[UndoSync pid=60865] UI_VOTE target=0
+[UndoSync pid=60865] VOTE peer=2001 accepted=True
+[UndoSync pid=60865] VOTE peer=1 accepted=True
+[UndoSync pid=60865] VOTE peer=1001 accepted=True
+[UndoSync pid=60865] [UndoPicker] closed
+[UndoSync pid=60865] START_RECEIVED_ALL session=20669513f28a41b6a65b93b06f56abcd
+[UndoSync pid=60865] RESTORE_BEGIN role=Host events=0
+[UndoSync pid=60865] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60865] NETWORK_ATTACH role=Host id=1
+[UndoSync pid=60865] RESTORE_HOST_LISTENING
+[UndoSync pid=60865] BIND players=3
+[UndoSync pid=60865] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60865] REPLAY_DONE events=0 waits=0 choices=0 checksum=818948746
+[UndoSync pid=60865] HISTORY_COMMIT events=0
+[UndoSync pid=60865] RESUME session=20669513f28a41b6a65b93b06f56abcd peers=3 checksum=818948746
+[UndoSync pid=60865] BOUNDARY events=1
+[UndoSync pid=60865] UNBIND replay=False

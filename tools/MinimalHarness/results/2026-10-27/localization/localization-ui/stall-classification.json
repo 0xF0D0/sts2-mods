@@ -1,0 +1,5 @@
+{
+  "pid": 60420,
+  "verdict": "INFRASTRUCTURE_STALL",
+  "cause": "Harness waits FramePostDraw on static native popup; picker screenshot succeeded, restart title verified; replace screenshot wait with explicit redraw."
+}

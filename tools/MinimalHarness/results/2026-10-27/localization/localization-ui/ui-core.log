@@ -1,0 +1,22 @@
+[UndoSync pid=60420] INIT five-modules
+[UndoSync pid=60420] NETWORK_ATTACH role=Singleplayer id=1
+[UndoSync pid=60420] BIND players=1
+[UndoSync pid=60420] HISTORY_BEGIN
+[UndoSync pid=60420] BOUNDARY events=0
+[UndoSync pid=60420] BOUNDARY events=1
+[UndoSync pid=60420] [UndoPicker] tree GenericPopup : NGenericPopup pos=(-261, -300) size=(522, 600)
+[UndoSync pid=60420] [UndoPicker] tree   VerticalPopup : NVerticalPopup pos=(-51, -59) size=(573, 659)
+[UndoSync pid=60420] [UndoPicker] tree     Header : MegaLabel pos=(-0.5, 56) size=(1, 72)
+[UndoSync pid=60420] [UndoPicker] tree     NoButton : NPopupYesNoButton pos=(0, -152) size=(180, 72)
+[UndoSync pid=60420] [UndoPicker] tree       Visuals : Control pos=(0, -8) size=(196, 96)
+[UndoSync pid=60420] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(-20.999998, 44) size=(48, 48)
+[UndoSync pid=60420] [UndoPicker] tree     YesButton : NPopupYesNoButton pos=(-180, -152) size=(180, 72)
+[UndoSync pid=60420] [UndoPicker] tree       Visuals : Control pos=(-17, -8) size=(196, 96)
+[UndoSync pid=60420] [UndoPicker] tree       HotkeyIcon : NHotkeyIcon pos=(150.99998, 44.999996) size=(48, 48.000004)
+[UndoSync pid=60420] [UndoPicker] tree     Description : MegaRichTextLabel pos=(-0.5, -20) size=(1, 0)
+[UndoSync pid=60420] [UndoPicker] body rect pos=(50, 115) size=(473, 389) -> scale=0.6016667 holderSize=(212.5, 285.90332)
+[UndoSync pid=60420] [UndoPicker] item steps=1 targetId=0 context='PlayCardAction card: CARD.STRIKE_IRONCLAD'
+[UndoSync pid=60420] [UndoPicker] rendered page=1/1 choices=1-1 ncardNodes=1
+[UndoSync pid=60420] [UndoPicker] opened with 1 choices across 1 pages (native chrome), renderWindow=8, restartCombat=True
+[UndoSync pid=60420] [UndoPicker] closed
+[UndoSync pid=60420] [UndoPicker] restart-combat button pressed, targetId=0

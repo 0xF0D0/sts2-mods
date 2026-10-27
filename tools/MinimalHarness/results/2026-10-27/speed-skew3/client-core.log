@@ -1,0 +1,32 @@
+[UndoSync pid=3652] INIT five-modules
+[UndoSync pid=3652] NETWORK_ATTACH role=Client id=1001
+[UndoSync pid=3652] BIND players=3
+[UndoSync pid=3652] HISTORY_BEGIN
+[UndoSync pid=3652] BOUNDARY events=0
+[UndoSync pid=3652] BOUNDARY events=1
+[UndoSync pid=3652] BOUNDARY events=2
+[UndoSync pid=3652] UI_WAITING target=1
+[UndoSync pid=3652] [UndoPicker] closed
+[UndoSync pid=3652] RESTORE_BEGIN role=Client events=1
+[UndoSync pid=3652] UNBIND replay=True
+[UndoSync pid=3652] NETWORK_ATTACH role=Client id=1001
+[UndoSync pid=3652] BIND players=3
+[UndoSync pid=3652] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=3652] REPLAY_EVENT index=0 kind=GameAction
+[UndoSync pid=3652] REPLAY_DONE events=1 waits=0 choices=0 checksum=534479772
+[UndoSync pid=3652] HISTORY_COMMIT events=1
+[UndoSync pid=3652] RESUME session=5740d2cab90240c0840d2d334d1b2a2d peers=3 checksum=534479772
+[UndoSync pid=3652] BOUNDARY events=2
+[UndoSync pid=3652] UI_WAITING target=1
+[UndoSync pid=3652] [UndoPicker] closed
+[UndoSync pid=3652] RESTORE_BEGIN role=Client events=1
+[UndoSync pid=3652] UNBIND replay=True
+[UndoSync pid=3652] NETWORK_ATTACH role=Client id=1001
+[UndoSync pid=3652] BIND players=3
+[UndoSync pid=3652] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=3652] REPLAY_EVENT index=0 kind=GameAction
+[UndoSync pid=3652] REPLAY_DONE events=1 waits=0 choices=0 checksum=534479772
+[UndoSync pid=3652] HISTORY_COMMIT events=1
+[UndoSync pid=3652] RESUME session=a293ea66ff404183b2ba432fae23aea5 peers=3 checksum=534479772
+[UndoSync pid=3652] BOUNDARY events=2
+[UndoSync pid=3652] UNBIND replay=False

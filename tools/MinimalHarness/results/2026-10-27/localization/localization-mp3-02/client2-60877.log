@@ -1,0 +1,84 @@
+[MinimalHarness pid=60877 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=60877 role=client2 stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=60877 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=60877 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=60877 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=60877 role=client2 stage=manual-report-regression] CHECK regression-opening all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=manual-report-regression] CHECK opening native roster connected
+[MinimalHarness pid=60877 role=client2 stage=manual-report-regression] CHECK opening avatar 2001 online
+[MinimalHarness pid=60877 role=client2 stage=manual-report-regression] CHECK opening avatar 1 online
+[MinimalHarness pid=60877 role=client2 stage=manual-report-regression] CHECK opening avatar 1001 online
+[MinimalHarness pid=60877 role=client2 stage=manual-report-regression] CHECK opening cursor 1 bound
+[MinimalHarness pid=60877 role=client2 stage=manual-report-regression] CHECK opening cursor 1001 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK damaged-host all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK other participant must explicitly vote
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK localized native popup title: 回溯提議
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK native screenshot client2-host-proposal
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK real multiplayer replay resumed
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK enemy HP and full native state restored
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK restored-host native roster connected
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK restored-host avatar 2001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK restored-host avatar 1 online
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK restored-host avatar 1001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK restored-host cursor 1 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK restored-host cursor 1001 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-host] CHECK restored-state-host all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK damaged-client all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK other participant must explicitly vote
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK localized native popup title: 回溯提議
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK native screenshot client2-client-proposal
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK real multiplayer replay resumed
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK enemy HP and full native state restored
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK restored-client native roster connected
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK restored-client avatar 2001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK restored-client avatar 1 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK restored-client avatar 1001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK restored-client cursor 1 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK restored-client cursor 1001 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-client] CHECK restored-state-client all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] PLAY card=CARD.STRIKE_SILENT owner=2001 events=0
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK native manual card accepted
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK post-action native state available
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK real attack reduced enemy HP before undo
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK damaged-client2 all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK proposer already accepted its own proposal
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK proposer native waiting popup exists
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK proposer sees waiting rather than accept
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] PROPOSER_UI header=已提議回溯
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK localized native popup title: 已提議回溯
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK native screenshot client2-client2-proposal
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK real multiplayer replay resumed
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK enemy HP and full native state restored
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK restored-client2 native roster connected
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK restored-client2 avatar 2001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK restored-client2 avatar 1 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK restored-client2 avatar 1001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK restored-client2 cursor 1 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK restored-client2 cursor 1001 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK restored-state-client2 all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] PLAY card=CARD.STRIKE_SILENT owner=2001 events=0
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK native manual card accepted
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK post-action native state available
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK post-replay-real-attack all real peer native states match
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK final native roster connected
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK final avatar 2001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK final avatar 1 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK final avatar 1001 online
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK final cursor 1 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK final cursor 1001 bound
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] CHECK zero native state divergences
+[MinimalHarness pid=60877 role=client2 stage=regression-client2] HARNESS_PASS peers=3 suite=localization-mp cards=2 undos=3 selections=0 divergences=0

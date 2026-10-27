@@ -3,13 +3,17 @@
 Cooperative combat undo, implemented by five modules: **Hook, History, Replay,
 Network and UI**. This is the validated minimal implementation promoted into the
 original `UndoSync` project; the assembly, namespace, mod ID and install folder
-are all `UndoSync`. This update is version `0.1.8`.
+are all `UndoSync`. This update is version `0.1.9`.
 
 During idle player combat, press **Left Arrow**, select a native card-history
 tile, and request undo. The requester is already counted as agreeing; other
 players explicitly accept or reject. After unanimous agreement, native run
 reconstruction/replay restores the selected prefix. The original UndoSync card
 picker, pagination and confirmation/voting popups are reused.
+
+The UI follows the game language: English, Korean, Simplified Chinese and
+Traditional Chinese. Other game languages use English for UndoSync text.
+Each multiplayer participant sees their own selected language.
 
 History lives only in memory. Native multiplayer connections are recreated
 when restoring; Steam uses the host's Steam identity, while ENet restore currently

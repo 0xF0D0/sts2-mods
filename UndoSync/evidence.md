@@ -295,3 +295,81 @@ promoted3 tested DLL (384c359b88376546275d24eaea18c0e608a80854a78319bcedbd3ccb07
 ZIP SHA-256: f93062dc14c132d6e98ccfa5e40315fe0ccdaa1cfe4492be8b02e64bd56dac33.
 Steam P2P, four-player completion and broad loadout fuzzing exclusions apply to
 this release as well. No additional gameplay code changed during packaging.
+
+# 2026-10-27: deliberately different native replay speeds
+
+Run `speed-skew3`, visible local ENet, game v0.111.0 / 41cef1ea.
+PIDs host 3625, client 3652, client2 3653: all HARNESS_PASS and exit 0.
+Core source unchanged from HEAD a9a63aa; rebuilt DLL SHA-256:
+68b1d9cd63a8d6c5833869168006802d194cc6b188af1303dc66c00d04b367ad.
+This run used the rebuild, not the byte-identical published ZIP DLL.
+Build with warnings as errors and MinimalCheck both passed.
+
+Harness-only PlayCardAction.ExecuteAction task wrapper held the real action
+executor unfinished for 8017 ms on client2, then 8026 ms on host. In each case
+both faster real peers reached the production Done/Resume barrier while the
+slow action was still unfinished; Busy/Executing stayed true and history was
+not yet committed. No production fields or transport were substituted.
+All three reported checksum 534479772 on both replays, restored the exact
+preselected full native state, enemy HP and history length, and continued a
+real attack afterward with equal state and zero native divergences. Native
+roster/avatar-online/cursor bindings were checked after both rebuilds.
+Direct input attempts during the waiting interval were not part of this run.
+
+Retained evidence: tools/MinimalHarness/results/2026-10-27/speed-skew3/.
+Full raw logs/snapshots and fixture:
+/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ydgdyb_9.
+Cleanup restored all four accounts and both mod installations, with original
+file hashes verified; no game process remains and UDP 33771 is free.
+Scope: local three-peer ENet with an eight-second native-action delay;
+cross-machine Steam P2P, packet impairment and four players remain untested.
+
+# 2026-10-27: English and Chinese localization
+
+UI uses the game's native LocManager language codes: eng (English fallback),
+zhs (Simplified Chinese), zht (Traditional Chinese), kor (Korean retained).
+All 19 keys share the native LocString path, including picker labels, page
+numbers, system action tiles, restart confirmation and proposal/vote/wait UI.
+Production changes are confined to UI; five modules remain.
+
+Game v0.111.0 / 41cef1ea. Core DLL SHA-256:
+c2cb948c3c52609a2a1eb556e101180652768a4d6528e0386309799907e92c49.
+Build with warnings as errors, MinimalCheck and diff whitespace checks passed.
+Focused visible native UI run localization-ui-02, PID 60569: PASS, exit 0.
+Switched all four languages through native SetLanguage, opened the real picker,
+checked native key formatting, used the restart button's normal Released signal,
+verified confirmation and cancellation, and captured eight native screenshots.
+English and Chinese screenshots were visually reviewed for glyphs and layout.
+
+Separate integration localization-mp3-02: host 60865 (eng), client 60876 (zhs),
+client2 60877 (zht), all HARNESS_PASS and exit 0. Each peer proposed undo once.
+Captured localized native proposal/wait popups; all three restores matched full
+native state, HP and history, then a real attack continued with equal states.
+Zero native divergences; avatars online and remote cursors bound after replay.
+
+Earlier attempts are retained, not counted as passes: localization-ui PID 60420
+stalled in the harness FramePostDraw wait (replaced with explicit redraw);
+localization-mp3 PIDs 60652/60666/60667 failed due to colliding Actor/StateBarrier
+file-marker names after all three successful restores. StateBarrier now uses a
+distinct state-ready marker, and the complete integration rerun passed.
+Native cleanup logs include Local player not found in combat exceptions, also
+confirmed in the pre-localization speed-skew3 raw logs; this change does not
+claim to resolve that existing cleanup diagnostic.
+
+Evidence and screenshots: tools/MinimalHarness/results/2026-10-27/localization/.
+Full raw logs/fixtures: /var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-g9hzl90o.
+All game processes exited; prior mod installs and four accounts restored with
+original hashes verified; UDP 33771 free. No release or Workshop upload performed.
+Four-player and cross-machine Steam P2P remain outside this localization test.
+
+# v0.1.9 release packaging
+
+User requested GitHub release and Steam Workshop distribution. Manifest and
+README advanced to 0.1.9. tools/package.sh UndoSync and MinimalCheck passed.
+ZIP contains only the mod DLL/manifest, and its DLL is byte-identical to the
+localized native UI and three-peer tested build:
+c2cb948c3c52609a2a1eb556e101180652768a4d6528e0386309799907e92c49.
+ZIP SHA-256: 8f82eba2ef5ab582e893c7e588c78b7f2cf3698ab1e5716f57be9754c8794029.
+Publication receipts and the previous Workshop workspace backup are retained
+under /var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-release-v0.1.9-94d76z2_.
+Upload success and subscriber refresh must be verified separately.

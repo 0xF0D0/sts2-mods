@@ -30,7 +30,6 @@ internal static class UI
     private static Button? _nextPageButton;
     private static Button? _pageIndicator;
     private static List<PickerPoint>? _pagePoints;
-    private static bool _pageKorean;
     private static Vector2 _pageHolderSize;
     private static float _pageScale;
     private static Font? _pageFont;
@@ -66,7 +65,6 @@ internal static class UI
         }
         Close();
 
-        bool korean = IsKorean();
         EnsureLocEntries();
 
         var popup = NGenericPopup.Create();
@@ -97,7 +95,7 @@ internal static class UI
             new LocString(LocTableName, "UNDOSYNC.CANCEL"));
         _ = HandlePopupResult(task, popup, hasCombatStart ? combatStart : null);
 
-        int shown = InjectCardStrip(popup, points, korean);
+        int shown = InjectCardStrip(popup, points);
         int pages = (shown + EntriesPerPage - 1) / EntriesPerPage;
         Hooks.Log($"[UndoPicker] opened with {shown} choices across {pages} pages (native chrome), "
                   + $"renderWindow={EntriesPerPage}, restartCombat={hasCombatStart}");
@@ -194,44 +192,107 @@ internal static class UI
     {
         try
         {
-            var korean = LocManager.Instance.Language == "kor";
-            LocManager.Instance.GetTable(LocTableName).MergeWith(korean
-                ? new Dictionary<string, string>
-                {
-                    ["UNDOSYNC.PICKER_TITLE"] = "어느 시점으로 되돌릴까요?",
-                    ["UNDOSYNC.PROPOSAL_TITLE"] = "되돌리기 제안",
-                    ["UNDOSYNC.PROPOSAL_BODY"] = "{steps}수를 되돌리려 합니다.\n수락하시겠습니까?",
-                    ["UNDOSYNC.WAITING_TITLE"] = "되돌리기 제안 중",
-                    ["UNDOSYNC.WAITING_BODY"] = "다른 플레이어의 수락을 기다리는 중...",
-                    ["UNDOSYNC.ACCEPT"] = "수락",
-                    ["UNDOSYNC.REJECT"] = "거절",
-                    ["UNDOSYNC.PICKER_BODY"] = "",
-                    ["UNDOSYNC.CANCEL"] = "취소",
-                    ["UNDOSYNC.RESTART_COMBAT"] = "전투 처음부터",
-                    ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "전투 재시작",
-                    ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "지금까지의 전투 진행이 모두 사라지고 첫 턴으로 돌아갑니다.",
-                }
-                : new Dictionary<string, string>
-                {
-                    ["UNDOSYNC.PICKER_TITLE"] = "Undo to which point?",
-                    ["UNDOSYNC.PROPOSAL_TITLE"] = "Undo Proposal",
-                    ["UNDOSYNC.PROPOSAL_BODY"] = "Undo {steps} action(s).\nAccept?",
-                    ["UNDOSYNC.WAITING_TITLE"] = "Undo Proposed",
-                    ["UNDOSYNC.WAITING_BODY"] = "Waiting for other players to accept...",
-                    ["UNDOSYNC.ACCEPT"] = "Accept",
-                    ["UNDOSYNC.REJECT"] = "Reject",
-                    ["UNDOSYNC.PICKER_BODY"] = "",
-                    ["UNDOSYNC.CANCEL"] = "Cancel",
-                    ["UNDOSYNC.RESTART_COMBAT"] = "restart combat",
-                    ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "Restart Combat",
-                    ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "This discards everything that happened in this fight and returns to its first turn.",
-                });
+            LocManager.Instance.GetTable(LocTableName).MergeWith(Translations(LocManager.Instance.Language));
         }
         catch (Exception ex)
         {
             Hooks.Log($"[UndoPicker] Loc merge failed: {ex.Message}");
         }
     }
+
+    internal static Dictionary<string, string> Translations(string language) => language switch
+    {
+        "kor" => new Dictionary<string, string>
+        {
+            ["UNDOSYNC.PICKER_TITLE"] = "어느 시점으로 되돌릴까요?",
+            ["UNDOSYNC.PROPOSAL_TITLE"] = "되돌리기 제안",
+            ["UNDOSYNC.PROPOSAL_BODY"] = "{steps}수를 되돌리려 합니다.\n수락하시겠습니까?",
+            ["UNDOSYNC.WAITING_TITLE"] = "되돌리기 제안 중",
+            ["UNDOSYNC.WAITING_BODY"] = "다른 플레이어의 수락을 기다리는 중...",
+            ["UNDOSYNC.ACCEPT"] = "수락",
+            ["UNDOSYNC.REJECT"] = "거절",
+            ["UNDOSYNC.PICKER_BODY"] = "",
+            ["UNDOSYNC.CANCEL"] = "취소",
+            ["UNDOSYNC.RESTART_COMBAT"] = "전투 처음부터",
+            ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "전투 재시작",
+            ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "지금까지의 전투 진행이 모두 사라지고 첫 턴으로 돌아갑니다.",
+            ["UNDOSYNC.PAGE"] = "{current} / {total}",
+            ["UNDOSYNC.UNDO_HERE"] = "여기까지 취소",
+            ["UNDOSYNC.SYSTEM"] = "시스템",
+            ["UNDOSYNC.TURN_START"] = "턴 시작",
+            ["UNDOSYNC.TURN_END"] = "턴 종료",
+            ["UNDOSYNC.POTION_USE"] = "포션 사용",
+            ["UNDOSYNC.ACTION"] = "행동",
+        },
+        "zhs" => new Dictionary<string, string>
+        {
+            ["UNDOSYNC.PICKER_TITLE"] = "要回退到哪个时点？",
+            ["UNDOSYNC.PROPOSAL_TITLE"] = "回退提议",
+            ["UNDOSYNC.PROPOSAL_BODY"] = "将回退 {steps} 个行动。\n是否同意？",
+            ["UNDOSYNC.WAITING_TITLE"] = "已提议回退",
+            ["UNDOSYNC.WAITING_BODY"] = "正在等待其他玩家同意……",
+            ["UNDOSYNC.ACCEPT"] = "同意",
+            ["UNDOSYNC.REJECT"] = "拒绝",
+            ["UNDOSYNC.PICKER_BODY"] = "",
+            ["UNDOSYNC.CANCEL"] = "取消",
+            ["UNDOSYNC.RESTART_COMBAT"] = "重新开始战斗",
+            ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "重新开始战斗",
+            ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "这将撤销本场战斗中的所有行动，并返回第一回合。",
+            ["UNDOSYNC.PAGE"] = "第 {current} / {total} 页",
+            ["UNDOSYNC.UNDO_HERE"] = "回退到此处",
+            ["UNDOSYNC.SYSTEM"] = "系统",
+            ["UNDOSYNC.TURN_START"] = "回合开始",
+            ["UNDOSYNC.TURN_END"] = "结束回合",
+            ["UNDOSYNC.POTION_USE"] = "使用药水",
+            ["UNDOSYNC.ACTION"] = "行动",
+        },
+        "zht" => new Dictionary<string, string>
+        {
+            ["UNDOSYNC.PICKER_TITLE"] = "要回溯到哪個時間點？",
+            ["UNDOSYNC.PROPOSAL_TITLE"] = "回溯提議",
+            ["UNDOSYNC.PROPOSAL_BODY"] = "將回溯 {steps} 個行動。\n是否同意？",
+            ["UNDOSYNC.WAITING_TITLE"] = "已提議回溯",
+            ["UNDOSYNC.WAITING_BODY"] = "正在等待其他玩家同意……",
+            ["UNDOSYNC.ACCEPT"] = "同意",
+            ["UNDOSYNC.REJECT"] = "拒絕",
+            ["UNDOSYNC.PICKER_BODY"] = "",
+            ["UNDOSYNC.CANCEL"] = "取消",
+            ["UNDOSYNC.RESTART_COMBAT"] = "重新開始戰鬥",
+            ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "重新開始戰鬥",
+            ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "這將撤銷本場戰鬥中的所有行動，並返回第一回合。",
+            ["UNDOSYNC.PAGE"] = "第 {current} / {total} 頁",
+            ["UNDOSYNC.UNDO_HERE"] = "回溯至此處",
+            ["UNDOSYNC.SYSTEM"] = "系統",
+            ["UNDOSYNC.TURN_START"] = "回合開始",
+            ["UNDOSYNC.TURN_END"] = "結束回合",
+            ["UNDOSYNC.POTION_USE"] = "使用藥水",
+            ["UNDOSYNC.ACTION"] = "行動",
+        },
+        _ => new Dictionary<string, string>
+        {
+            ["UNDOSYNC.PICKER_TITLE"] = "Choose a point to undo to",
+            ["UNDOSYNC.PROPOSAL_TITLE"] = "Undo Proposal",
+            ["UNDOSYNC.PROPOSAL_BODY"] = "Rewind {steps} action(s).\nAccept?",
+            ["UNDOSYNC.WAITING_TITLE"] = "Undo Proposed",
+            ["UNDOSYNC.WAITING_BODY"] = "Waiting for other players to accept...",
+            ["UNDOSYNC.ACCEPT"] = "Accept",
+            ["UNDOSYNC.REJECT"] = "Reject",
+            ["UNDOSYNC.PICKER_BODY"] = "",
+            ["UNDOSYNC.CANCEL"] = "Cancel",
+            ["UNDOSYNC.RESTART_COMBAT"] = "Restart Combat",
+            ["UNDOSYNC.RESTART_CONFIRM_TITLE"] = "Restart Combat",
+            ["UNDOSYNC.RESTART_CONFIRM_BODY"] = "This discards everything that happened in this fight and returns to its first turn.",
+            ["UNDOSYNC.PAGE"] = "Page {current} / {total}",
+            ["UNDOSYNC.UNDO_HERE"] = "Undo to Here",
+            ["UNDOSYNC.SYSTEM"] = "System",
+            ["UNDOSYNC.TURN_START"] = "Turn Start",
+            ["UNDOSYNC.TURN_END"] = "End Turn",
+            ["UNDOSYNC.POTION_USE"] = "Use Potion",
+            ["UNDOSYNC.ACTION"] = "Action",
+        },
+    };
+
+    private static string Text(string key) => new LocString(LocTableName, "UNDOSYNC." + key).GetFormattedText();
 
     private static async Task HandlePopupResult(Task<bool> task, NGenericPopup popup, PickerPoint? combatStart)
     {
@@ -389,7 +450,7 @@ internal static class UI
     }
 
 
-    private static int InjectCardStrip(NGenericPopup popup, List<PickerPoint> points, bool korean)
+    private static int InjectCardStrip(NGenericPopup popup, List<PickerPoint> points)
     {
         var vpopup = popup.GetNode<Control>("VerticalPopup");
         var body = vpopup.GetNode<Control>("Description");
@@ -450,7 +511,6 @@ internal static class UI
         _nextPageButton = next;
         _pageIndicator = indicator;
         _pagePoints = points;
-        _pageKorean = korean;
         _pageHolderSize = holderSize;
         _pageScale = scale;
         _pageFont = stripFont;
@@ -491,7 +551,7 @@ internal static class UI
             if (_pagePoints[i - 1].Context.StartsWith("After player turn start"))
                 _pageBox.AddChild(BuildTurnSeparator(_pageHolderSize));
             _pageBox.AddChild(BuildItem(_pagePoints[i - 1].Context, i, _pagePoints[i],
-                _pageKorean, _pageHolderSize, _pageScale, _pageFont));
+                _pageHolderSize, _pageScale, _pageFont));
         }
 
         if (_previousPageButton != null)
@@ -499,9 +559,12 @@ internal static class UI
         if (_nextPageButton != null)
             _nextPageButton.Disabled = _pageIndex == pageCount - 1;
         if (_pageIndicator != null)
-            _pageIndicator.Text = _pageKorean
-                ? $"{_pageIndex + 1} / {pageCount}"
-                : $"page {_pageIndex + 1} / {pageCount}";
+        {
+            var page = new LocString(LocTableName, "UNDOSYNC.PAGE");
+            page.Add("current", _pageIndex + 1);
+            page.Add("total", pageCount);
+            _pageIndicator.Text = page.GetFormattedText();
+        }
         Hooks.Log($"[UndoPicker] rendered page={_pageIndex + 1}/{pageCount} "
                   + $"choices={first}-{lastExclusive - 1} ncardNodes={_cardNodes.Count}");
     }
@@ -524,7 +587,7 @@ internal static class UI
         return column;
     }
 
-    private static Control BuildItem(string context, int steps, PickerPoint target, bool korean, Vector2 holderSize, float scale, Font? font)
+    private static Control BuildItem(string context, int steps, PickerPoint target, Vector2 holderSize, float scale, Font? font)
     {
         var column = new VBoxContainer
         {
@@ -540,7 +603,7 @@ internal static class UI
         };
         column.AddChild(holder);
 
-        BuildHolderVisual(holder, context, korean, holderSize, scale, font);
+        BuildHolderVisual(holder, context, holderSize, scale, font);
 
         var clickButton = new Button
         {
@@ -563,7 +626,7 @@ internal static class UI
         if (font != null)
             stepLabel.AddThemeFontOverride(ThemeConstants.Label.Font, font);
         Hooks.Log($"[UndoPicker] item steps={steps} targetId={target.EventCount} context='{context}'");
-        string normalText = korean ? "여기까지 취소" : "undo up to here";
+        string normalText = Text("UNDO_HERE");
         string hoverText = normalText;
         stepLabel.SetTextAutoSize(normalText);
         column.AddChild(stepLabel);
@@ -584,7 +647,7 @@ internal static class UI
         return column;
     }
 
-    private static void BuildHolderVisual(Control holder, string context, bool korean, Vector2 holderSize, float scale, Font? font)
+    private static void BuildHolderVisual(Control holder, string context, Vector2 holderSize, float scale, Font? font)
     {
         var cardId = TryGetCardModelId(context);
         if (cardId != null)
@@ -606,13 +669,13 @@ internal static class UI
             Hooks.Log($"[UndoPicker] card lookup failed for '{cardId}' (context='{context}')");
         }
 
-        if (BuildDummyCardTile(holder, context, korean, holderSize, scale))
+        if (BuildDummyCardTile(holder, context, holderSize, scale))
             return;
 
-        BuildTextTile(holder, context, holderSize, korean, font);
+        BuildTextTile(holder, context, holderSize, font);
     }
 
-    private static bool BuildDummyCardTile(Control holder, string context, bool korean, Vector2 holderSize, float scale)
+    private static bool BuildDummyCardTile(Control holder, string context, Vector2 holderSize, float scale)
     {
         var baseModel = ModelDb.AllCards.FirstOrDefault(c => c.Rarity == CardRarity.Basic)
                         ?? ModelDb.AllCards.FirstOrDefault(c => c.Rarity == CardRarity.Common)
@@ -636,8 +699,8 @@ internal static class UI
         holder.AddChild(nCard);
         _cardNodes.Add(nCard);
 
-        string label = DescribeAction(context, korean);
-        string typePlaque = korean ? "시스템" : "system";
+        string label = DescribeAction(context);
+        string typePlaque = Text("SYSTEM");
         string description = TryGetPotionName(context) ?? "";
         Callable.From(() =>
         {
@@ -687,7 +750,7 @@ internal static class UI
         }
     }
 
-    private static void BuildTextTile(Control holder, string context, Vector2 holderSize, bool korean, Font? font)
+    private static void BuildTextTile(Control holder, string context, Vector2 holderSize, Font? font)
     {
         var panel = new PanelContainer
         {
@@ -707,13 +770,7 @@ internal static class UI
         if (font != null)
             label.AddThemeFontOverride(ThemeConstants.Label.Font, font);
         center.AddChild(label);
-        label.SetTextAutoSize(DescribeAction(context, korean));
-    }
-
-    private static bool IsKorean()
-    {
-        try { return LocManager.Instance.Language == "kor"; }
-        catch { return false; }
+        label.SetTextAutoSize(DescribeAction(context));
     }
 
     private static ModelId? TryGetCardModelId(string context)
@@ -733,10 +790,10 @@ internal static class UI
         return null;
     }
 
-    private static string DescribeAction(string context, bool korean)
+    private static string DescribeAction(string context)
     {
         if (context.StartsWith("After player turn start"))
-            return korean ? "턴 시작" : "turn start";
+            return Text("TURN_START");
         var idx = context.IndexOf("CARD.", StringComparison.Ordinal);
         if (idx >= 0)
         {
@@ -746,9 +803,9 @@ internal static class UI
             return context.Substring(idx + 5, end - idx - 5).Replace('_', ' ');
         }
         if (context.Contains("EndPlayerTurnAction"))
-            return korean ? "턴 종료" : "end turn";
+            return Text("TURN_END");
         if (context.Contains("UsePotionAction"))
-            return korean ? "포션 사용" : "potion use";
-        return korean ? "행동" : "action";
+            return Text("POTION_USE");
+        return Text("ACTION");
     }
 }

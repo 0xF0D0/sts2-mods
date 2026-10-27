@@ -64,7 +64,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A'):
     no_game()
     folder = root/label
     folder.mkdir()
-    roles = ['ui'] if suite in ('choice-ui', 'picker-ui') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['ui'] if suite in ('choice-ui', 'picker-ui', 'localization-ui') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
     record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'processes': {}}
     record['dlls'] = {n: hashes(MODS/n) for n in ['UndoSync', 'MinimalHarness']}
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=Path)
     parser.add_argument('--label', default='extended')
     parser.add_argument('--peers', type=int, default=4, choices=[1,2,3,4])
-    parser.add_argument('--suite', default='extended', choices=['basic','extended','choice-ui','picker-ui','preview','regression','vote-loss','replay-loss'])
+    parser.add_argument('--suite', default='extended', choices=['basic','extended','choice-ui','picker-ui','localization-ui','localization-mp','preview','regression','speed-skew','vote-loss','replay-loss'])
     parser.add_argument('--visible', action='store_true')
     parser.add_argument('--seed', default='MINIMAL_MP_A')
     args = parser.parse_args()

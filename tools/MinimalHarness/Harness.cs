@@ -17,6 +17,7 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
@@ -28,6 +29,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
@@ -149,14 +151,18 @@ public static class Harness
             Require(Manager.ChecksumTracker.IsEnabled, "native checksum enabled");
             Require(NCombatRoom.Instance is not null, "real native combat UI exists");
             Log($"COMBAT_READY players={State.Players.Count} encounter={CombatManager.Instance.DebugOnlyGetState()!.Encounter?.Id}");
+            if (_suite == "localization-mp")
+                LocManager.Instance.SetLanguage(_role == "host" ? "eng" : _role == "client" ? "zhs" : "zht");
             if (_suite == "preview")
             {
                 Log($"PREVIEW_READY players={State.Players.Count} automaticPlay=false automaticVote=false");
                 await Task.Delay(Timeout.Infinite, Lifetime.Token);
             }
             else if (_suite == "choice-ui") await ChoiceUiAsync();
+            else if (_suite == "localization-ui") await LocalizationUiAsync();
             else if (_role == "ui") await UiAsync();
-            else if (_suite == "regression") await RegressionAsync();
+            else if (_suite is "regression" or "localization-mp") await RegressionAsync();
+            else if (_suite == "speed-skew") await SpeedSkewAsync();
             else if (_suite == "extended") await ExtendedAsync();
             else if (_suite is "vote-loss" or "replay-loss") await LossAsync();
             else await MultiplayerAsync();
@@ -294,6 +300,51 @@ public static class Harness
         await Wait(() => File.Exists(Path.Combine(_directory, "ui-verified")), 120);
     }
 
+    private static async Task CapturePopup(string name, string titleKey)
+    {
+        for (int i = 0; i < 20; i++) await NGame.Instance!.AwaitProcessFrame();
+        var popup = UI.CurrentPopup ?? throw new InvalidOperationException("Missing native popup");
+        string title = popup.GetNode<MegaLabel>("VerticalPopup/Header").Text;
+        Require(title == new LocString("main_menu_ui", "UNDOSYNC." + titleKey).GetFormattedText(),
+            "localized native popup title: " + title);
+        RenderingServer.ForceDraw();
+        string path = Path.Combine(_directory, name + ".png");
+        Require(NGame.Instance!.GetViewport().GetTexture().GetImage().SavePng(path) == Error.Ok,
+            "native screenshot " + name);
+    }
+
+    private static async Task LocalizationUiAsync()
+    {
+        await PlayOne(attack: true);
+        foreach (string language in new[] { "eng", "zhs", "zht", "kor" })
+        {
+            _stage = "localization-" + language;
+            LocManager.Instance.SetLanguage(language);
+            UI.Open();
+            await CapturePopup(language + "-picker", "PICKER_TITLE");
+            var entries = UI.Translations(language);
+            Require(entries.Count == 19 && entries.Keys.ToHashSet().SetEquals(UI.Translations("eng").Keys),
+                "all localization keys present");
+            foreach (string key in entries.Keys)
+            {
+                var value = new LocString("main_menu_ui", key);
+                value.Add("steps", 2); value.Add("current", 1); value.Add("total", 3);
+                string text = value.GetFormattedText();
+                Require(!text.Contains("UNDOSYNC.") && !text.Contains('{'), "formatted " + key);
+            }
+            var no = UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/NoButton");
+            no.EmitSignal(NClickableControl.SignalName.Released, no);
+            await Wait(() => UI.CurrentPopup is not null && UI.CurrentPopup.GetNode<MegaLabel>("VerticalPopup/Header").Text ==
+                new LocString("main_menu_ui", "UNDOSYNC.RESTART_CONFIRM_TITLE").GetFormattedText());
+            await CapturePopup(language + "-restart", "RESTART_CONFIRM_TITLE");
+            var cancel = UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/NoButton");
+            cancel.EmitSignal(NClickableControl.SignalName.Released, cancel);
+            await Wait(() => !UI.IsOpen);
+            Require(!Network.Busy, "cancel restart leaves combat unchanged");
+            await Idle();
+        }
+    }
+
     private static async Task MultiplayerAsync()
     {
         _stage = "initial-actions";
@@ -373,7 +424,7 @@ public static class Harness
     private static async Task StateBarrier(string label)
     {
         File.WriteAllText(Path.Combine(_directory, label + ".state." + _role), Snapshot());
-        await Barrier(label);
+        await Barrier(label + "-state-ready");
         Require(Roles.Select(role => File.ReadAllText(Path.Combine(_directory, label + ".state." + role))).Distinct().Count() == 1,
             label + " all real peer native states match");
     }
@@ -435,6 +486,84 @@ public static class Harness
 
     private static int EnemyHp() => CombatManager.Instance.DebugOnlyGetState()!.Enemies.Sum(e => e.CurrentHp);
 
+    private static string _slowRole = "";
+    private static bool _delayApplied;
+
+    // Delay the real native action task, so GameAction.Execute and the executor
+    // remain unfinished. No production replay/network state is changed.
+    [HarmonyPatch(typeof(PlayCardAction), "ExecuteAction")]
+    private static class ReplaySpeedFixture
+    {
+        private static void Postfix(ref Task __result)
+        {
+            if (_suite != "speed-skew" || !Network.Executing || _role != _slowRole || _delayApplied) return;
+            _delayApplied = true;
+            __result = DelayAsync(__result);
+        }
+
+        private static async Task DelayAsync(Task original)
+        {
+            await original;
+            ulong start = Time.GetTicksMsec();
+            Mark("delay-start-" + _slowRole);
+            Log("SKEW_DELAY_BEGIN slow=" + _slowRole);
+            while (Time.GetTicksMsec() - start < 8000)
+                await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
+            Require(Roles.Where(r => r != _slowRole).All(r => Marked("fast-waiting-" + _slowRole, r)),
+                "both faster peers reached production Done barrier during native action delay");
+            Require(Network.Busy && Network.Executing, "slow peer has not resumed before native action finishes");
+            Log($"SKEW_DELAY_END slow={_slowRole} elapsedMs={Time.GetTicksMsec() - start}");
+        }
+    }
+
+    private static async Task SpeedSkewAsync()
+    {
+        Require(_peers == 3, "speed skew uses three real peers");
+        await Actor("skew-prefix-attack", "host", attack: true);
+        foreach (string slow in new[] { "client2", "host" })
+        {
+            _stage = "speed-skew-" + slow;
+            _slowRole = slow;
+            _delayApplied = false;
+            int target = History.Count, hp = EnemyHp();
+            string expected = Snapshot();
+            await StateBarrier("skew-target-" + slow);
+            await Actor("skew-extra-" + slow, "client", attack: true);
+            Require(EnemyHp() < hp, "attack changed HP beyond replay target");
+            if (_role == "client") Network.Request(target);
+            await Wait(() => Network.Busy);
+            Network.Vote(true);
+            if (_role != slow)
+            {
+                await Wait(() => Network.Status == "Replay finished: waiting for all players", 90);
+                Require(Network.Busy && Network.Executing && History.Count > target,
+                    "fast peer waits without committing history or unlocking input");
+                await Wait(() => Marked("delay-start-" + slow, slow), 10);
+                Mark("fast-waiting-" + slow);
+                Log("SKEW_FAST_WAITING slow=" + slow);
+                ulong start = Time.GetTicksMsec();
+                while (Time.GetTicksMsec() - start < 1000)
+                {
+                    if (!Network.Busy || !Network.Executing)
+                        throw new InvalidOperationException("Fast peer resumed during slow replay");
+                    await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
+                }
+            }
+            await Wait(() => !Network.Busy, 120);
+            Require(Network.Status == "Undo complete", "skewed replay resumed through production consensus");
+            await Idle();
+            Require(History.Count == target && EnemyHp() == hp && Snapshot() == expected,
+                "skewed replay restored exact native state and history");
+            if (_role == slow) Require(_delayApplied, "native action delay was applied");
+            _undos++;
+            await StateBarrier("skew-restored-" + slow);
+            await CheckConnectedUi("skew-connected-" + slow);
+        }
+        await Actor("skew-continued-play", "client2", attack: true);
+        await StateBarrier("skew-continued-state");
+        await Barrier("skew-terminal");
+    }
+
     private static async Task RegressionAsync()
     {
         _stage = "manual-report-regression";
@@ -456,10 +585,12 @@ public static class Harness
                 Require(Network.LocalVoted, "proposer already accepted its own proposal");
                 Require(UI.CurrentPopup != null, "proposer native waiting popup exists");
                 string header = UI.CurrentPopup!.GetNode<MegaLabel>("VerticalPopup/Header").Text;
-                Require(header == "Undo Proposed" || header == "되돌리기 제안 중", "proposer sees waiting rather than accept");
+                Require(header == new LocString("main_menu_ui", "UNDOSYNC.WAITING_TITLE").GetFormattedText(), "proposer sees waiting rather than accept");
                 Log("PROPOSER_UI header=" + header);
             }
             else Require(Network.CanVote, "other participant must explicitly vote");
+            if (_suite == "localization-mp")
+                await CapturePopup($"{_role}-{requester}-proposal", _role == requester ? "WAITING_TITLE" : "PROPOSAL_TITLE");
             await Barrier("proposal-ui-" + requester);
             if (requester == "host" && CommandLineHelper.HasArg("minimal-ui-probe"))
             {

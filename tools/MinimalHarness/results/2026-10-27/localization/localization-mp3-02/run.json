@@ -1,0 +1,83 @@
+{
+  "label": "localization-mp3-02",
+  "peers": 3,
+  "suite": "localization-mp",
+  "seed": "MINIMAL_MP_A",
+  "headless": false,
+  "processes": {
+    "host": {
+      "pid": 60865,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-harness=host",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-g9hzl90o/localization-mp3-02",
+        "--minimal-peers=3",
+        "--minimal-suite=localization-mp",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    },
+    "client": {
+      "pid": 60876,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1001",
+        "--minimal-harness=client",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-g9hzl90o/localization-mp3-02",
+        "--minimal-peers=3",
+        "--minimal-suite=localization-mp",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    },
+    "client2": {
+      "pid": 60877,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "2001",
+        "--minimal-harness=client2",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-g9hzl90o/localization-mp3-02",
+        "--minimal-peers=3",
+        "--minimal-suite=localization-mp",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    }
+  },
+  "dlls": {
+    "UndoSync": {
+      "UndoSync.dll": "c2cb948c3c52609a2a1eb556e101180652768a4d6528e0386309799907e92c49",
+      "UndoSync.json": "05c04e5b80c19a249757c585b2f850d8b9db02f2cf03d06c6dc3cadd9d5bf5e1"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "54286f63e6bf5a5031d778619ed2aac8d9b21e2e1e4fcb03725d4da0d789c8ca",
+      "MinimalHarness.json": "a0be927e70a20895c7b5fc1affa81b4860e98e855a1aacb0261eeba68111e65e"
+    }
+  },
+  "verdict": "PASS"
+}

@@ -1,0 +1,116 @@
+[MinimalHarness pid=60569 role=ui stage=startup] HARNESS_INIT
+[MinimalHarness pid=60569 role=ui stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=60569 role=ui stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=60569 role=ui stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=60569 role=ui stage=combat-entry] COMBAT_READY players=1 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=60569 role=ui stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=60569 role=ui stage=combat-entry] PLAY card=CARD.STRIKE_IRONCLAD owner=1 events=0
+[MinimalHarness pid=60569 role=ui stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=60569 role=ui stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=60569 role=ui stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK localized native popup title: Choose a point to undo to
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK native screenshot eng-picker
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK all localization keys present
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.PICKER_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.PROPOSAL_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.PROPOSAL_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.WAITING_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.WAITING_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.ACCEPT
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.REJECT
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.PICKER_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.CANCEL
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.RESTART_COMBAT
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.RESTART_CONFIRM_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.RESTART_CONFIRM_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.PAGE
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.UNDO_HERE
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.SYSTEM
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.TURN_START
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.TURN_END
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.POTION_USE
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK formatted UNDOSYNC.ACTION
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK localized native popup title: Restart Combat
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK native screenshot eng-restart
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK cancel restart leaves combat unchanged
+[MinimalHarness pid=60569 role=ui stage=localization-eng] CHECK idle native player phase
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK localized native popup title: 要回退到哪个时点？
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK native screenshot zhs-picker
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK all localization keys present
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.PICKER_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.PROPOSAL_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.PROPOSAL_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.WAITING_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.WAITING_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.ACCEPT
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.REJECT
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.PICKER_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.CANCEL
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.RESTART_COMBAT
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.RESTART_CONFIRM_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.RESTART_CONFIRM_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.PAGE
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.UNDO_HERE
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.SYSTEM
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.TURN_START
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.TURN_END
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.POTION_USE
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK formatted UNDOSYNC.ACTION
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK localized native popup title: 重新开始战斗
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK native screenshot zhs-restart
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK cancel restart leaves combat unchanged
+[MinimalHarness pid=60569 role=ui stage=localization-zhs] CHECK idle native player phase
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK localized native popup title: 要回溯到哪個時間點？
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK native screenshot zht-picker
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK all localization keys present
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.PICKER_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.PROPOSAL_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.PROPOSAL_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.WAITING_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.WAITING_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.ACCEPT
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.REJECT
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.PICKER_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.CANCEL
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.RESTART_COMBAT
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.RESTART_CONFIRM_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.RESTART_CONFIRM_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.PAGE
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.UNDO_HERE
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.SYSTEM
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.TURN_START
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.TURN_END
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.POTION_USE
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK formatted UNDOSYNC.ACTION
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK localized native popup title: 重新開始戰鬥
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK native screenshot zht-restart
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK cancel restart leaves combat unchanged
+[MinimalHarness pid=60569 role=ui stage=localization-zht] CHECK idle native player phase
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK localized native popup title: 어느 시점으로 되돌릴까요?
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK native screenshot kor-picker
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK all localization keys present
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.PICKER_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.PROPOSAL_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.PROPOSAL_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.WAITING_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.WAITING_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.ACCEPT
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.REJECT
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.PICKER_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.CANCEL
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.RESTART_COMBAT
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.RESTART_CONFIRM_TITLE
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.RESTART_CONFIRM_BODY
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.PAGE
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.UNDO_HERE
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.SYSTEM
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.TURN_START
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.TURN_END
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.POTION_USE
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK formatted UNDOSYNC.ACTION
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK localized native popup title: 전투 재시작
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK native screenshot kor-restart
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK cancel restart leaves combat unchanged
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK idle native player phase
+[MinimalHarness pid=60569 role=ui stage=localization-kor] CHECK zero native state divergences
+[MinimalHarness pid=60569 role=ui stage=localization-kor] HARNESS_PASS peers=1 suite=localization-ui cards=1 undos=0 selections=0 divergences=0

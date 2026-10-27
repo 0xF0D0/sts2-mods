@@ -1,0 +1,48 @@
+[UndoSync pid=60876] INIT five-modules
+[UndoSync pid=60876] NETWORK_ATTACH role=Client id=1001
+[UndoSync pid=60876] BIND players=3
+[UndoSync pid=60876] HISTORY_BEGIN
+[UndoSync pid=60876] BOUNDARY events=0
+[UndoSync pid=60876] BOUNDARY events=1
+[UndoSync pid=60876] UI_VOTE target=0
+[UndoSync pid=60876] [UndoPicker] closed
+[UndoSync pid=60876] UI_WAITING target=0
+[UndoSync pid=60876] [UndoPicker] closed
+[UndoSync pid=60876] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=60876] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60876] NETWORK_ATTACH role=Client id=1001
+[UndoSync pid=60876] BIND players=3
+[UndoSync pid=60876] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60876] REPLAY_DONE events=0 waits=0 choices=0 checksum=818948746
+[UndoSync pid=60876] HISTORY_COMMIT events=0
+[UndoSync pid=60876] RESUME session=36ddee28825f465c85c9f1da0bc1bcbb peers=3 checksum=818948746
+[UndoSync pid=60876] BOUNDARY events=1
+[UndoSync pid=60876] UI_WAITING target=0
+[UndoSync pid=60876] [UndoPicker] closed
+[UndoSync pid=60876] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=60876] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60876] NETWORK_ATTACH role=Client id=1001
+[UndoSync pid=60876] BIND players=3
+[UndoSync pid=60876] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60876] REPLAY_DONE events=0 waits=0 choices=0 checksum=818948746
+[UndoSync pid=60876] HISTORY_COMMIT events=0
+[UndoSync pid=60876] RESUME session=0d768572df6145668b82f233c3b0754c peers=3 checksum=818948746
+[UndoSync pid=60876] BOUNDARY events=1
+[UndoSync pid=60876] UI_VOTE target=0
+[UndoSync pid=60876] [UndoPicker] closed
+[UndoSync pid=60876] UI_WAITING target=0
+[UndoSync pid=60876] [UndoPicker] closed
+[UndoSync pid=60876] RESTORE_BEGIN role=Client events=0
+[UndoSync pid=60876] UNBIND replay=True
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+[UndoSync pid=60876] NETWORK_ATTACH role=Client id=1001
+[ERROR] System.InvalidOperationException: Collection was modified; enumeration operation may not execute.
+[UndoSync pid=60876] BIND players=3
+[UndoSync pid=60876] RESTORE_SEEDED action=0 hook=0
+[UndoSync pid=60876] REPLAY_DONE events=0 waits=0 choices=0 checksum=818948746
+[UndoSync pid=60876] HISTORY_COMMIT events=0
+[UndoSync pid=60876] RESUME session=20669513f28a41b6a65b93b06f56abcd peers=3 checksum=818948746
+[UndoSync pid=60876] BOUNDARY events=1
+[UndoSync pid=60876] UNBIND replay=False

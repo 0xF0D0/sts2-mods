@@ -3,7 +3,7 @@
   "name": "Undo Sync",
   "author": "beomsu",
   "description": "Minimal cooperative combat undo. Left Arrow opens native history UI; all other players vote before native replay. Logs to <godot-user-data>/logs/UndoSync-<pid>.log.",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": true

@@ -1,0 +1,41 @@
+{
+  "label": "localization-ui-02",
+  "peers": 1,
+  "suite": "localization-ui",
+  "seed": "MINIMAL_MP_A",
+  "headless": false,
+  "processes": {
+    "ui": {
+      "pid": 60569,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-harness=ui",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-g9hzl90o/localization-ui-02",
+        "--minimal-peers=1",
+        "--minimal-suite=localization-ui",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    }
+  },
+  "dlls": {
+    "UndoSync": {
+      "UndoSync.dll": "c2cb948c3c52609a2a1eb556e101180652768a4d6528e0386309799907e92c49",
+      "UndoSync.json": "05c04e5b80c19a249757c585b2f850d8b9db02f2cf03d06c6dc3cadd9d5bf5e1"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "c03857a494bb1df4eaf957ebf8ee633288d07cf7dbc11fe46dd1fd7cc64d1002",
+      "MinimalHarness.json": "a0be927e70a20895c7b5fc1affa81b4860e98e855a1aacb0261eeba68111e65e"
+    }
+  },
+  "verdict": "PASS"
+}
