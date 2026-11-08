@@ -94,7 +94,9 @@ public static class Hooks
                 or MegaCrit.Sts2.Core.Multiplayer.Game.NetGameType.Host
                 or MegaCrit.Sts2.Core.Multiplayer.Game.NetGameType.Client)
             || !combat.IsInProgress
-            || combat.IsPaused || combat.PlayerActionsDisabled
+            // Ending the local turn disables card input while other players
+            // can still act. That input flag does not mean an action is running.
+            || combat.IsPaused
             || combat.EndingPlayerTurnPhaseOne || combat.EndingPlayerTurnPhaseTwo
             || combat.DebugOnlyGetState()?.CurrentSide != CombatSide.Player
             || manager.DebugOnlyGetState()!.Players.Any(p => p.Creature.IsAlive

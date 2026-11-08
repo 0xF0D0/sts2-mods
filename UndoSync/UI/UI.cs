@@ -53,7 +53,7 @@ internal static class UI
 
     internal static void Open()
     {
-        if (Network.Busy || !Hooks.IsIdle() || !History.Available) return;
+        if (Network.Busy || !History.Available) return;
         var points = new List<PickerPoint> { new(History.Count, "") };
         points.AddRange(History.Targets.Select(t => new PickerPoint(t.EventCount, "")));
         for (int i = 0; i + 1 < points.Count; i++)
@@ -142,7 +142,7 @@ internal static class UI
             string view = Network.LocalVoted ? "waiting" : "vote";
             if (_networkView != view) ShowNetworkPopup(view);
         }
-        else if (_networkView != null || IsOpen && !Hooks.IsIdle()) Close();
+        else if (_networkView != null) Close();
     }
 
     private static void ShowNetworkPopup(string view)

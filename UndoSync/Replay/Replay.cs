@@ -114,6 +114,10 @@ internal static class Replay
         NGame.Instance.RootSceneContainer.SetCurrentScene(new Control());
         await Frame(token);
         manager.CombatReplayWriter.IsEnabled = false;
+        // Stop the discarded executor instead of waiting for the old combat
+        // to become playable/idle. Drain its callbacks before creating owners.
+        var oldExecutor = manager.ActionExecutor;
+        oldExecutor.Cancel();
         OwnsCleanup = true;
         try
         {
@@ -126,6 +130,8 @@ internal static class Replay
             manager.CleanUp(graceful: true);
         }
         finally { OwnsCleanup = false; }
+        oldExecutor.Unpause();
+        await oldExecutor.FinishedExecutingActions().WaitAsync(token);
         token.ThrowIfCancellationRequested();
 
         var state = RunState.FromSerializable(replay.serializableRun);

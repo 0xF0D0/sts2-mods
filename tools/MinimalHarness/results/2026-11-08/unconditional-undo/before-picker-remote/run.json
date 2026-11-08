@@ -1,0 +1,100 @@
+{
+  "label": "before-picker-remote",
+  "peers": 3,
+  "suite": "picker-remote",
+  "seed": "MINIMAL_MP_A",
+  "headless": true,
+  "roles": [
+    "host",
+    "client",
+    "client2"
+  ],
+  "transport": "enet",
+  "game": {
+    "commit": "41cef1ea",
+    "version": "v0.111.0",
+    "date": "2026-08-13T17:39:18-07:00",
+    "branch": "v0.111.0",
+    "main_assembly_hash": 1172974615
+  },
+  "processes": {
+    "host": {
+      "pid": 69009,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=host",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l28zyx0x/before-picker-remote",
+        "--minimal-peers=3",
+        "--minimal-suite=picker-remote",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-speed=instant",
+        "--headless"
+      ],
+      "exit": 1
+    },
+    "client": {
+      "pid": 69082,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=client",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l28zyx0x/before-picker-remote",
+        "--minimal-peers=3",
+        "--minimal-suite=picker-remote",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1001",
+        "--minimal-speed=instant",
+        "--headless"
+      ],
+      "exit": 1
+    },
+    "client2": {
+      "pid": 69103,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=client2",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l28zyx0x/before-picker-remote",
+        "--minimal-peers=3",
+        "--minimal-suite=picker-remote",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "2001",
+        "--minimal-speed=instant",
+        "--headless"
+      ],
+      "exit": 1
+    }
+  },
+  "mixed_characters": false,
+  "retained_session": false,
+  "phases": false,
+  "speed": "instant",
+  "schedule_seed": null,
+  "repro": null,
+  "dlls": {
+    "UndoSync": {
+      "UndoSync.dll": "4830e0e709c29fd577c186ec5171c41159aa94152183dd862c584e1fb6e53e0b",
+      "UndoSync.json": "e6a3bd24b7a57cc60934dc5d332b2b86ea16732c053ad18ecafbfe4f1553b2b0"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "c89ada259901ed8f963fea521e464a3f5a11087835325fa321d1f55a7ccc74b7",
+      "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+    }
+  },
+  "verdict": "FAIL",
+  "elapsed_seconds": 18.169
+}

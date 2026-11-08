@@ -264,6 +264,8 @@ public static class Harness
             }
             else if (_suite == "fuzz") await FuzzDriver.Run();
             else if (_suite == "release-race") await ReleaseRaceAsync();
+            else if (_suite == "picker-remote") await PickerRemoteAsync();
+            else if (_suite == "ended-voter") await EndedVoterAsync();
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
             else if (_suite == "localization-ui") await LocalizationUiAsync();
@@ -527,6 +529,95 @@ public static class Harness
             await ClickViaViewport(next, "next-page");
             await NGame.Instance.AwaitProcessFrame();
         }
+    }
+
+    private static async Task PickerRemoteAsync()
+    {
+        _stage = "picker-remote";
+        string expected = Snapshot();
+        int target = History.Count;
+        await Actor("picker-prefix", "host", attack: true);
+        if (_role == "host")
+        {
+            var viewport = NGame.Instance!.GetViewport();
+            viewport.PushInput(new InputEventKey { Keycode = Key.Left, Pressed = true }, true);
+            viewport.PushInput(new InputEventKey { Keycode = Key.Left, Pressed = false }, true);
+            _viewportInputs++;
+            await Wait(() => UI.CurrentPopup is not null);
+            _holdLiveAction = true;
+        }
+        var picker = UI.CurrentPopup;
+        await Barrier("picker-open");
+        if (_role == "client")
+        {
+            var player = LocalContext.GetMe(State)!;
+            var card = PileType.Hand.GetPile(player).Cards.First(c => c.CanPlay() && c.TargetType == TargetType.AnyEnemy);
+            Require(card.TryManualPlay(CombatManager.Instance.DebugOnlyGetState()!.Enemies.First(e => e.IsAlive)), "real remote card played with picker open");
+            RecordCard();
+        }
+        await Wait(() => Marked("live-action-held", "host"));
+        if (_role == "host")
+        {
+            for (int i = 0; i < 3; i++) await NGame.Instance!.AwaitProcessFrame();
+            Require(!Hooks.IsIdle(), "remote action is still executing while picker is open");
+            Require(picker is not null && ReferenceEquals(UI.CurrentPopup, picker) && GodotObject.IsInstanceValid(picker), "same picker survives remote action");
+            var tile = Descendants(picker!).OfType<Button>().First(b => b.Flat && b.Text.Length == 0 && b.IsVisibleInTree());
+            await ClickViaViewport(tile, "propose-during-remote-action");
+            Require(Network.Busy, "picker proposal accepted while remote action is executing");
+        }
+        await Wait(() => Network.Voting && UI.CurrentPopup is not null);
+        await Barrier("picker-remote-votes");
+        if (_role != "host") await ClickViaViewport(UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton"), "accept-picker-remote");
+        await Wait(() => !Network.Busy, 30);
+        Require(Network.Status == "Undo complete", "picker remote-action undo completed");
+        await Idle();
+        Require(History.Count == target && Snapshot() == expected, "picker frozen target restored after remote action");
+        RecordUndo();
+        if (_role == "host")
+        {
+            Require(!Marked("live-action-finished", "host"), "undo completed before discarded action was released");
+            await Control.Put("picker-release-old-action", "true");
+        }
+        await Wait(() => Marked("live-action-finished", "host"));
+        await Barrier("picker-old-action-finished");
+        Require(Snapshot() == expected, "discarded action continuation did not alter restored state");
+        await Actor("picker-remote-continued", "host", attack: true);
+        await StateBarrier("picker-remote-final");
+        await Barrier("picker-remote-terminal");
+    }
+
+    private static async Task EndedVoterAsync()
+    {
+        foreach (int attempt in new[] { 1, 2 })
+        {
+            _stage = "ended-voter-" + attempt;
+            int target = History.Count;
+            string expected = Snapshot();
+            await Actor("ended-voter-mutate-" + attempt, "host", attack: true);
+            if (attempt == 2 && _role == Roles[^1])
+            {
+                Descendants(NCombatRoom.Instance!).OfType<NEndTurnButton>().Single().CallReleaseLogic();
+                await Wait(() => CombatManager.Instance.IsPlayerReadyToEndTurn(LocalContext.GetMe(State)!));
+                Require(CombatManager.Instance.PlayerActionsDisabled, "real native end-turn button disabled local card input");
+                Log("NATIVE_END_TURN before_second_proposal=true");
+            }
+            await Barrier("ended-voter-before-proposal-" + attempt);
+            if (_role == "host") await RequestViaViewport(target);
+            await Wait(() => Network.Voting && UI.CurrentPopup is not null);
+            await Barrier("ended-voter-popup-" + attempt);
+            if (_role != "host") await ClickViaViewport(UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton"), "accept-ended-voter-" + attempt);
+            await Wait(() => Network.Preparing || Network.Executing);
+            Log($"ALL_ACCEPTED attempt={attempt} disabled={CombatManager.Instance.PlayerActionsDisabled} idle={Hooks.IsIdle()}");
+            await Wait(() => !Network.Busy, 15);
+            Require(Network.Status == "Undo complete", "undo completes after every native Accept including ended voter");
+            await Idle();
+            Require(History.Count == target && Snapshot() == expected, "repeated undo restored exact target after native end turn");
+            RecordUndo();
+            await StateBarrier("ended-voter-restored-" + attempt);
+        }
+        await Actor("ended-voter-continued", "host", attack: true);
+        await StateBarrier("ended-voter-final");
+        await Barrier("ended-voter-terminal");
     }
 
     [HarmonyPatch(typeof(NetMessageBus), nameof(NetMessageBus.SendMessageToAllHandlers))]
@@ -818,7 +909,7 @@ public static class Harness
     {
         private static void Postfix(ref Task __result)
         {
-            if (_suite == "vote-busy-ui" && _holdLiveAction && !Network.Executing)
+            if (_suite is "vote-busy-ui" or "picker-remote" && _holdLiveAction && !Network.Executing)
             {
                 _holdLiveAction = false;
                 __result = HoldLiveAsync(__result);
@@ -834,9 +925,14 @@ public static class Harness
             await original;
             Log("LIVE_ACTION_HOLD_BEGIN");
             await Mark("live-action-held");
-            ulong start = Time.GetTicksMsec();
-            while (Time.GetTicksMsec() - start < 8000)
-                await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
+            if (_suite == "picker-remote")
+                await Wait(() => Control.Read("picker-release-old-action") is not null, 30);
+            else
+            {
+                ulong start = Time.GetTicksMsec();
+                while (Time.GetTicksMsec() - start < 8000)
+                    await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
+            }
             Log("LIVE_ACTION_HOLD_END");
             await Mark("live-action-finished");
         }

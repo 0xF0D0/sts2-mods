@@ -59,20 +59,25 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    boundaries. A client uploads that record to the host; the host relays its
    original bytes with the proposal to all peers. Reliable 1 KiB data chunks
    keep records independent of a transport's individual packet-size limits.
-   Block new player actions while voting; allow already-running actions to drain.
+   Keep the picker open when remote actions arrive. Opening/selecting history
+   does not require current input to be enabled or combat to be idle. Block new
+   player actions while voting; discard the old timeline once everyone agrees.
    UI votes are recorded and sent immediately, independent of idle state or local
    history availability. The requester is already counted as agreeing. The UI
    proposal count also comes from the proposer, not each peer's local targets.
 3. All votes accepted: host broadcasts Prepare. Each peer reports Ready only
-   after the proposer record has arrived and its earlier actions have drained.
-   No vote-time state/checksum equality is required. Host sends Start and collects
+   after the proposer record has arrived. Ready does not inspect current combat,
+   turn, action queues or input availability. No vote-time state/checksum equality
+   is required. Host sends Start and collects
    StartReceived receipts over the existing reliable connection before clearing
    old run owners. Keep the protocol handler attached throughout reconstruction.
 4. Preserve the exact INetGameService, native NetHost/NetClient and lobby ID.
    During Replay-owned native CleanUp, suppress Disconnect only for that captured
    service. Explicitly dispose EventSynchronizer, OneOffSynchronizer,
    CombatStateSynchronizer and InputSynchronizer in addition to native cleanup's
-   owner list. Initialize a saved run using the current real roster and a local
+   owner list. Cancel the old executor and detach its callbacks before creating
+   replacement run owners; do not wait for the old action to finish normally.
+   Initialize a saved run using the current real roster and a local
    LoadRunLobby holder on the SAME service. There is no new Steam lobby, join,
    reconnect, or load-lobby network handshake. Pump heartbeats/control while the
    old scene is absent; rebind new UI/run owners before entering combat.

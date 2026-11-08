@@ -1,0 +1,90 @@
+{
+  "date": "2026-11-08",
+  "game_version": "v0.111.0",
+  "game_commit": "41cef1ea",
+  "tested_core_sha256": "b4ccf7163cc449956fdd99956cb25471608728a7c63433b035c3ed4630892638",
+  "runs": [
+    {
+      "label": "before-picker-remote",
+      "verdict": "FAIL",
+      "pids": {
+        "host": 69009,
+        "client": 69082,
+        "client2": 69103
+      },
+      "elapsed_seconds": 18.169,
+      "core_sha256": "4830e0e709c29fd577c186ec5171c41159aa94152183dd862c584e1fb6e53e0b"
+    },
+    {
+      "label": "before-ended-voter",
+      "verdict": "FAIL",
+      "pids": {
+        "host": 69209,
+        "client": 69252,
+        "client2": 69273
+      },
+      "elapsed_seconds": 32.694,
+      "core_sha256": "4830e0e709c29fd577c186ec5171c41159aa94152183dd862c584e1fb6e53e0b"
+    },
+    {
+      "label": "unconditional-picker-focused3",
+      "verdict": "PASS",
+      "pids": {
+        "host": 71530,
+        "client": 71577,
+        "client2": 71598
+      },
+      "elapsed_seconds": 17.902,
+      "core_sha256": "b4ccf7163cc449956fdd99956cb25471608728a7c63433b035c3ed4630892638"
+    },
+    {
+      "label": "unconditional-ended-voter3",
+      "verdict": "PASS",
+      "pids": {
+        "host": 71715,
+        "client": 71758,
+        "client2": 71764
+      },
+      "elapsed_seconds": 18.639,
+      "core_sha256": "b4ccf7163cc449956fdd99956cb25471608728a7c63433b035c3ed4630892638"
+    },
+    {
+      "label": "unconditional-ended-voter4",
+      "verdict": "PASS",
+      "pids": {
+        "host": 71896,
+        "client": 71932,
+        "client2": 71936,
+        "client3": 71957
+      },
+      "elapsed_seconds": 20.16,
+      "core_sha256": "b4ccf7163cc449956fdd99956cb25471608728a7c63433b035c3ed4630892638"
+    },
+    {
+      "label": "unconditional-phases4",
+      "verdict": "PASS",
+      "pids": {
+        "host": 72446,
+        "client": 72485,
+        "client2": 72509,
+        "client3": 72530
+      },
+      "elapsed_seconds": 28.187,
+      "core_sha256": "b4ccf7163cc449956fdd99956cb25471608728a7c63433b035c3ed4630892638"
+    },
+    {
+      "label": "unconditional-release-race3",
+      "verdict": "PASS",
+      "pids": {
+        "host": 72722,
+        "client": 72764,
+        "client2": 72783
+      },
+      "elapsed_seconds": 18.64,
+      "core_sha256": "b4ccf7163cc449956fdd99956cb25471608728a7c63433b035c3ed4630892638"
+    }
+  ],
+  "steam_multiplayer_verified": false,
+  "published": false,
+  "cleanup": "All three fixtures restored original mods and accounts by hashes; no task game processes remain; UDP33771 free."
+}

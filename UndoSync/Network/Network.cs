@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using Godot;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
-using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Replay;
@@ -114,7 +113,9 @@ internal static class Network
 
     internal static void Request(int target)
     {
-        if (Busy || _service is null || !Hooks.IsIdle()) return;
+        // Only the selected history matters; current combat/input state may
+        // differ between peers and is discarded when restoring this prefix.
+        if (Busy || _service is null) return;
         if (!History.Targets.Any(t => t.EventCount == target)) return;
         var data = History.Export(target);
         var operation = CreateOperation(Guid.NewGuid().ToString("N"), target, _service.NetId);
@@ -267,12 +268,9 @@ internal static class Network
         // NRun normally pumps the service. Keep the SAME connection responsive
         // while the run scene/owners are temporarily absent.
         if (operation.Started && (NRun.Instance is null || !RunManager.Instance.IsInProgress)) _service?.Update();
-        if (!operation.Started && !CombatManager.Instance.IsInProgress)
-            Fail("Combat ended before undo began.");
-        if (!ReferenceEquals(_operation, operation)) return;
         if (Time.GetTicksMsec() > operation.Deadline && operation.Failure is null) Fail("Undo timed out.");
         if (!ReferenceEquals(_operation, operation)) return;
-        if (operation.Preparing && !operation.ReadySent && operation.Plan is not null && Hooks.IsIdle())
+        if (operation.Preparing && !operation.ReadySent && operation.Plan is not null)
         {
             operation.ReadySent = true;
             if (_isHost) operation.ReadyPeers.Add(_service!.NetId);
@@ -283,7 +281,6 @@ internal static class Network
             operation.StartRequested = true;
         if (operation.StartRequested && !operation.Started)
         {
-            if (!Hooks.IsIdle()) return;
             if (operation.Plan is null) { Fail("No frozen replay plan."); return; }
             if (_isHost) Send(UndoMinimalOp.Start);
             operation.Started = true;
