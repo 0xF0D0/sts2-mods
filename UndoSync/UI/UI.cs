@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Entities.UI;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Localization;
+using MegaCrit.Sts2.Core.Localization.Fonts;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
@@ -24,6 +25,7 @@ internal static class UI
     private const string LocTableName = "main_menu_ui";
 
     private static NGenericPopup? _popup;
+    private static CanvasLayer? _restoring;
     private static readonly List<NCard> _cardNodes = new();
     private static HBoxContainer? _pageBox;
     private static Button? _previousPageButton;
@@ -50,6 +52,44 @@ internal static class UI
     internal static bool IsOpen => _popup != null && GodotObject.IsInstanceValid(_popup);
 
     internal static NGenericPopup? CurrentPopup => _popup;
+
+    internal static void ShowRestoring()
+    {
+        HideRestoring();
+        EnsureLocEntries();
+        var game = NGame.Instance!;
+        _restoring = new CanvasLayer { Name = "UndoSyncRestoring", Layer = 100 };
+        game.AddChild(_restoring);
+        var backdrop = new ColorRect { Name = "Backdrop", Color = Colors.Black };
+        _restoring.AddChild(backdrop);
+        backdrop.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        var message = new Label
+        {
+            Name = "Message", Text = Text("RESTORING"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        var font = FontManager.GetSubstituteFont(LocManager.Instance.Language, FontType.Regular)
+            ?? game.GetThemeFont(ThemeConstants.Label.Font, "Label");
+        message.AddThemeFontOverride(ThemeConstants.Label.Font, font);
+        message.AddThemeFontSizeOverride("font_size", 32);
+        message.AddThemeColorOverride("font_color", Colors.White);
+        backdrop.AddChild(message);
+        message.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        Hooks.Log($"UI_RESTORING_SHOW text={message.Text}");
+    }
+
+    internal static void HideRestoring()
+    {
+        if (_restoring is not null && GodotObject.IsInstanceValid(_restoring))
+        {
+            _restoring.Hide();
+            _restoring.QueueFree();
+            Hooks.Log("UI_RESTORING_HIDE");
+        }
+        _restoring = null;
+    }
 
     internal static void Open()
     {
@@ -210,6 +250,7 @@ internal static class UI
             ["UNDOSYNC.PROPOSAL_BODY"] = "{steps}수를 되돌리려 합니다.\n수락하시겠습니까?",
             ["UNDOSYNC.WAITING_TITLE"] = "되돌리기 제안 중",
             ["UNDOSYNC.WAITING_BODY"] = "다른 플레이어의 수락을 기다리는 중...",
+            ["UNDOSYNC.RESTORING"] = "복원 중…",
             ["UNDOSYNC.ACCEPT"] = "수락",
             ["UNDOSYNC.REJECT"] = "거절",
             ["UNDOSYNC.PICKER_BODY"] = "",
@@ -232,6 +273,7 @@ internal static class UI
             ["UNDOSYNC.PROPOSAL_BODY"] = "将回退 {steps} 个行动。\n是否同意？",
             ["UNDOSYNC.WAITING_TITLE"] = "已提议回退",
             ["UNDOSYNC.WAITING_BODY"] = "正在等待其他玩家同意……",
+            ["UNDOSYNC.RESTORING"] = "正在恢复……",
             ["UNDOSYNC.ACCEPT"] = "同意",
             ["UNDOSYNC.REJECT"] = "拒绝",
             ["UNDOSYNC.PICKER_BODY"] = "",
@@ -254,6 +296,7 @@ internal static class UI
             ["UNDOSYNC.PROPOSAL_BODY"] = "將回溯 {steps} 個行動。\n是否同意？",
             ["UNDOSYNC.WAITING_TITLE"] = "已提議回溯",
             ["UNDOSYNC.WAITING_BODY"] = "正在等待其他玩家同意……",
+            ["UNDOSYNC.RESTORING"] = "正在還原……",
             ["UNDOSYNC.ACCEPT"] = "同意",
             ["UNDOSYNC.REJECT"] = "拒絕",
             ["UNDOSYNC.PICKER_BODY"] = "",
@@ -276,6 +319,7 @@ internal static class UI
             ["UNDOSYNC.PROPOSAL_BODY"] = "Rewind {steps} action(s).\nAccept?",
             ["UNDOSYNC.WAITING_TITLE"] = "Undo Proposed",
             ["UNDOSYNC.WAITING_BODY"] = "Waiting for other players to accept...",
+            ["UNDOSYNC.RESTORING"] = "Restoring…",
             ["UNDOSYNC.ACCEPT"] = "Accept",
             ["UNDOSYNC.REJECT"] = "Reject",
             ["UNDOSYNC.PICKER_BODY"] = "",

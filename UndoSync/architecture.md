@@ -82,6 +82,10 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    reconnect, or load-lobby network handshake. Pump heartbeats/control while the
    old scene is absent; rebind new UI/run owners before entering combat.
 5. Restore initial action/hook/choice/reward IDs and inject recorded events.
+   UI keeps a centered localized restoration message on a black CanvasLayer
+   owned by NGame, so replacing the combat scene does not remove the message.
+   Show it after fade-out; remove it before fade-in and in the operation's
+   finally block. Use native locale font substitution for Korean and Chinese.
    Until every peer has finished, suppress native checksum generation and all
    incoming native messages except heartbeat and UndoSync control. This isolates
    old action/choice/sync/checksum packets as well as received divergence reports.

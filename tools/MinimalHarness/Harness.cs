@@ -266,6 +266,7 @@ public static class Harness
             else if (_suite == "release-race") await ReleaseRaceAsync();
             else if (_suite == "picker-remote") await PickerRemoteAsync();
             else if (_suite == "ended-voter") await EndedVoterAsync();
+            else if (_suite == "restoring-ui") await RestoringUiAsync();
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
             else if (_suite == "localization-ui") await LocalizationUiAsync();
@@ -620,6 +621,44 @@ public static class Harness
         await Barrier("ended-voter-terminal");
     }
 
+    private static string _restoringLanguage = "";
+    private static async Task RestoringUiAsync()
+    {
+        await PlayOne(attack: true);
+        int target = History.Count;
+        string expected = Snapshot();
+        foreach (string language in new[] { "kor", "eng", "zhs", "zht" })
+        {
+            _stage = "restoring-ui-" + language;
+            _restoringLanguage = language;
+            LocManager.Instance.SetLanguage(language);
+            _delayApplied = false;
+            await PlayOne();
+            await RequestViaViewport(target);
+            await Wait(() => Control.Read("restoring-held-" + language) is not null);
+            var layer = NGame.Instance!.GetNode<CanvasLayer>("UndoSyncRestoring");
+            var message = layer.GetNode<Label>("Backdrop/Message");
+            for (int i = 0; i < 5; i++) await NGame.Instance.AwaitProcessFrame();
+            Require(layer.Visible && message.IsVisibleInTree() && NRun.Instance is not null,
+                "restoration text remains visible after replacing the combat scene");
+            Require(message.Text == UI.Translations(language)["UNDOSYNC.RESTORING"], "localized restoring text " + language);
+            Require(message.Size.X > 1000 && message.Size.Y > 500, "restoring label fills the game viewport");
+            var font = message.GetThemeFont(ThemeConstants.Label.Font);
+            Require(message.Text.EnumerateRunes().All(rune => font.HasChar(rune.Value)), "font contains every restoring glyph " + language);
+            RenderingServer.ForceDraw();
+            Require(NGame.Instance.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(_directory, "restoring-" + language + ".png")) == Error.Ok,
+                "captured native restoration screen " + language);
+            await Control.Put("restoring-captured-" + language, "true");
+            await Wait(() => !Network.Busy);
+            await Idle();
+            Require(!GodotObject.IsInstanceValid(layer) && NGame.Instance.GetNodeOrNull("UndoSyncRestoring") is null,
+                "restoration overlay is removed after undo");
+            Require(History.Count == target && Snapshot() == expected, "overlay leaves exact restored state unchanged");
+            RecordUndo();
+        }
+        await PlayOne(attack: true);
+    }
+
     [HarmonyPatch(typeof(NetMessageBus), nameof(NetMessageBus.SendMessageToAllHandlers))]
     private static class ReleaseLatencyFixture
     {
@@ -731,7 +770,7 @@ public static class Harness
             UI.Open();
             await CapturePopup(language + "-picker", "PICKER_TITLE");
             var entries = UI.Translations(language);
-            Require(entries.Count == 19 && entries.Keys.ToHashSet().SetEquals(UI.Translations("eng").Keys),
+            Require(entries.Count == 20 && entries.Keys.ToHashSet().SetEquals(UI.Translations("eng").Keys),
                 "all localization keys present");
             foreach (string key in entries.Keys)
             {
@@ -909,6 +948,12 @@ public static class Harness
     {
         private static void Postfix(ref Task __result)
         {
+            if (_suite == "restoring-ui" && Network.Executing && !_delayApplied)
+            {
+                _delayApplied = true;
+                __result = CaptureRestoringAsync(__result);
+                return;
+            }
             if (_suite is "vote-busy-ui" or "picker-remote" && _holdLiveAction && !Network.Executing)
             {
                 _holdLiveAction = false;
@@ -918,6 +963,14 @@ public static class Harness
             if (_suite != "speed-skew" || !Network.Executing || _role != _slowRole || _delayApplied) return;
             _delayApplied = true;
             __result = DelayAsync(__result);
+        }
+
+        private static async Task CaptureRestoringAsync(Task original)
+        {
+            await original;
+            string language = _restoringLanguage;
+            await Control.Put("restoring-held-" + language, "true");
+            await Wait(() => Control.Read("restoring-captured-" + language) is not null, 15);
         }
 
         private static async Task HoldLiveAsync(Task original)

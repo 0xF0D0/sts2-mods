@@ -110,6 +110,7 @@ internal static class Replay
             Choices.Add((entry.playerId!.Value, entry.choiceId!.Value), new());
         Hooks.Log($"RESTORE_BEGIN role={role} events={replay.events.Count}");
         await NGame.Instance!.Transition.FadeOut(0.05f);
+        UI.ShowRestoring();
         // Exit native UI against its original run owners before disposing them.
         NGame.Instance.RootSceneContainer.SetCurrentScene(new Control());
         await Frame(token);

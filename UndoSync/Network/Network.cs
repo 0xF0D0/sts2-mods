@@ -323,6 +323,7 @@ internal static class Network
             // the original proposer bytes, not that live native object.
             var (record, targets) = History.Import(operation.PlanData!);
             History.Commit(record, targets);
+            UI.HideRestoring();
             await NGame.Instance!.Transition.FadeIn(0.1f);
             Replay.ResumeNative();
             if (_isHost) operation.ResumedPeers.Add(_service!.NetId);
@@ -356,6 +357,7 @@ internal static class Network
         }
         finally
         {
+            UI.HideRestoring();
             Replay.Clear();
             operation.Cancel.Dispose();
             if (ReferenceEquals(_operation, operation)) _operation = null;

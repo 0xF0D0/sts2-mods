@@ -1,0 +1,40 @@
+{
+  "game": "v0.111.0 / 41cef1ea",
+  "runs": [
+    {
+      "case": "before-locale-font",
+      "verdict": "FAIL",
+      "pids": {
+        "ui": 87544
+      },
+      "core_sha256": "2496a8c5c36a4f9580179d106de13380e59c40cd42e0aee114ae70180e1dad8c",
+      "undos_per_peer": 0,
+      "elapsed_seconds": 30.166
+    },
+    {
+      "case": "focused",
+      "verdict": "PASS",
+      "pids": {
+        "ui": 88212
+      },
+      "core_sha256": "d79b0a0de2015a32cf06799e71f1c8c70dec1a7c178abcbf06c4842c2502eac4",
+      "undos_per_peer": 4,
+      "elapsed_seconds": 43.943
+    },
+    {
+      "case": "integration4",
+      "verdict": "PASS",
+      "pids": {
+        "host": 88732,
+        "client": 88771,
+        "client2": 88794,
+        "client3": 88801
+      },
+      "core_sha256": "d79b0a0de2015a32cf06799e71f1c8c70dec1a7c178abcbf06c4842c2502eac4",
+      "undos_per_peer": 4,
+      "elapsed_seconds": 28.168
+    }
+  ],
+  "published": false,
+  "steam_multiplayer_verified": false
+}
