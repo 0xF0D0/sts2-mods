@@ -50,6 +50,20 @@ public static class Harness
     private static string _role = "", _directory = "", _stage = "startup";
     private static bool _active;
     private static TestControl Control = null!;
+    private static INetGameService? _initialService;
+    private static object? _initialTransport;
+    private static string? _initialLobby;
+    private static int _sessionReplacements, _connectionsOpened, _connectionsClosed, _checksumsDuringReplay;
+    internal static NetChecksumData LastNativeChecksum;
+    private static object? Underlying(INetGameService service) => service switch
+    {
+        NetHostGameService host => host.NetHost,
+        NetClientGameService client => client.NetClient,
+        _ => null
+    };
+    private static bool _releaseDelayInjected, _releaseRaceSawAction;
+    private static int _releaseRaceRecordedCount;
+    private static string _releaseRaceExpected = "";
     private static int _viewportInputs, _nativeCallbacks, _postReplayActions, _targetChecks;
     private static string? _failure;
     private static string _observedTransport = "unknown", _netId = "";
@@ -57,7 +71,8 @@ public static class Harness
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss";
-    private static CharacterModel Character => _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
+    private static CharacterModel Character => CommandLineHelper.HasArg("minimal-mixed")
+        ? (_role == "host" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
         ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>();
     private static int _divergences, _cards, _undos;
     private static INetGameService? _pump;
@@ -86,6 +101,18 @@ public static class Harness
         Control = new TestControl(_directory, CommandLineHelper.GetValue("minimal-run-id") ?? Path.GetFileName(_directory),
             CommandLineHelper.GetValue("minimal-control"));
         _active = true;
+        if (CommandLineHelper.GetValue("minimal-save-dir") is { } saveDirectory)
+        {
+            // Real native persistence behavior with a task-owned local backend;
+            // no cloud writes or changes to the user's run/progress. TestMode off.
+            var saveManager = new SaveManager(new GodotFileIo(saveDirectory));
+            SaveManager.MockInstanceForTesting(saveManager);
+            saveManager.InitSettingsData();
+            saveManager.InitProfileId(1);
+            saveManager.InitPrefsData();
+            saveManager.InitProgressData();
+            Log("ISOLATED_NATIVE_SAVE_BACKEND path=" + saveDirectory);
+        }
         _peers = int.Parse(CommandLineHelper.GetValue("minimal-peers") ?? "2");
         _suite = CommandLineHelper.GetValue("minimal-suite") ?? "basic";
         FuzzDriver.Active = _suite == "fuzz";
@@ -102,6 +129,39 @@ public static class Harness
         Manager.RunStarted += runState =>
         {
             _generation++;
+            var service = Manager.NetService;
+            if (service.Type is NetGameType.Host or NetGameType.Client)
+            {
+                if (_initialService is null)
+                {
+                    _initialService = service; _initialTransport = Underlying(service); _initialLobby = service.GetRawLobbyIdentifier();
+                    service.Disconnected += _ => { if (Network.Busy) _connectionsClosed++; };
+                    if (service is NetHostGameService host)
+                    {
+                        host.ClientConnected += _ => { if (Network.Busy) _connectionsOpened++; };
+                        host.ClientDisconnected += (_, _) => { if (Network.Busy) _connectionsClosed++; };
+                    }
+                    if (service is NetClientGameService client)
+                        client.ConnectedToHost += () => { if (Network.Busy) _connectionsOpened++; };
+                }
+                else if (!ReferenceEquals(_initialService, service) || !ReferenceEquals(_initialTransport, Underlying(service)) || _initialLobby != service.GetRawLobbyIdentifier())
+                    _sessionReplacements++;
+            }
+            Manager.ChecksumTracker.ChecksumGenerated += (data, context, fullState) =>
+            {
+                if (Replay.SuppressNative) _checksumsDuringReplay++;
+                LastNativeChecksum = data;
+            };
+            if (_suite == "release-race" && _role == Roles[^1])
+                Manager.ActionQueueSet.ActionEnqueued += action =>
+                {
+                    if (action is PlayCardAction && Network.Executing && Replay.NativeResumed)
+                    {
+                        _releaseRaceSawAction = true;
+                        _releaseRaceRecordedCount = History.Count;
+                        Log("EARLY_REMOTE_ACTION whileUndoPending=true history=" + History.Count);
+                    }
+                };
             Manager.ChecksumTracker.StateDiverged += (_, _) => _divergences++;
             if (FuzzDriver.Active && CardSelectCmd.LocalSelector is null)
                 _ = CardSelectCmd.UseSelector(new FuzzDriver.Selector(), localOnly: true);
@@ -203,6 +263,7 @@ public static class Harness
                 await Task.Delay(Timeout.Infinite, Lifetime.Token);
             }
             else if (_suite == "fuzz") await FuzzDriver.Run();
+            else if (_suite == "release-race") await ReleaseRaceAsync();
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
             else if (_suite == "localization-ui") await LocalizationUiAsync();
@@ -232,6 +293,11 @@ public static class Harness
                 viewport_inputs = _viewportInputs, native_callbacks = _nativeCallbacks, target_checks = _targetChecks,
                 final_state_sha256 = exit == 0 ? Snapshot() : null,
                 post_replay_actions = _postReplayActions, phase_coverage = FuzzDriver.Coverage,
+                session_replacements = _sessionReplacements, connections_opened = _connectionsOpened,
+                connections_closed = _connectionsClosed, native_checksums_during_replay = _checksumsDuringReplay,
+                preserved_disconnects = Replay.PreservedDisconnects,
+                suppressed_checksum_calls = Replay.SuppressedChecksumCalls,
+                dropped_checksum_messages = Replay.DroppedChecksumMessages,
                 core_sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(Hooks).Assembly.Location))).ToLowerInvariant(),
                 harness_sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(Harness).Assembly.Location))).ToLowerInvariant()
             };
@@ -262,12 +328,14 @@ public static class Harness
             if (_role == "host")
             {
                 var service = new NetHostGameService(PeerVersionInfo.LocalDefault());
-                Require(!service.StartENetHost(33771, 4).HasValue, "real ENet host started");
+                bool steam = CommandLineHelper.GetValue("minimal-transport") == "steam";
+                var hostError = steam ? await service.StartSteamHost(4) : service.StartENetHost(33771, 4);
+                Require(!hostError.HasValue, steam ? "real Steam host started" : "real ENet host started");
                 _pump = service;
                 lobby = new StartRunLobby(GameMode.Standard, service, listener, _peers);
                 lobby.AddLocalHostPlayer(UnlockState.all, 0);
                 lobby.SetSeed(CommandLineHelper.GetValue("minimal-seed") ?? "MINIMAL_MP_A");
-                Log("HOST_LISTENING port=33771");
+                Log(steam ? "HOST_LISTENING platform=Steam lobby=" + service.GetRawLobbyIdentifier() : "HOST_LISTENING port=33771");
             }
             else
             {
@@ -281,8 +349,19 @@ public static class Harness
             }
             lobby.SetLocalCharacter(Character);
             await Wait(() => lobby.Players.Count == _peers);
-            lobby.SetReady(true);
-            await Wait(() => listener.Seed is not null);
+            if (CommandLineHelper.GetValue("minimal-transport") == "steam" && _peers == 1)
+            {
+                // A genuine one-host Steam session lifecycle smoke. The normal
+                // lobby start UI requires 2 people; there are no synthetic peers.
+                listener.Seed = CommandLineHelper.GetValue("minimal-seed") ?? "STEAM-LIFETIME-A";
+                listener.Acts = ActModel.GetDefaultList().ToList();
+                Log("STEAM_SCOPE single-host lifecycle smoke; not multiplayer acceptance");
+            }
+            else
+            {
+                lobby.SetReady(true);
+                await Wait(() => listener.Seed is not null);
+            }
             state = RunState.CreateForNewRun(lobby.Players.Select(p => Player.CreateForNewRun(p.character,
                     UnlockState.FromSerializable(p.unlockState), p.id)).ToList(),
                 listener.Acts!.Select(a => a.ToMutable()).ToList(), Array.Empty<ModifierModel>(), GameMode.Standard, 0, listener.Seed!);
@@ -448,6 +527,77 @@ public static class Harness
             await ClickViaViewport(next, "next-page");
             await NGame.Instance.AwaitProcessFrame();
         }
+    }
+
+    [HarmonyPatch(typeof(NetMessageBus), nameof(NetMessageBus.SendMessageToAllHandlers))]
+    private static class ReleaseLatencyFixture
+    {
+        private static bool Prefix(NetMessageBus __instance, INetMessage message, ulong senderId)
+        {
+            if (!_active || _suite != "release-race" || _role != Roles[^1] || _releaseDelayInjected
+                || message is not UndoMinimalMessage { Op: UndoMinimalOp.Release }) return true;
+            _releaseDelayInjected = true;
+            Log("DECLARED_LATENCY final_release=held_until_real_remote_action");
+            _ = Deliver(__instance, message, senderId);
+            return false;
+        }
+        private static async Task Deliver(NetMessageBus bus, INetMessage message, ulong sender)
+        {
+            try { await Wait(() => _releaseRaceSawAction, 10); }
+            finally { bus.SendMessageToAllHandlers(message, sender); }
+        }
+    }
+    [HarmonyPatch(typeof(Replay), nameof(Replay.ResumeNative))]
+    private static class ReleaseTargetObserver
+    {
+        private static void Postfix()
+        {
+            if (!_active || _suite != "release-race") return;
+            Require(Snapshot() == _releaseRaceExpected, "exact target observed before native receive rearm");
+            _targetChecks++;
+        }
+    }
+    private static async Task ReleaseRaceAsync()
+    {
+        _stage = "release-race";
+        await StateBarrier("release-race-opening");
+        int original = History.Count;
+        _releaseRaceExpected = Snapshot();
+        await Actor("release-race-mutate", "host", attack: true);
+        if (_role == "host") await RequestViaViewport(original);
+        await Wait(() => Network.Busy && Network.Voting && UI.CurrentPopup is not null);
+        await Barrier("release-race-vote-ui");
+        if (_role != "host") await ClickViaViewport(UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton"), "accept-release-race");
+        await Wait(() => !Network.Busy, 120);
+        Require(Network.Status == "Undo complete", "first release-race replay completed");
+        _undos++;
+        // Host can send while the final client has not received Release. The
+        // test delays only that actual received packet, keeping native transport.
+        if (_role == "host") { await PlayOne(attack: true); await Mark("release-race-live"); }
+        await Wait(() => Marked("release-race-live", "host"));
+        if (_role == Roles[^1])
+        {
+            Require(_releaseRaceSawAction, "remote action received before local operation release");
+            Require(_releaseRaceRecordedCount > original, "post-replay remote action recorded while local undo was still pending");
+        }
+        await Idle();
+        await StateBarrier("release-race-post-live");
+        await Wait(() => History.Count == int.Parse(Control.Read("release-race-live.host")!));
+        int prefix = History.Count;
+        _releaseRaceExpected = Snapshot();
+        await Actor("release-race-second-mutate", Roles[^1], attack: true);
+        if (_role == Roles[^1]) await RequestViaViewport(prefix);
+        await Wait(() => Network.Busy && Network.Voting && UI.CurrentPopup is not null);
+        await Barrier("release-race-second-vote-ui");
+        if (_role != Roles[^1]) await ClickViaViewport(UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton"), "accept-release-race-second");
+        await Wait(() => !Network.Busy, 120);
+        Require(Network.Status == "Undo complete", "late peer's adopted history can replay the early remote action");
+        _undos++;
+        await Idle();
+        Require(History.Count == prefix && Snapshot() == _releaseRaceExpected, "second replay retains early remote action exactly");
+        await CheckConnectedUi("release-race-final");
+        await StateBarrier("release-race-final");
+        await Barrier("release-race-terminal");
     }
 
     private static async Task ViewportUiAsync()
@@ -634,6 +784,7 @@ public static class Harness
         Require(Network.Status == "Undo complete", label + " terminal resume: " + Network.Status);
         await Idle();
         Require(History.Count == target && Snapshot() == snapshot, label + " exact target state and history truncation");
+        _targetChecks++;
         Require(_selections == selections, label + " replay did not invoke the live choice selector");
         _undos++;
         await StateBarrier(label + "-resumed");

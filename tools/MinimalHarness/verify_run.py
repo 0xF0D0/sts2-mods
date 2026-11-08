@@ -113,6 +113,24 @@ def verify(folder, require_input=None, require_transport=None):
             observed = sum(v.get('phase_coverage', {}).get(key, 0) for v in verdicts.values())
             if observed != len(roles):
                 issue('UNCOVERED', f'Phase condition {key}: observed {observed}, required {len(roles)}')
+    if run.get('retained_session'):
+        for role, value in verdicts.items():
+            for key in ('session_replacements', 'connections_opened', 'connections_closed', 'native_checksums_during_replay'):
+                if key not in value: issue('INFRA_ERROR', f'{role}: harness lacks retained-session instrumentation: {key}')
+                elif value[key] != 0: issue('FAIL', f'{role}: {key} must remain zero')
+            if value.get('suppressed_checksum_calls', 0) < 1:
+                issue('UNCOVERED', f'{role}: no actual native checksum generation probe suppressed')
+            if expected_transport != 'singleplayer' and value.get('preserved_disconnects', 0) != value.get('undos', -1):
+                issue('FAIL', f'{role}: original transport not preserved across every undo')
+            log = (folder/f'{role}-terminal.log').read_text()
+            if expected_transport != 'singleplayer' and log.count('TRANSPORT_RETAINED ') < value.get('undos', 0):
+                issue('UNCOVERED', f'{role}: retained native transport/lobby not observed')
+            if 'RESTORE_BEGIN' in log:
+                replay_log = log.split('RESTORE_BEGIN', 1)[1].split('HARNESS_PASS', 1)[0]
+                if any(marker in replay_log for marker in ('RESTORE_HOST_LISTENING', 'RESTORE_JOIN_RETRY', '[HandshakeManager] Got handshake')):
+                    issue('FAIL', f'{role}: unexpected connection recreation during undo')
+            if run.get('phases') and (value.get('dropped_checksum_messages', 0) < 1 or log.count('CHECKSUM_ISOLATION_PROBE_PASS') != len(roles)):
+                issue('UNCOVERED', f'{role}: stale native checksum receive isolation not proved')
     kinds = {i['kind'] for i in issues}
     result = next((k for k in ('INFRA_ERROR', 'FAIL', 'UNCOVERED') if k in kinds), 'PASS')
     return {'schema': 1, 'verdict': result, 'transport': expected_transport, 'suite': run['suite'],

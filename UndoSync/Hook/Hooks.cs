@@ -10,6 +10,9 @@ using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Multiplayer.Replay;
+using MegaCrit.Sts2.Core.Multiplayer;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
+using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Runs;
@@ -138,7 +141,7 @@ public static class Hooks
     {
         private static void Postfix(CombatReplayWriter __instance)
         {
-            if (!Network.Executing && ReplayField.GetValue(__instance) is CombatReplay replay)
+            if (!Replay.SuppressNative && ReplayField.GetValue(__instance) is CombatReplay replay)
                 History.Begin(replay);
         }
     }
@@ -151,7 +154,7 @@ public static class Hooks
             if (Network.Executing && !Replay.OwnsCleanup)
                 Network.Fail("Run exited during undo.");
             Unbind();
-            Network.Detach();
+            if (!Replay.OwnsCleanup) Network.Detach();
             UI.Close();
             if (!Network.Executing) { History.Clear(); Network.Reset(); }
             Log($"UNBIND replay={Network.Executing}");
@@ -167,13 +170,13 @@ public static class Hooks
     [HarmonyPatch(typeof(ActionQueueSynchronizer), nameof(ActionQueueSynchronizer.RequestEnqueueHookAction))]
     private static class HookGate
     {
-        private static bool Prefix() => !Network.Executing;
+        private static bool Prefix() => !Replay.SuppressNative;
     }
 
     [HarmonyPatch(typeof(ActionQueueSynchronizer), nameof(ActionQueueSynchronizer.RequestResumeActionAfterPlayerChoice))]
     private static class ResumeRequestGate
     {
-        private static bool Prefix() => !Network.Executing;
+        private static bool Prefix() => !Replay.SuppressNative;
     }
 
     [HarmonyPatch(typeof(NGame), nameof(NGame._Input))]
@@ -191,24 +194,24 @@ public static class Hooks
     [HarmonyPatch(typeof(ActionQueueSet), nameof(ActionQueueSet.EnqueueWithoutSynchronizing))]
     private static class EnqueueGate
     {
-        private static bool Prefix() => !Network.Executing || Replay.IsInjecting;
+        private static bool Prefix() => !Replay.SuppressNative || Replay.IsInjecting;
     }
     [HarmonyPatch(typeof(ActionQueueSet), nameof(ActionQueueSet.ResumeActionWithoutSynchronizing))]
     private static class DirectResumeGate
     {
-        private static bool Prefix() => !Network.Executing || Replay.IsInjecting;
+        private static bool Prefix() => !Replay.SuppressNative || Replay.IsInjecting;
     }
     [HarmonyPatch(typeof(PlayerChoiceSynchronizer), nameof(PlayerChoiceSynchronizer.SyncLocalChoice))]
     private static class ChoiceSendGate
     {
-        private static bool Prefix() => !Network.Executing;
+        private static bool Prefix() => !Replay.SuppressNative;
     }
     [HarmonyPatch(typeof(CardSelectCmd), "ShouldSelectLocalCard")]
     private static class CardChoiceGate
     {
         private static bool Prefix(ref bool __result)
         {
-            if (!Network.Executing) return true;
+            if (!Replay.SuppressNative) return true;
             __result = false; return false;
         }
     }
@@ -217,7 +220,7 @@ public static class Hooks
     {
         private static bool Prefix(ref bool __result)
         {
-            if (!Network.Executing) return true;
+            if (!Replay.SuppressNative) return true;
             __result = false; return false;
         }
     }
@@ -226,9 +229,30 @@ public static class Hooks
     {
         private static bool Prefix(Player player, uint choiceId, ref Task<PlayerChoiceResult> __result)
         {
-            if (!Network.Executing) return true;
+            if (!Replay.SuppressNative) return true;
             __result = Replay.RecordedChoiceAsync(player, choiceId);
             return false;
         }
     }
+    [HarmonyPatch(typeof(NetHostGameService), nameof(NetHostGameService.Disconnect))]
+    private static class PreserveHost
+    {
+        private static bool Prefix(NetHostGameService __instance) => !Replay.PreserveDisconnect(__instance);
+    }
+    [HarmonyPatch(typeof(NetClientGameService), nameof(NetClientGameService.Disconnect))]
+    private static class PreserveClient
+    {
+        private static bool Prefix(NetClientGameService __instance) => !Replay.PreserveDisconnect(__instance);
+    }
+    [HarmonyPatch(typeof(NetMessageBus), nameof(NetMessageBus.SendMessageToAllHandlers))]
+    private static class ReplayReceiveGate
+    {
+        private static bool Prefix(INetMessage message) => Replay.AllowMessage(message);
+    }
+    [HarmonyPatch(typeof(ChecksumTracker), nameof(ChecksumTracker.GenerateChecksum), new[] { typeof(string), typeof(GameAction) })]
+    private static class ReplayChecksumGate
+    {
+        private static bool Prefix() => Replay.AllowChecksum();
+    }
+
 }

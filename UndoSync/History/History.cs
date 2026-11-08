@@ -59,7 +59,7 @@ internal static class History
         Record(new CombatReplayEvent { eventType = CombatReplayEventType.PlayerChoice,
             playerId = player.NetId, choiceId = id, playerChoiceResult = result });
 
-    private static bool CanRecord => Available && !Network.Executing && CombatManager.Instance.IsInProgress;
+    private static bool CanRecord => Available && !Replay.SuppressNative && CombatManager.Instance.IsInProgress;
     private static void Record(CombatReplayEvent entry)
     {
         if (!CanRecord) return;

@@ -15,6 +15,9 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.TestSupport;
+using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Checksums;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
+using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using UndoSync;
 
 namespace MinimalHarness;
@@ -168,6 +171,30 @@ internal static class FuzzDriver
         await Harness.StateBarrier("fuzz-action-" + label);
     }
 
+    private static async Task ProbeChecksums(string round, Schedule phase, NetChecksumData stale)
+    {
+        await Harness.Wait(() => Harness.TestControl.Read("replay-held-" + round) is not null, 90);
+        await Harness.Wait(() => Harness.Roles.Where(r => r != phase.SlowRole)
+            .All(r => Harness.TestControl.Read("phase-fast-done-" + round + "-" + r) is not null), 90);
+        Harness.Require(!Harness.Manager.ChecksumTracker.IsEnabled && UndoSync.Replay.SuppressNative, "native checksums remain off while other peers replay");
+        uint before = Harness.Manager.ChecksumTracker.NextId;
+        Harness.Manager.ChecksumTracker.GenerateChecksum("retained-session suppression probe", null);
+        Harness.Require(Harness.Manager.ChecksumTracker.NextId == before && before == 0, "native checksum probe did not generate/send/advance ID");
+        int dropped = UndoSync.Replay.DroppedChecksumMessages;
+        await Harness.Barrier("checksum-probe-ready-" + round);
+        Harness.Log("DECLARED_FAULT stale_native_checksum=true round=" + round);
+        if (Harness.Role == Harness.Roles[0])
+            Harness.Manager.NetService.SendMessage(new StateDivergenceMessage
+            {
+                senderChecksum = stale, senderCombatState = NetFullCombatState.FromRun(Harness.State, null)
+            });
+        else Harness.Manager.NetService.SendMessage(new ChecksumDataMessage { checksumData = stale });
+        int expected = Harness.Role == Harness.Roles[0] ? Harness.Roles.Length - 1 : 1;
+        await Harness.Wait(() => UndoSync.Replay.DroppedChecksumMessages >= dropped + expected);
+        await Harness.Barrier("checksum-probe-checked-" + round);
+        Harness.Log("CHECKSUM_ISOLATION_PROBE_PASS round=" + round);
+    }
+
     internal static async Task Run()
     {
         await FuzzCases.Encounter(CombatManager.Instance.DebugOnlyGetState()!.Encounter!);
@@ -179,6 +206,7 @@ internal static class FuzzDriver
         {
             _round = proposer;
             _schedule = Phases ? await ResolveSchedule(proposer) : null;
+            NetChecksumData stale = Harness.LastNativeChecksum;
             string expected = Harness.Snapshot();
             int target = History.Count;
             await Play("discard-" + proposer, proposer);
@@ -235,6 +263,7 @@ internal static class FuzzDriver
                     await Harness.Wait(() => Network.Status == "Replay finished: waiting for all players", 90);
                     await Harness.TestControl.Put("phase-fast-done-" + proposer + "-" + Harness.Role, "true");
                 }
+                await ProbeChecksums(proposer, phase, stale);
                 if (Harness.Role == Harness.Roles[0])
                 {
                     await Harness.Wait(() => Harness.Roles.Where(r => r != phase.SlowRole)

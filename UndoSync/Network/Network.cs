@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace UndoSync;
 
-public enum UndoMinimalOp { Request, Propose, Vote, Start, Done, Resume, Cancel, StartReceived, Plan, Prepare, Ready }
+public enum UndoMinimalOp { Request, Propose, Vote, Start, Done, Resume, Cancel, StartReceived, Plan, Prepare, Ready, Resumed, Release }
 
 // Discovered by the game's GetSubtypesInMods, as in b770 UndoSync's messages.
 public struct UndoMinimalMessage : INetMessage
@@ -62,13 +62,14 @@ internal static class Network
         internal readonly Dictionary<ulong, bool> Votes = new();
         internal readonly Dictionary<ulong, uint> Done = new();
         internal readonly HashSet<ulong> StartReceipts = new();
+        internal readonly HashSet<ulong> ResumedPeers = new();
         internal readonly CancellationTokenSource Cancel = new();
         internal CombatReplay? Plan;
         internal byte[]? PlanData;
         internal readonly List<byte> Incoming = new();
         internal readonly HashSet<ulong> ReadyPeers = new();
         internal bool Proposed, Preparing, ReadySent;
-        internal bool Started, StartRequested, ResumeRequested, LocalVoted;
+        internal bool Started, StartRequested, ResumeRequested, ReleaseRequested, LocalVoted;
         internal string? Failure;
         internal ulong Deadline = Time.GetTicksMsec() + 30_000;
     }
@@ -231,6 +232,10 @@ internal static class Network
                     operation.Done[sender] = message.Checksum; break;
                 case UndoMinimalOp.Resume when !_isHost && operation.Started:
                     operation.ResumeRequested = true; break;
+                case UndoMinimalOp.Resumed when _isHost && operation.Started:
+                    operation.ResumedPeers.Add(sender); break;
+                case UndoMinimalOp.Release when !_isHost && operation.Started:
+                    operation.ReleaseRequested = true; break;
                 case UndoMinimalOp.Cancel:
                     Fail("Undo cancelled by a peer.", notify: false); break;
             }
@@ -259,6 +264,9 @@ internal static class Network
     internal static void Tick()
     {
         if (_operation is not { } operation) return;
+        // NRun normally pumps the service. Keep the SAME connection responsive
+        // while the run scene/owners are temporarily absent.
+        if (operation.Started && (NRun.Instance is null || !RunManager.Instance.IsInProgress)) _service?.Update();
         if (!operation.Started && !CombatManager.Instance.IsInProgress)
             Fail("Combat ended before undo began.");
         if (!ReferenceEquals(_operation, operation)) return;
@@ -319,6 +327,18 @@ internal static class Network
             var (record, targets) = History.Import(operation.PlanData!);
             History.Commit(record, targets);
             await NGame.Instance!.Transition.FadeIn(0.1f);
+            Replay.ResumeNative();
+            if (_isHost) operation.ResumedPeers.Add(_service!.NetId);
+            else Send(UndoMinimalOp.Resumed);
+            await Replay.WaitUntilAsync(() =>
+            {
+                if (_isHost && operation.Peers.All(operation.ResumedPeers.Contains))
+                {
+                    Send(UndoMinimalOp.Release);
+                    operation.ReleaseRequested = true;
+                }
+                return operation.ReleaseRequested;
+            }, operation.Cancel.Token);
             Status = "Undo complete";
             Hooks.Log($"RESUME session={operation.Id} peers={operation.Peers.Count} checksum={checksum}");
         }
@@ -330,7 +350,7 @@ internal static class Network
             try
             {
                 Detach();
-                Replay.DisconnectReplacement();
+                Replay.DisconnectSession();
                 if (RunManager.Instance.IsInProgress) RunManager.Instance.CleanUp(graceful: false);
                 await NGame.Instance!.ReturnToMainMenu();
             }

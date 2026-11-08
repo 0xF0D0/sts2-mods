@@ -8,13 +8,14 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer;
-using MegaCrit.Sts2.Core.Multiplayer.Connection;
+using MegaCrit.Sts2.Core.Multiplayer.Messages;
+using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Checksums;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Replay;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
-using MegaCrit.Sts2.Core.Platform;
+using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -24,7 +25,61 @@ internal static class Replay
 {
     private static readonly Dictionary<(ulong, uint), TaskCompletionSource<NetPlayerChoiceResult>> Choices = new();
     private static readonly List<GameAction> Actions = new();
-    private static INetGameService? _replacement;
+    private static INetGameService? _transport;
+    private static object? _nativeTransport;
+    private static string? _lobbyId;
+    private static bool _shouldSave;
+    internal static bool NativeResumed { get; private set; }
+    internal static bool SuppressNative => Network.Executing && !NativeResumed;
+    internal static int PreservedDisconnects { get; private set; }
+    internal static int SuppressedChecksumCalls { get; private set; }
+    internal static int DroppedChecksumMessages { get; private set; }
+    internal static bool PreserveDisconnect(INetGameService service)
+    {
+        if (!OwnsCleanup || !ReferenceEquals(service, _transport)) return false;
+        PreservedDisconnects++;
+        Hooks.Log("TRANSPORT_DISCONNECT_SUPPRESSED");
+        return true;
+    }
+    internal static bool AllowMessage(INetMessage message)
+    {
+        if (!SuppressNative || message is UndoMinimalMessage or HeartbeatRequestMessage or HeartbeatResponseMessage) return true;
+        if (message is ChecksumDataMessage or StateDivergenceMessage) DroppedChecksumMessages++;
+        Hooks.Log($"REPLAY_MESSAGE_DROPPED type={message.GetType().Name}");
+        return false;
+    }
+    internal static bool AllowChecksum()
+    {
+        if (!SuppressNative) return true;
+        SuppressedChecksumCalls++;
+        return false;
+    }
+    private static object? NativeTransport(INetGameService service) => service switch
+    {
+        NetHostGameService host => host.NetHost,
+        NetClientGameService client => client.NetClient,
+        _ => null
+    };
+    private static void VerifyTransport()
+    {
+        if (_transport is null) return;
+        if (!ReferenceEquals(RunManager.Instance.NetService, _transport)
+            || !ReferenceEquals(NativeTransport(_transport), _nativeTransport)
+            || !_transport.IsConnected || _transport.GetRawLobbyIdentifier() != _lobbyId)
+            throw new InvalidOperationException("Undo replaced or lost the existing multiplayer session.");
+        Hooks.Log($"TRANSPORT_RETAINED role={_transport.Type} platform={_transport.Platform} lobby={_lobbyId}");
+    }
+    internal static void ResumeNative()
+    {
+        VerifyTransport();
+        var manager = RunManager.Instance;
+        manager.CombatStateSynchronizer.IsDisabled = false;
+        manager.CombatReplayWriter.IsEnabled = true;
+        AccessTools.PropertySetter(typeof(RunManager), nameof(RunManager.ShouldSave)).Invoke(manager, new object[] { _shouldSave });
+        manager.ChecksumTracker.IsEnabled = true;
+        NativeResumed = true;
+        Hooks.Log($"NATIVE_REARMED checksumNextId={manager.ChecksumTracker.NextId}");
+    }
     private static bool _injecting;
     internal static bool IsInjecting => _injecting;
     internal static bool OwnsCleanup { get; private set; }
@@ -36,11 +91,20 @@ internal static class Replay
         var manager = RunManager.Instance;
         var old = manager.NetService;
         var role = old.Type;
-        var platform = old.Platform;
-        ulong local = old.NetId;
-        ulong host = old is NetClientGameService client ? client.HostNetId : local;
-        bool shouldSave = manager.ShouldSave;
-        ulong[] roster = replay.serializableRun.Players.Select(p => p.NetId).ToArray();
+        _shouldSave = manager.ShouldSave;
+        NativeResumed = false;
+        var players = manager.RunLobby?.Players.ToArray();
+        if (role is NetGameType.Host or NetGameType.Client)
+        {
+            _transport = old;
+            _nativeTransport = NativeTransport(old);
+            _lobbyId = old.GetRawLobbyIdentifier();
+            if (players is null || !players.Select(p => p.id).ToHashSet().SetEquals(replay.serializableRun.Players.Select(p => p.NetId)))
+                throw new InvalidOperationException("Existing connected roster differs from replay participants.");
+        }
+        manager.ChecksumTracker.IsEnabled = false;
+        manager.CombatStateSynchronizer.IsDisabled = true;
+        old.SetBufferMessages(false); // Drain old native buffered packets through the replay receive gate.
         Choices.Clear(); Actions.Clear(); _choiceWaits = _choiceInjections = 0;
         foreach (var entry in replay.events.Where(e => e.eventType == CombatReplayEventType.PlayerChoice))
             Choices.Add((entry.playerId!.Value, entry.choiceId!.Value), new());
@@ -49,10 +113,18 @@ internal static class Replay
         // Exit native UI against its original run owners before disposing them.
         NGame.Instance.RootSceneContainer.SetCurrentScene(new Control());
         await Frame(token);
-        Network.Detach();
         manager.CombatReplayWriter.IsEnabled = false;
         OwnsCleanup = true;
-        try { manager.CleanUp(graceful: true); }
+        try
+        {
+            // Normal game cleanup relies on dropping the entire transport for
+            // these owners. Retaining it requires their public handler disposal.
+            manager.EventSynchronizer.Dispose();
+            manager.OneOffSynchronizer.Dispose();
+            manager.CombatStateSynchronizer.Dispose();
+            manager.InputSynchronizer.Dispose();
+            manager.CleanUp(graceful: true);
+        }
         finally { OwnsCleanup = false; }
         token.ThrowIfCancellationRequested();
 
@@ -60,44 +132,25 @@ internal static class Replay
         if (role == NetGameType.Singleplayer)
         {
             await manager.SetUpSavedSingleplayer(state, replay.serializableRun);
-            _replacement = manager.NetService;
-            Network.Attach(_replacement);
+            Network.Attach(manager.NetService);
         }
         else
         {
-            LoadRunLobby? lobby = null;
-            var listener = new LoadListener();
+            // Initialization holder over the already authenticated peers. No
+            // Steam lobby creation, transport replacement or join handshake.
+            var lobby = new LoadRunLobby(old, new LoadListener(), replay.serializableRun);
             try
             {
-                if (role == NetGameType.Host)
+                lobby.Players.AddRange(players!.Select(p => new LoadRunLobbyPlayer
                 {
-                    var service = new NetHostGameService(PeerVersionInfo.LocalDefault());
-                    _replacement = service;
-                    NetErrorInfo? error = platform == PlatformType.Steam
-                        ? await service.StartSteamHost(4)
-                        : service.StartENetHost(33771, 4);
-                    if (error.HasValue) throw new InvalidOperationException($"Host start failed: {error}");
-                    Network.Attach(service);
-                    lobby = new LoadRunLobby(service, listener, replay.serializableRun);
-                    lobby.AddLocalHostPlayer();
-                    Hooks.Log("RESTORE_HOST_LISTENING");
-                }
-                else
-                {
-                    lobby = await JoinAsync(local, host, platform, listener, token);
-                    state = RunState.FromSerializable(lobby.Run);
-                }
-                // Same native setup as NMultiplayerLoadGameScreen.AfterMultiplayerStarted.
-                NGame.Instance!.RemoteCursorContainer.Initialize(lobby.InputSynchronizer, lobby.PlayerIds);
-                NGame.Instance.ReactionContainer.InitializeNetworking(lobby.NetService);
-                await WaitUntilAsync(() => roster.ToHashSet().SetEquals(lobby.PlayerIds), token, lobby.NetService);
-                token.ThrowIfCancellationRequested();
-                lobby.SetReady(true);
-                await WaitUntilAsync(() => listener.Begun, token, lobby.NetService);
-                if (lobby.NetService.NetId != local) throw new InvalidOperationException("Player identity changed.");
+                    id = p.id, isModded = p.isModded, isReady = true
+                }));
                 await manager.SetUpSavedMultiplayer(state, lobby);
+                NGame.Instance!.RemoteCursorContainer.Initialize(lobby.InputSynchronizer, lobby.PlayerIds);
+                NGame.Instance.ReactionContainer.InitializeNetworking(old);
             }
-            finally { lobby?.CleanUp(disconnectSession: false); }
+            finally { lobby.CleanUp(disconnectSession: false); }
+            VerifyTransport();
         }
 
         token.ThrowIfCancellationRequested();
@@ -161,45 +214,11 @@ internal static class Replay
         await Frame(token);
         await WaitUntilAsync(Hooks.IsReplayIdle, token);
         ThrowIfActionFailed();
-        manager.CombatStateSynchronizer.IsDisabled = false;
-        manager.CombatReplayWriter.IsEnabled = true;
-        AccessTools.PropertySetter(typeof(RunManager), nameof(RunManager.ShouldSave)).Invoke(manager, new object[] { shouldSave });
-        manager.ChecksumTracker.IsEnabled = true;
-        uint checksum = manager.ChecksumTracker.GenerateChecksum("UndoSync replay complete", null).checksum;
+        // Pure hash overload: no native packet, tracked checksum or NextId
+        // advance. Native traffic stays suppressed until all Done values match.
+        uint checksum = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
         Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum}");
         return checksum;
-    }
-
-    private static async Task<LoadRunLobby> JoinAsync(ulong local, ulong host, PlatformType platform,
-        LoadListener listener, CancellationToken token)
-    {
-        for (int attempt = 1; ; attempt++)
-        {
-            token.ThrowIfCancellationRequested();
-            var service = new NetClientGameService(PeerVersionInfo.LocalDefault());
-            _replacement = service;
-            var flow = new JoinFlow(service);
-            using var registration = token.Register(() => flow.CancelToken.Cancel());
-            try
-            {
-                IClientConnectionInitializer initializer = platform == PlatformType.Steam
-                    ? SteamClientConnectionInitializer.FromPlayer(host)
-                    : new ENetClientConnectionInitializer(local, "127.0.0.1", 33771);
-                var result = await flow.Begin(initializer, NGame.Instance!.GetTree());
-                token.ThrowIfCancellationRequested();
-                if (result.sessionState != RunSessionState.InLoadedLobby || !result.loadJoinResponse.HasValue)
-                    throw new InvalidOperationException("Host did not open a saved-run lobby.");
-                Network.Attach(service);
-                return new LoadRunLobby(service, listener, result.loadJoinResponse.Value);
-            }
-            catch (Exception exception) when (!token.IsCancellationRequested && attempt < 3)
-            {
-                service.Disconnect(NetError.CancelledJoin, now: true);
-                Hooks.Log($"RESTORE_JOIN_RETRY attempt={attempt} error={exception.Message}");
-                await Task.Delay(500, token);
-            }
-            finally { flow.CancelToken.Dispose(); }
-        }
     }
 
     internal static async Task WaitUntilAsync(Func<bool> condition, CancellationToken token, INetGameService? pump = null)
@@ -233,18 +252,17 @@ internal static class Replay
     internal static void Clear()
     {
         foreach (var choice in Choices.Values) choice.TrySetCanceled();
-        Choices.Clear(); Actions.Clear(); _replacement = null;
+        Choices.Clear(); Actions.Clear(); _transport = null; _nativeTransport = null; _lobbyId = null; NativeResumed = false;
     }
 
-    internal static void DisconnectReplacement()
+    internal static void DisconnectSession()
     {
-        _replacement?.Disconnect(NetError.Quit, now: true);
+        _transport?.Disconnect(NetError.Quit, now: true);
     }
 
     private sealed class LoadListener : ILoadRunLobbyListener
     {
-        internal bool Begun;
-        public void BeginRun() => Begun = true;
+        public void BeginRun() { }
         public void PlayerConnected(LoadRunLobbyPlayer player) { }
         public void PlayerReadyChanged(ulong playerId) { }
         public Task<bool> ShouldAllowRunToBegin() => Task.FromResult(true);

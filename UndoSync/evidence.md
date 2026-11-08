@@ -509,3 +509,36 @@ runs. Core DLL remains SHA256
 93461e829142ff633366d1fab4ae26466a5ec29f6e42867bf298015bf031b907; the manifest
 version changes only. All multiplayer participants must update together. Actual
 cross-machine Steam execution is unverified. ENet retry latency is deferred.
+
+## Retained-session candidate v0.1.11 (not published)
+
+Current candidate SHA256: f927fc6a3d80d5311e090945aadf71a087f6a44c7c34de6eb7d9492f2f6a5f23. Successful undo keeps the same real native
+service/transport and room ID. Native generation and receive checks are isolated
+until all final hashes match; the Resumed/Release barrier rearms all receivers
+before input. Additional native owners are disposed before run reconstruction.
+
+Final candidate release-race3 PIDs 50017/50039/50060 passed two operations. The
+late client's actual Release packet was delayed while a new live host action
+arrived. Before the history-gating correction, PIDs 45877/45921/45941 failed on
+missing history; afterward the action was recorded and the late peer's exported
+prefix replayed successfully. Final candidate phases4 PIDs
+50312/50331/50352/50373 passed four operations with busy last votes, held replay
+completion and real stale checksum/divergence packet probes. Every peer reported
+zero service replacements, connection opens/closes and native checksums generated
+during replay. Final target/checksums and continued gameplay matched.
+
+Additional earlier retained-source checks covered focused viewport UI, mixed
+Defect/Silent 3-peer replay, and extended choices/hooks/resumes, enemy turn,
+rejection and timeout. Build and 16-target MinimalCheck passed. Artifacts under
+tools/MinimalHarness/results/2026-11-08/retained-session/. All test fixtures were
+restored by hashes and no game remains.
+
+Steam single-host attempt PID 39369 ended during initial Steam/mod startup when
+the Steam client shut down; no replay ran and it is NOT acceptance evidence. User
+confirmed the account is in use on another PC and explicitly asked deployment to
+wait. Steam final verification and publication are pending. Existing public
+release remains v0.1.10; v0.1.11 exists only as a local candidate package.
+
+The user subsequently authorized publishing the ENet-verified v0.1.11 candidate
+for direct testing. No additional Steam gameplay acceptance is claimed. Package
+DLL SHA256 remains identical to the final retained-session test build above.

@@ -26,8 +26,13 @@ foreach (var type in mod.GetTypes())
         var target = (Type)attribute.ConstructorArguments[0].Value!;
         string methodName = (string)attribute.ConstructorArguments[1].Value!;
         var methods = target.GetMethods(all).Where(m => m.Name == methodName).ToArray();
+        if (attribute.ConstructorArguments.Count > 2 && attribute.ConstructorArguments[2].Value is IReadOnlyCollection<CustomAttributeTypedArgument> signature)
+        {
+            var names = signature.Select(a => ((Type)a.Value!).FullName).ToArray();
+            methods = methods.Where(m => m.GetParameters().Select(p => p.ParameterType.FullName).SequenceEqual(names)).ToArray();
+        }
         Require(methods.Length == 1, $"unambiguous patch {target.Name}.{methodName}");
-        var method = methods[0];
+        var method = methods.Single();
         foreach (var patch in type.GetMethods(all).Where(m => m.Name is "Prefix" or "Postfix"))
         {
             foreach (var parameter in patch.GetParameters())
@@ -46,7 +51,7 @@ foreach (var type in mod.GetTypes())
         patches++;
     }
 }
-Require(patches == 12, $"all 12 Harmony targets checked (actual {patches})");
+Require(patches == 16, $"all 16 Harmony targets checked (actual {patches})");
 var reflectionMembers = new (string Type, string Name, bool Property)[]
 {
     ("MegaCrit.Sts2.Core.Multiplayer.Replay.CombatReplayWriter", "_replay", false),

@@ -68,13 +68,16 @@ def prepare():
     print(root, flush=True)
     return root
 
-def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_seed=None, repro=None, speed=None, phases=False):
+def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_seed=None, repro=None, speed=None, phases=False, retained=False, transport="enet", save_dir=None, mixed=False):
     no_game()
+    if transport == 'steam' and peers != 1: raise ValueError('Only the single-host Steam lifetime smoke is configured here.')
     folder = root/label
     folder.mkdir()
-    roles = ['ui'] if suite == 'fuzz' and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['host'] if transport == 'steam' else ['ui'] if suite == 'fuzz' and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
-    record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else 'enet', 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
+    record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else transport, 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
+    record['mixed_characters'] = mixed
+    record['retained_session'] = retained
     record['phases'] = phases
     record['speed'] = speed or ('instant' if suite == 'fuzz' else 'normal')
     record['schedule_seed'] = schedule_seed
@@ -84,9 +87,13 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
     try:
         for role in roles:
             args = ['caffeinate', '-dimsu', str(APP/'Contents/MacOS/Slay the Spire 2'),
-                    '--force-steam', 'off', '--clientId', str(IDS[role]), '--minimal-harness='+role,
+                    '--minimal-harness='+role,
                     '--minimal-dir='+str(folder), '--minimal-peers='+str(peers), '--minimal-suite='+suite,
                     '--minimal-seed='+seed]
+            if transport == 'enet': args += ['--force-steam', 'off', '--clientId', str(IDS[role])]
+            else: args += ['--minimal-transport=steam']
+            if save_dir: args += ['--minimal-save-dir='+save_dir]
+            if mixed: args += ['--minimal-mixed']
             if phases: args += ['--minimal-phases']
             args += ['--minimal-speed='+record['speed']]
             if schedule_seed is not None: args += ['--minimal-schedule-seed='+schedule_seed]
@@ -106,7 +113,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
                 time.sleep(.25)
             if role == 'host':
                 deadline = time.monotonic()+45
-                while 'HOST_LISTENING port=33771' not in (folder/'host-terminal.log').read_text():
+                while ('HOST_LISTENING platform=Steam' if transport == 'steam' else 'HOST_LISTENING port=33771') not in (folder/'host-terminal.log').read_text():
                     if process.poll() is not None or time.monotonic() > deadline:
                         raise RuntimeError('Host startup failed; inspect PID-bound terminal log.')
                     time.sleep(.5)
@@ -135,8 +142,8 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
         save(folder/'run.json', record)
     if suite == 'preview' and record['verdict'] == 'PASS':
         record['verdict'] = 'CLOSED'; save(folder/'run.json', record)
-    if suite in ('viewport-ui', 'viewport-regression', 'fuzz'):
-        report = verify(folder, require_input='viewport')
+    if retained or suite in ('viewport-ui', 'viewport-regression', 'fuzz', 'release-race'):
+        report = verify(folder, require_input='viewport' if suite in ('viewport-ui', 'viewport-regression', 'fuzz', 'release-race') else None)
         save(folder/'summary.json', report)
         print(label, report['verdict'], flush=True)
         if report['verdict'] != 'PASS':
@@ -149,7 +156,7 @@ def restore(root):
     state = json.loads((root/'fixture.json').read_text())
     result = {}
     for tag, original in state['backups'].items():
-        path = ACCOUNTS/tag.removeprefix('account-') if tag.startswith('account-') else MODS/tag.removeprefix('mod-')
+        path = ACCOUNTS.parent/'steam'/tag.removeprefix('steam-account-') if tag.startswith('steam-account-') else ACCOUNTS/tag.removeprefix('account-') if tag.startswith('account-') else MODS/tag.removeprefix('mod-')
         if path.exists():
             shutil.move(str(path), root/('tested-'+tag))
         if original:
