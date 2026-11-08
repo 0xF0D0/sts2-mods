@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Assets;
@@ -37,6 +38,7 @@ using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.Settings;
 using MegaCrit.Sts2.Core.Unlocks;
 using UndoSync;
 
@@ -47,18 +49,33 @@ public static class Harness
 {
     private static string _role = "", _directory = "", _stage = "startup";
     private static bool _active;
+    private static TestControl Control = null!;
+    private static int _viewportInputs, _nativeCallbacks, _postReplayActions, _targetChecks;
+    private static string? _failure;
+    private static string _observedTransport = "unknown", _netId = "";
     private static int _peers = 2, _selections, _generation;
     private static string _suite = "basic";
-    private static string[] Roles => Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
+    internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss";
-    private static CharacterModel Character => _suite == "basic" || _role == "ui" && _suite != "choice-ui"
+    private static CharacterModel Character => _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
         ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>();
     private static int _divergences, _cards, _undos;
     private static INetGameService? _pump;
     private static readonly CancellationTokenSource Lifetime = new();
-    private static RunManager Manager => RunManager.Instance;
-    private static RunState State => Manager.DebugOnlyGetState() ?? throw new InvalidOperationException("No run.");
+    internal static RunManager Manager => RunManager.Instance;
+    internal static RunState State => Manager.DebugOnlyGetState() ?? throw new InvalidOperationException("No run.");
     private static string LogPath => Path.Combine(_directory, $"{_role}-{System.Environment.ProcessId}.log");
+
+    internal static string Role => _role;
+    internal static string DirectoryPath => _directory;
+    internal static TestControl TestControl => Control;
+    internal static void RecordCard()
+    {
+        _cards++;
+        if (_undos > 0) { _postReplayActions++; Log("POST_REPLAY_ACTION native=true"); }
+    }
+    internal static void RecordUndo() { _undos++; _targetChecks++; }
+    internal static void RecordSelection() => _selections++;
 
     public static void Initialize()
     {
@@ -66,14 +83,28 @@ public static class Harness
         if (_role.Length == 0) return;
         _directory = CommandLineHelper.GetValue("minimal-dir") ?? throw new InvalidOperationException("Missing test dir.");
         Directory.CreateDirectory(_directory);
+        Control = new TestControl(_directory, CommandLineHelper.GetValue("minimal-run-id") ?? Path.GetFileName(_directory),
+            CommandLineHelper.GetValue("minimal-control"));
         _active = true;
         _peers = int.Parse(CommandLineHelper.GetValue("minimal-peers") ?? "2");
         _suite = CommandLineHelper.GetValue("minimal-suite") ?? "basic";
+        FuzzDriver.Active = _suite == "fuzz";
+        if (FuzzDriver.Active)
+        {
+            FuzzCases.ContentSeed = CommandLineHelper.GetValue("minimal-seed") ?? "FUZZ-A";
+            FuzzCases.Repro = CommandLineHelper.GetValue("minimal-repro");
+            FuzzDriver.ScheduleSeed = CommandLineHelper.GetValue("minimal-schedule-seed") ?? "SCHEDULE-A";
+            FuzzDriver.Phases = CommandLineHelper.HasArg("minimal-phases");
+            Require(!FuzzDriver.Phases || _peers > 1, "phase fuzz requires real multiplayer");
+            FuzzDriver.Initialize();
+        }
         new Harmony("com.beomsu.minimalharness").PatchAll(typeof(Harness).Assembly);
         Manager.RunStarted += runState =>
         {
             _generation++;
             Manager.ChecksumTracker.StateDiverged += (_, _) => _divergences++;
+            if (FuzzDriver.Active && CardSelectCmd.LocalSelector is null)
+                _ = CardSelectCmd.UseSelector(new FuzzDriver.Selector(), localOnly: true);
             if (AutoChoices && CardSelectCmd.LocalSelector is null)
                 _ = CardSelectCmd.UseSelector(new NativeSelector(), localOnly: true);
         };
@@ -81,23 +112,23 @@ public static class Harness
         _ = RunAsync();
     }
 
-    private static void Log(string text)
+    internal static void Log(string text)
     {
         string line = $"[MinimalHarness pid={System.Environment.ProcessId} role={_role} stage={_stage}] {text}";
         GD.Print(line); File.AppendAllText(LogPath, line + "\n");
     }
     private static void Pump() => _pump?.Update();
-    private static void Require(bool value, string reason)
+    internal static void Require(bool value, string reason)
     {
         if (!value) throw new InvalidOperationException(reason);
         Log("CHECK " + reason);
     }
-    private static async Task Wait(Func<bool> predicate, int seconds = 45)
+    internal static async Task Wait(Func<bool> predicate, int seconds = 45)
     {
         ulong end = Time.GetTicksMsec() + (ulong)seconds * 1000;
         while (!predicate())
         {
-            if (File.Exists(Path.Combine(_directory, "abort"))) throw new OperationCanceledException("Parent classified and aborted run.");
+            if (Control.Read("abort") is not null) throw new OperationCanceledException("Parent classified and aborted run.");
             if (Time.GetTicksMsec() > end)
                 throw new TimeoutException($"{_stage}: busy={Network.Busy} status={Network.Status} count={History.Count} "
                     + $"run={Manager.IsInProgress} combat={CombatManager.Instance.IsInProgress} "
@@ -106,21 +137,25 @@ public static class Harness
             await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
         }
     }
-    private static async Task Idle()
+    internal static async Task Idle()
     {
-        await Wait(() => !Network.Busy && Hooks.IsIdle());
-        for (int i = 0; i < 5; i++) await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
+        int frames = 0;
+        await Wait(() =>
+        {
+            frames = !Network.Busy && Hooks.IsIdle() ? frames + 1 : 0;
+            return frames >= 5;
+        });
         Require(Hooks.IsIdle(), "idle native player phase");
     }
-    private static void Mark(string name) => File.WriteAllText(Path.Combine(_directory, name + "." + _role), History.Count.ToString());
-    private static bool Marked(string name, string role) => File.Exists(Path.Combine(_directory, name + "." + role));
-    private static async Task Barrier(string name)
+    private static Task Mark(string name) => Control.Put(name + "." + _role, History.Count.ToString());
+    private static bool Marked(string name, string role) => Control.Read(name + "." + role) is not null;
+    internal static async Task Barrier(string name)
     {
-        Mark(name);
+        await Mark(name);
         await Wait(() => Roles.All(role => Marked(name, role)));
     }
     private static int _snapshot;
-    private static string Snapshot()
+    internal static string Snapshot()
     {
         var state = NetFullCombatState.FromRun(State, null);
         File.WriteAllText(Path.Combine(_directory, $"snapshot-{_role}-{_snapshot++}.txt"), state.ToString());
@@ -135,6 +170,11 @@ public static class Harness
         {
             Log("HARNESS_INIT");
             await NGame.Instance!.GameStartupComplete;
+            string speed = CommandLineHelper.GetValue("minimal-speed") ?? (_suite == "fuzz" ? "instant" : "normal");
+            Require(speed is "instant" or "normal", "supported test speed");
+            SaveManager.Instance.PrefsSave.FastMode = speed == "instant" ? FastModeType.Instant : FastModeType.Normal;
+            Require(!TestMode.IsOn, "native TestMode remains off");
+            Log($"TEST_SPEED mode={speed} testMode={TestMode.IsOn}");
             await Wait(() => NGame.Instance.MainMenu is not null, 60);
             await NGame.Instance.Transition.FadeOut(0.05f);
             if (_suite == "preview")
@@ -146,6 +186,10 @@ public static class Harness
                 window.Position = new Vector2I(20 + index * 1020, 80);
             }
             await BootAsync();
+            _observedTransport = Manager.NetService.Platform.ToString() == "Steam" ? "steam"
+                : Manager.NetService.Type == NetGameType.Singleplayer ? "singleplayer" : "enet";
+            _netId = Manager.NetService.NetId.ToString();
+            Log($"OBSERVED_TRANSPORT transport={_observedTransport} netId={_netId}");
             _stage = "combat-entry";
             await Idle();
             Require(Manager.ChecksumTracker.IsEnabled, "native checksum enabled");
@@ -158,11 +202,15 @@ public static class Harness
                 Log($"PREVIEW_READY players={State.Players.Count} automaticPlay=false automaticVote=false");
                 await Task.Delay(Timeout.Infinite, Lifetime.Token);
             }
+            else if (_suite == "fuzz") await FuzzDriver.Run();
+            else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
             else if (_suite == "localization-ui") await LocalizationUiAsync();
             else if (_role == "ui") await UiAsync();
-            else if (_suite is "regression" or "localization-mp") await RegressionAsync();
+            else if (_suite is "regression" or "localization-mp" or "vote-ui-regression" or "viewport-regression") await RegressionAsync();
             else if (_suite == "speed-skew") await SpeedSkewAsync();
+            else if (_suite == "vote-busy-ui") await VoteBusyUiAsync();
+            else if (_suite == "proposer-record") await ProposerRecordAsync();
             else if (_suite == "extended") await ExtendedAsync();
             else if (_suite is "vote-loss" or "replay-loss") await LossAsync();
             else await MultiplayerAsync();
@@ -170,14 +218,29 @@ public static class Harness
             Log($"HARNESS_PASS peers={_peers} suite={_suite} cards={_cards} undos={_undos} selections={_selections} divergences={_divergences}");
             exit = 0;
         }
-        catch (Exception exception) { Log($"HARNESS_FAIL {exception}"); }
+        catch (Exception exception) { _failure = exception.ToString(); Log($"HARNESS_FAIL {exception}"); }
         finally
         {
             File.WriteAllText(Path.Combine(_directory, $"verdict.{_role}"), exit == 0 ? "PASS" : "FAIL");
+            var verdict = new
+            {
+                schema = 1, role = _role, pid = System.Environment.ProcessId, suite = _suite,
+                speed = SaveManager.Instance.PrefsSave.FastMode.ToString(),
+                transport = _observedTransport, net_id = _netId, peers = _peers,
+                verdict = exit == 0 ? "PASS" : "FAIL", failure = _failure,
+                cards = _cards, undos = _undos, selections = _selections, divergences = _divergences,
+                viewport_inputs = _viewportInputs, native_callbacks = _nativeCallbacks, target_checks = _targetChecks,
+                final_state_sha256 = exit == 0 ? Snapshot() : null,
+                post_replay_actions = _postReplayActions, phase_coverage = FuzzDriver.Coverage,
+                core_sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(Hooks).Assembly.Location))).ToLowerInvariant(),
+                harness_sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(Harness).Assembly.Location))).ToLowerInvariant()
+            };
+            File.WriteAllText(Path.Combine(_directory, $"verdict.{_role}.json"), JsonSerializer.Serialize(verdict));
             _pump = null;
             // Every peer reaches the final barrier before cleaning its native run.
             if (Manager.IsInProgress) Manager.CleanUp(graceful: true);
             for (int i = 0; i < 4; i++) await NGame.Instance!.AwaitProcessFrame();
+            Control.Dispose();
             NGame.Instance!.GetTree().Quit(exit);
         }
     }
@@ -246,6 +309,7 @@ public static class Harness
         lobby?.CleanUp(disconnectSession: false);
         _pump = null; // Native NRun now owns Update; replacement lobbies pump themselves.
         await Manager.SetActInternal(0);
+        if (FuzzDriver.Active) await FuzzCases.Prepare();
         // Use the real act's generated encounter sequence and a real Monster map point.
         // No catalogue encounter/loadout injection; native CreateRoom pulls the encounter.
         var point = state.Map.GetAllMapPoints().Where(p => p.PointType == MapPointType.Monster).OrderBy(p => p.coord.row).ThenBy(p => p.coord.col).First();
@@ -282,6 +346,11 @@ public static class Harness
         finally { executor.AfterActionExecuted -= OnFinished; }
         await Idle();
         _cards++;
+        if (_undos > 0)
+        {
+            _postReplayActions++;
+            Log("POST_REPLAY_ACTION native=true");
+        }
         Require(Snapshot().Length > 0, "post-action native state available");
     }
 
@@ -298,6 +367,104 @@ public static class Harness
         _undos++;
         Log("UI_RESTORED native view ready for visual inspection");
         await Wait(() => File.Exists(Path.Combine(_directory, "ui-verified")), 120);
+    }
+
+    private static IEnumerable<Node> Descendants(Node node)
+    {
+        foreach (Node child in node.GetChildren())
+        {
+            yield return child;
+            foreach (Node nested in Descendants(child)) yield return nested;
+        }
+    }
+
+    internal static async Task ClickViaViewport(Control control, string action)
+    {
+        await Wait(() => control.IsInsideTree() && control.IsVisibleInTree()
+            && (control is not NClickableControl clickable || clickable.IsEnabled));
+        bool invoked = false;
+        void Native(NClickableControl _) { invoked = true; _nativeCallbacks++; Log("NATIVE_UI_CALLBACK action=" + action); }
+        void Standard() { invoked = true; _nativeCallbacks++; Log("NATIVE_UI_CALLBACK action=" + action); }
+        if (control is NClickableControl native) native.Released += Native;
+        else if (control is Button button) button.Pressed += Standard;
+        else throw new InvalidOperationException("Unsupported native input target " + control.GetType().Name);
+        try
+        {
+            var viewport = control.GetViewport();
+            Vector2 position = control.GetGlobalTransformWithCanvas() * (control.Size * 0.5f);
+            viewport.PushInput(new InputEventMouseMotion { Position = position, GlobalPosition = position }, true);
+            await NGame.Instance!.AwaitProcessFrame();
+            viewport.PushInput(new InputEventMouseButton
+            {
+                Position = position, GlobalPosition = position,
+                ButtonIndex = MouseButton.Left, Pressed = true
+            }, true);
+            await NGame.Instance!.AwaitProcessFrame();
+            viewport.PushInput(new InputEventMouseButton
+            {
+                Position = position, GlobalPosition = position,
+                ButtonIndex = MouseButton.Left, Pressed = false
+            }, true);
+            _viewportInputs++;
+            Log($"VIEWPORT_INPUT action={action} position={position}");
+            await Wait(() => invoked, 5);
+        }
+        finally
+        {
+            if (GodotObject.IsInstanceValid(control))
+            {
+                if (control is NClickableControl previousNative) previousNative.Released -= Native;
+                else if (control is Button previousButton) previousButton.Pressed -= Standard;
+            }
+        }
+    }
+
+    internal static async Task RequestViaViewport(int target)
+    {
+        var targets = History.Targets.ToList();
+        int index = targets.FindIndex(t => t.EventCount == target);
+        Require(index >= 0, "viewport target is selectable history");
+        var viewport = NGame.Instance!.GetViewport();
+        viewport.PushInput(new InputEventKey { Keycode = Key.Left, Pressed = true }, true);
+        viewport.PushInput(new InputEventKey { Keycode = Key.Left, Pressed = false }, true);
+        _viewportInputs++;
+        Log("VIEWPORT_INPUT action=open-picker");
+        await Wait(() => UI.CurrentPopup is not null);
+        for (int i = 0; i < 5; i++) await NGame.Instance.AwaitProcessFrame();
+        while (true)
+        {
+            var popup = UI.CurrentPopup ?? throw new InvalidOperationException("Picker vanished before input.");
+            var tiles = Descendants(popup).OfType<Button>()
+                .Where(b => b.Flat && b.Text.Length == 0 && !b.IsQueuedForDeletion() && b.IsVisibleInTree()).ToList();
+            Require(tiles.Count > 0, "real history tiles exist");
+            if (index < tiles.Count)
+            {
+                await ClickViaViewport(tiles[index], "propose");
+                return;
+            }
+            index -= tiles.Count;
+            var next = Descendants(popup).OfType<Button>().Single(b => b.Text == "›");
+            Require(!next.Disabled, "history next page available");
+            await ClickViaViewport(next, "next-page");
+            await NGame.Instance.AwaitProcessFrame();
+        }
+    }
+
+    private static async Task ViewportUiAsync()
+    {
+        _stage = "viewport-ui";
+        string expected = Snapshot();
+        int target = History.Count;
+        await PlayOne(attack: true);
+        await RequestViaViewport(target);
+        await Wait(() => !Network.Busy, 120);
+        Require(Network.Status == "Undo complete", "viewport request completed native undo");
+        await Idle();
+        Require(Snapshot() == expected, "viewport-selected target restored full native state");
+        _targetChecks++;
+        _undos++;
+        await PlayOne(attack: true);
+        Require(_viewportInputs >= 2 && _nativeCallbacks >= 1, "viewport input reached real picker callback");
     }
 
     private static async Task CapturePopup(string name, string titleKey)
@@ -349,14 +516,14 @@ public static class Harness
     {
         _stage = "initial-actions";
         await Barrier("opening");
-        if (_role == "host") { await PlayOne(); Mark("host-play"); }
+        if (_role == "host") { await PlayOne(); await Mark("host-play"); }
         await Wait(() => Marked("host-play", "host"));
         await Wait(() => History.Count >= int.Parse(File.ReadAllText(Path.Combine(_directory, "host-play.host"))));
         await Idle();
         string firstTarget = Snapshot();
         int firstCount = History.Count;
         await Barrier("first-target");
-        if (_role == "client") { await PlayOne(); Mark("client-play"); }
+        if (_role == "client") { await PlayOne(); await Mark("client-play"); }
         await Wait(() => Marked("client-play", "client"));
         await Wait(() => History.Count >= int.Parse(File.ReadAllText(Path.Combine(_directory, "client-play.client"))));
         await Idle();
@@ -364,7 +531,7 @@ public static class Harness
         string beforeReject = Snapshot();
         _stage = "reject";
         if (_role == "host") Network.Request(firstCount);
-        await Wait(() => Network.Busy);
+        await Wait(() => Network.Busy && Network.Voting);
         if (_role == "client") Network.Vote(false);
         await Wait(() => !Network.Busy);
         Require(Snapshot() == beforeReject, "rejected proposal leaves native state unchanged");
@@ -372,7 +539,7 @@ public static class Harness
 
         _stage = "host-undo";
         if (_role == "host") Network.Request(firstCount);
-        await Wait(() => Network.Busy);
+        await Wait(() => Network.Busy && Network.Voting);
         if (_role == "client") Network.Vote(true);
         await Wait(() => !Network.Busy, 100);
         Require(Network.Status == "Undo complete", "first replay completed");
@@ -382,21 +549,21 @@ public static class Harness
         await Barrier("first-undo");
 
         _stage = "second-actions";
-        if (_role == "host") { await PlayOne(); Mark("host-second"); }
+        if (_role == "host") { await PlayOne(); await Mark("host-second"); }
         await Wait(() => Marked("host-second", "host"));
         await Wait(() => History.Count >= int.Parse(File.ReadAllText(Path.Combine(_directory, "host-second.host"))));
         await Idle();
         string secondTarget = Snapshot();
         int secondCount = History.Count;
         await Barrier("second-target");
-        if (_role == "client") { await PlayOne(); Mark("client-second"); }
+        if (_role == "client") { await PlayOne(); await Mark("client-second"); }
         await Wait(() => Marked("client-second", "client"));
         await Wait(() => History.Count >= int.Parse(File.ReadAllText(Path.Combine(_directory, "client-second.client"))));
         await Idle();
         await Barrier("client-request-ready");
         _stage = "client-undo";
         if (_role == "client") Network.Request(secondCount);
-        await Wait(() => Network.Busy);
+        await Wait(() => Network.Busy && Network.Voting);
         Network.Vote(true);
         await Wait(() => !Network.Busy, 100);
         Require(Network.Status == "Undo complete", "client-requested replay completed");
@@ -406,11 +573,11 @@ public static class Harness
         await Barrier("second-undo");
 
         _stage = "continued-input";
-        if (_role == "host") { await PlayOne(); Mark("host-final"); }
+        if (_role == "host") { await PlayOne(); await Mark("host-final"); }
         await Wait(() => Marked("host-final", "host"));
         await Wait(() => History.Count >= int.Parse(File.ReadAllText(Path.Combine(_directory, "host-final.host"))));
         await Idle();
-        if (_role == "client") { await PlayOne(); Mark("client-final"); }
+        if (_role == "client") { await PlayOne(); await Mark("client-final"); }
         await Wait(() => Marked("client-final", "client"));
         await Wait(() => History.Count >= int.Parse(File.ReadAllText(Path.Combine(_directory, "client-final.client"))));
         await Idle();
@@ -421,19 +588,22 @@ public static class Harness
         await Barrier("verdict-ready");
     }
 
-    private static async Task StateBarrier(string label)
+    internal static async Task StateBarrier(string label)
     {
-        File.WriteAllText(Path.Combine(_directory, label + ".state." + _role), Snapshot());
+        string snapshot = Snapshot();
+        File.WriteAllText(Path.Combine(_directory, label + ".state." + _role), snapshot);
+        await Control.Put(label + ".state." + _role, snapshot);
         await Barrier(label + "-state-ready");
-        Require(Roles.Select(role => File.ReadAllText(Path.Combine(_directory, label + ".state." + role))).Distinct().Count() == 1,
+        await Wait(() => Roles.All(role => Control.Read(label + ".state." + role) is not null));
+        Require(Roles.Select(role => Control.Read(label + ".state." + role)).Distinct().Count() == 1,
             label + " all real peer native states match");
     }
 
     private static async Task Actor(string label, string role, bool attack = false)
     {
-        if (_role == role) { await PlayOne(attack); Mark(label); }
+        if (_role == role) { await PlayOne(attack); await Mark(label); }
         await Wait(() => Marked(label, role));
-        await Wait(() => History.Count >= int.Parse(File.ReadAllText(Path.Combine(_directory, label + "." + role))));
+        await Wait(() => History.Count >= int.Parse(Control.Read(label + "." + role)!));
         await Idle();
         await Barrier(label + "-settled");
     }
@@ -458,7 +628,7 @@ public static class Harness
         await Barrier(label + "-ready");
         int selections = _selections;
         if (_role == requester) Network.Request(target);
-        await Wait(() => Network.Busy);
+        await Wait(() => Network.Busy && Network.Voting);
         Network.Vote(true);
         await Wait(() => !Network.Busy, 120);
         Require(Network.Status == "Undo complete", label + " terminal resume: " + Network.Status);
@@ -469,7 +639,7 @@ public static class Harness
         await StateBarrier(label + "-resumed");
     }
 
-    private static async Task CheckConnectedUi(string label)
+    internal static async Task CheckConnectedUi(string label)
     {
         await Barrier(label + "-input-ready");
         Manager.InputSynchronizer.SyncLocalMousePos(new Vector2(240, 260), NRun.Instance!);
@@ -488,6 +658,7 @@ public static class Harness
 
     private static string _slowRole = "";
     private static bool _delayApplied;
+    private static bool _holdLiveAction;
 
     // Delay the real native action task, so GameAction.Execute and the executor
     // remain unfinished. No production replay/network state is changed.
@@ -496,16 +667,34 @@ public static class Harness
     {
         private static void Postfix(ref Task __result)
         {
+            if (_suite == "vote-busy-ui" && _holdLiveAction && !Network.Executing)
+            {
+                _holdLiveAction = false;
+                __result = HoldLiveAsync(__result);
+                return;
+            }
             if (_suite != "speed-skew" || !Network.Executing || _role != _slowRole || _delayApplied) return;
             _delayApplied = true;
             __result = DelayAsync(__result);
+        }
+
+        private static async Task HoldLiveAsync(Task original)
+        {
+            await original;
+            Log("LIVE_ACTION_HOLD_BEGIN");
+            await Mark("live-action-held");
+            ulong start = Time.GetTicksMsec();
+            while (Time.GetTicksMsec() - start < 8000)
+                await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
+            Log("LIVE_ACTION_HOLD_END");
+            await Mark("live-action-finished");
         }
 
         private static async Task DelayAsync(Task original)
         {
             await original;
             ulong start = Time.GetTicksMsec();
-            Mark("delay-start-" + _slowRole);
+            await Mark("delay-start-" + _slowRole);
             Log("SKEW_DELAY_BEGIN slow=" + _slowRole);
             while (Time.GetTicksMsec() - start < 8000)
                 await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
@@ -514,6 +703,64 @@ public static class Harness
             Require(Network.Busy && Network.Executing, "slow peer has not resumed before native action finishes");
             Log($"SKEW_DELAY_END slow={_slowRole} elapsedMs={Time.GetTicksMsec() - start}");
         }
+    }
+
+    private static async Task VoteBusyUiAsync()
+    {
+        _stage = "vote-busy-ui";
+        int target = History.Count;
+        string expected = Snapshot();
+        await Actor("vote-busy-prefix", "host", attack: true);
+        int before = History.Count;
+        if (_role == "client2")
+        {
+            var player = LocalContext.GetMe(State)!;
+            var card = PileType.Hand.GetPile(player).Cards.First(c => c.CanPlay() && c.TargetType == TargetType.AnyEnemy);
+            var enemy = CombatManager.Instance.DebugOnlyGetState()!.Enemies.First(e => e.IsAlive);
+            _holdLiveAction = true;
+            Require(card.TryManualPlay(enemy), "native card accepted before proposal arrives");
+        }
+        await Wait(() => History.Count > before && Marked("live-action-held", "client2"));
+        if (_role == "host") await Wait(Hooks.IsIdle);
+        await Barrier("vote-busy-propose-ready");
+        if (_role == "host") Network.Request(target);
+        await Wait(() => Network.Busy && UI.CurrentPopup != null);
+        if (_role == "client")
+        {
+            var yes = UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton");
+            yes.EmitSignal(NClickableControl.SignalName.Released, yes);
+            Require(Network.LocalVoted, "first remote native accept recorded");
+        }
+        await Barrier("vote-busy-first-votes");
+        if (_role == "client2")
+        {
+            Require(!Hooks.IsIdle(), "last voter still executing earlier native card");
+            var yes = UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton");
+            yes.EmitSignal(NClickableControl.SignalName.Released, yes);
+            Require(Network.LocalVoted, "last native accept retained while action is running");
+            Log("LAST_ACCEPT_WHILE_BUSY retained=true");
+        }
+        if (_role == "host")
+        {
+            await Wait(() => Network.Preparing);
+            Require(!Marked("live-action-finished", "client2"), "all votes received before slow peer becomes idle");
+            await Mark("all-votes-while-busy");
+        }
+        else if (_role == "client2")
+        {
+            await Wait(() => Marked("all-votes-while-busy", "host"));
+            Require(!Hooks.IsIdle(), "vote reached host immediately while local action still running");
+        }
+        await Wait(() => !Network.Busy, 120);
+        Require(Network.Status == "Undo complete", "busy last vote eventually starts and completes replay");
+        await Idle();
+        Require(History.Count == target && Snapshot() == expected, "native state restored after busy last vote");
+        _undos++;
+        await StateBarrier("vote-busy-restored");
+        await CheckConnectedUi("vote-busy-connected");
+        await Actor("vote-busy-continued", "client2", attack: true);
+        await StateBarrier("vote-busy-continued");
+        await Barrier("vote-busy-terminal");
     }
 
     private static async Task SpeedSkewAsync()
@@ -531,7 +778,7 @@ public static class Harness
             await Actor("skew-extra-" + slow, "client", attack: true);
             Require(EnemyHp() < hp, "attack changed HP beyond replay target");
             if (_role == "client") Network.Request(target);
-            await Wait(() => Network.Busy);
+            await Wait(() => Network.Busy && Network.Voting);
             Network.Vote(true);
             if (_role != slow)
             {
@@ -539,7 +786,7 @@ public static class Harness
                 Require(Network.Busy && Network.Executing && History.Count > target,
                     "fast peer waits without committing history or unlocking input");
                 await Wait(() => Marked("delay-start-" + slow, slow), 10);
-                Mark("fast-waiting-" + slow);
+                await Mark("fast-waiting-" + slow);
                 Log("SKEW_FAST_WAITING slow=" + slow);
                 ulong start = Time.GetTicksMsec();
                 while (Time.GetTicksMsec() - start < 1000)
@@ -564,6 +811,57 @@ public static class Harness
         await Barrier("skew-terminal");
     }
 
+    private static async Task ProposerRecordAsync()
+    {
+        foreach (string proposer in Roles)
+        {
+            _stage = "proposer-record-" + proposer;
+            await Actor("authority-prefix-" + proposer, proposer, attack: true);
+            int target = History.Count;
+            string expected = Snapshot();
+            string file = Path.Combine(_directory, "authority-" + proposer);
+            if (_role == proposer)
+                File.WriteAllText(file + ".targets", string.Join(";", History.Targets.Select(t => $"{t.EventCount}:{t.Label}")));
+            await Actor("authority-extra-" + proposer, proposer, attack: true);
+            if (_role == proposer)
+                File.WriteAllText(file + ".sha256", Convert.ToHexString(SHA256.HashData(History.Export(target))));
+            else
+            {
+                // Intentional recorder fault, not an invalid game state. The
+                // running native combat is untouched; its local history is absent.
+                History.Clear();
+                Require(!History.Available && History.Count == 0, "non-proposer local recorder deliberately empty");
+            }
+            await Barrier("authority-empty-" + proposer);
+            if (_role == proposer) Network.Request(target);
+            await Wait(() => Network.Busy && Network.Voting && UI.CurrentPopup != null);
+            Require(Network.Steps > 0, "proposal steps came from proposer despite missing local history");
+            await CapturePopup(_role + "-" + proposer + "-authority", _role == proposer ? "WAITING_TITLE" : "PROPOSAL_TITLE");
+            await Barrier("authority-popup-" + proposer);
+            if (_role != proposer)
+            {
+                Require(Network.CanVote, "history-free peer can vote");
+                var yes = UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton");
+                yes.EmitSignal(NClickableControl.SignalName.Released, yes);
+                Require(Network.LocalVoted, "native accept independent of local recorder");
+            }
+            await Wait(() => !Network.Busy, 120);
+            Require(Network.Status == "Undo complete", "proposer record replay completed");
+            await Idle();
+            Require(History.Count == target && Snapshot() == expected, "proposer full state and history restored");
+            Require(string.Join(";", History.Targets.Select(t => $"{t.EventCount}:{t.Label}")) == File.ReadAllText(file + ".targets"),
+                "earlier undo targets adopted from proposer");
+            _undos++;
+            await StateBarrier("authority-restored-" + proposer);
+            await CheckConnectedUi("authority-connected-" + proposer);
+            await Actor("authority-continued-" + proposer, proposer, attack: true);
+            Require(Convert.ToHexString(SHA256.HashData(History.Export(target))) == File.ReadAllText(file + ".sha256"),
+                "future undo exports byte-identical proposer record after adoption");
+            await StateBarrier("authority-final-" + proposer);
+        }
+        await Barrier("authority-terminal");
+    }
+
     private static async Task RegressionAsync()
     {
         _stage = "manual-report-regression";
@@ -577,8 +875,12 @@ public static class Harness
             await Actor("attack-" + requester, requester, attack: true);
             Require(EnemyHp() < hp, "real attack reduced enemy HP before undo");
             await StateBarrier("damaged-" + requester);
-            if (_role == requester) Network.Request(target);
-            await Wait(() => Network.Busy);
+            if (_role == requester)
+            {
+                if (_suite == "viewport-regression") await RequestViaViewport(target);
+                else Network.Request(target);
+            }
+            await Wait(() => Network.Busy && Network.Voting);
             for (int frame = 0; frame < 4; frame++) await NGame.Instance!.AwaitProcessFrame();
             if (_role == requester)
             {
@@ -597,11 +899,22 @@ public static class Harness
                 Log("REGRESSION_UI_READY waiting popup inspection");
                 await Wait(() => File.Exists(Path.Combine(_directory, "ui-verified")), 120);
             }
-            Network.Vote(true);
+            if (_suite is "vote-ui-regression" or "viewport-regression")
+            {
+                if (_role != requester)
+                {
+                    var yes = UI.CurrentPopup!.GetNode<NPopupYesNoButton>("VerticalPopup/YesButton");
+                    if (_suite == "viewport-regression") await ClickViaViewport(yes, "accept");
+                    else yes.EmitSignal(NClickableControl.SignalName.Released, yes);
+                    Require(Network.LocalVoted, "native accept recorded in full regression");
+                }
+            }
+            else Network.Vote(true);
             await Wait(() => !Network.Busy, 120);
             Require(Network.Status == "Undo complete", "real multiplayer replay resumed");
             await Idle();
             Require(EnemyHp() == hp && History.Count == target && Snapshot() == original, "enemy HP and full native state restored");
+            _targetChecks++;
             _undos++;
             await CheckConnectedUi("restored-" + requester);
             await StateBarrier("restored-state-" + requester);
@@ -624,6 +937,11 @@ public static class Harness
         _stage = "concurrent-input";
         await Barrier("concurrent-ready");
         await PlayOne();
+        await Barrier("concurrent-own-completed");
+        int completedCount = Roles.Max(role => int.Parse(File.ReadAllText(
+            Path.Combine(_directory, "concurrent-own-completed." + role))));
+        await Wait(() => History.Count >= completedCount);
+        await Idle();
         await StateBarrier("concurrent-done");
         var prefix = History.Freeze(target);
         var prefixWriter = new PacketWriter(); prefixWriter.Write(prefix);
@@ -639,7 +957,7 @@ public static class Harness
         _stage = "one-reject";
         await Barrier("reject-start");
         if (_role == "host") Network.Request(target);
-        await Wait(() => Network.Busy);
+        await Wait(() => Network.Busy && Network.Voting);
         Network.Vote(_role != Roles[^1]);
         await Wait(() => !Network.Busy);
         Require(Snapshot() == current, "one rejection preserves native state");
@@ -647,7 +965,7 @@ public static class Harness
 
         _stage = "vote-timeout";
         if (_role == "host") Network.Request(target);
-        await Wait(() => Network.Busy);
+        await Wait(() => Network.Busy && Network.Voting);
         if (_role != Roles[^1]) Network.Vote(true);
         await Wait(() => !Network.Busy, 45);
         Require(Snapshot() == current && Network.Status != "Undo complete", "withheld vote times out without state mutation");
@@ -716,7 +1034,7 @@ public static class Harness
         await Barrier("loss-ready");
         string dropped = Roles[^1];
         if (_role == "host") Network.Request(target);
-        await Wait(() => Network.Busy);
+        await Wait(() => Network.Busy && Network.Voting);
         if (_suite == "vote-loss")
         {
             if (_role == dropped)
@@ -747,7 +1065,7 @@ public static class Harness
         else Require(Manager.IsInProgress && Hooks.IsIdle(), "vote loss leaves unchanged live combat playable");
         Log("EXPECTED_FAILURE_HANDLED " + Network.Status);
         var survivors = _suite == "vote-loss" ? Roles.Where(r => r != dropped).ToArray() : Roles;
-        Mark("loss-terminal");
+        await Mark("loss-terminal");
         await Wait(() => survivors.All(r => Marked("loss-terminal", r)), 220);
     }
 

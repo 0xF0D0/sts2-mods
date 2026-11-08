@@ -2,6 +2,7 @@
 """Task-owned real ENet fixture; never use alongside a user's game instance."""
 from pathlib import Path
 import argparse, hashlib, json, shutil, subprocess, tempfile, time
+from verify_run import verify
 
 REPO = Path(__file__).resolve().parents[2]
 APP = Path.home() / 'Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app'
@@ -17,8 +18,14 @@ def hashes(path):
 
 def no_game():
     p = subprocess.run(['pgrep', '-fl', 'Slay the Spire 2'], capture_output=True, text=True)
-    if p.stdout.strip():
-        raise RuntimeError('Existing game/caffeinate process: ' + p.stdout)
+    games = []
+    for line in p.stdout.splitlines():
+        pid = line.split(maxsplit=1)[0]
+        comm = subprocess.run(['ps', '-p', pid, '-o', 'comm='], capture_output=True, text=True).stdout.strip()
+        if Path(comm).name == 'Slay the Spire 2' or Path(comm).name == 'caffeinate' and '/Contents/MacOS/Slay the Spire 2' in line:
+            games.append(line)
+    if games:
+        raise RuntimeError('Existing game/caffeinate process: ' + '\n'.join(games))
     p = subprocess.run(['lsof', '-nP', '-iUDP:33771'], capture_output=True, text=True)
     if p.stdout.strip():
         raise RuntimeError('UDP 33771 is occupied: ' + p.stdout)
@@ -59,14 +66,19 @@ def prepare():
         for name in ['settings.save', 'settings.save.backup']:
             save(account/name, settings)
     print(root, flush=True)
+    return root
 
-def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A'):
+def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_seed=None, repro=None, speed=None, phases=False):
     no_game()
     folder = root/label
     folder.mkdir()
-    roles = ['ui'] if suite in ('choice-ui', 'picker-ui', 'localization-ui') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['ui'] if suite == 'fuzz' and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
-    record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'processes': {}}
+    record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else 'enet', 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
+    record['phases'] = phases
+    record['speed'] = speed or ('instant' if suite == 'fuzz' else 'normal')
+    record['schedule_seed'] = schedule_seed
+    record['repro'] = str(repro) if repro is not None else None
     record['dlls'] = {n: hashes(MODS/n) for n in ['UndoSync', 'MinimalHarness']}
     started = time.monotonic()
     try:
@@ -75,6 +87,10 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A'):
                     '--force-steam', 'off', '--clientId', str(IDS[role]), '--minimal-harness='+role,
                     '--minimal-dir='+str(folder), '--minimal-peers='+str(peers), '--minimal-suite='+suite,
                     '--minimal-seed='+seed]
+            if phases: args += ['--minimal-phases']
+            args += ['--minimal-speed='+record['speed']]
+            if schedule_seed is not None: args += ['--minimal-schedule-seed='+schedule_seed]
+            if repro is not None: args += ['--minimal-repro='+str(repro)]
             args += ['--headless'] if headless else ['--windowed', '--resolution', '1280x720']
             with (folder/(role+'-terminal.log')).open('w') as out:
                 process = subprocess.Popen(args, cwd=APP/'Contents/MacOS', stdout=out, stderr=subprocess.STDOUT)
@@ -82,6 +98,12 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A'):
             record['processes'][role] = {'pid': process.pid, 'args': args}
             save(folder/'run.json', record)
             print(f'{label} {role} PID {process.pid}', flush=True)
+            init_deadline = time.monotonic()+45
+            while 'HARNESS_INIT' not in (folder/(role+'-terminal.log')).read_text():
+                log = (folder/(role+'-terminal.log')).read_text()
+                if process.poll() is not None or 'Exception thrown when calling mod initializer' in log or time.monotonic() > init_deadline:
+                    raise RuntimeError(f'{role} initializer failed; inspect PID-bound terminal log.')
+                time.sleep(.25)
             if role == 'host':
                 deadline = time.monotonic()+45
                 while 'HOST_LISTENING port=33771' not in (folder/'host-terminal.log').read_text():
@@ -109,10 +131,18 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A'):
             record['processes'][role]['exit'] = process.returncode
             print(f'{label} {role} PID {process.pid} exit {process.returncode}', flush=True)
         record['verdict'] = 'PASS' if len(processes)==len(roles) and all(p.returncode == 0 for p in processes.values()) else 'FAIL'
+        record['elapsed_seconds'] = round(time.monotonic()-started, 3)
         save(folder/'run.json', record)
     if suite == 'preview' and record['verdict'] == 'PASS':
         record['verdict'] = 'CLOSED'; save(folder/'run.json', record)
-    print(label, record['verdict'], flush=True)
+    if suite in ('viewport-ui', 'viewport-regression', 'fuzz'):
+        report = verify(folder, require_input='viewport')
+        save(folder/'summary.json', report)
+        print(label, report['verdict'], flush=True)
+        if report['verdict'] != 'PASS':
+            raise RuntimeError('Evidence verification failed: ' + json.dumps(report['issues']))
+    else:
+        print(label, record['verdict'], flush=True)
 
 def restore(root):
     no_game()
@@ -138,11 +168,14 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=Path)
     parser.add_argument('--label', default='extended')
     parser.add_argument('--peers', type=int, default=4, choices=[1,2,3,4])
-    parser.add_argument('--suite', default='extended', choices=['basic','extended','choice-ui','picker-ui','localization-ui','localization-mp','preview','regression','speed-skew','vote-loss','replay-loss'])
+    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss'])
     parser.add_argument('--visible', action='store_true')
+    parser.add_argument('--speed', choices=['normal', 'instant'])
+    parser.add_argument('--schedule-seed')
+    parser.add_argument('--repro', type=Path)
     parser.add_argument('--seed', default='MINIMAL_MP_A')
     args = parser.parse_args()
     if args.command == 'prepare': prepare()
     elif args.command == 'deploy': no_game(); deploy()
-    elif args.command == 'run': run(args.root, args.label, args.peers, args.suite, not args.visible, args.seed)
+    elif args.command == 'run': run(args.root, args.label, args.peers, args.suite, not args.visible, args.seed, args.schedule_seed, args.repro, args.speed)
     else: restore(args.root)

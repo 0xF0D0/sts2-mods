@@ -83,21 +83,47 @@ internal static class History
     {
         if (_header is null || count < 0 || count >= Count)
             throw new InvalidOperationException("Undo target is no longer available.");
-        // Host owns the stable boundary. Remote peers may have received a burst
-        // of events without observing the same two idle frames locally.
+        // Only the proposer freezes a prefix. Other peers receive this record.
         var replay = Unpack<CombatReplay>(_header);
         replay.events = Events.Take(count).Select(Unpack<CombatReplayEvent>).ToList();
         replay.checksumData.Clear();
         return replay;
     }
 
-    internal static void Commit(CombatReplay replay)
+    internal static byte[] Export(int count)
     {
-        int count = replay.events.Count;
-        Events.RemoveRange(count, Count - count);
-        Boundaries.RemoveAll(t => t.EventCount > count);
+        var writer = new PacketWriter();
+        writer.Write(Freeze(count));
+        var targets = Boundaries.Where(t => t.EventCount <= count).ToArray();
+        writer.WriteInt(targets.Length);
+        foreach (var target in targets)
+        {
+            writer.WriteInt(target.EventCount);
+            writer.WriteString(target.Label);
+        }
+        return writer.Buffer[..writer.BytePosition];
+    }
+
+    internal static (CombatReplay Replay, Target[] Targets) Import(byte[] bytes)
+    {
+        var reader = new PacketReader(); reader.Reset(bytes);
+        var replay = reader.Read<CombatReplay>();
+        var targets = new Target[reader.ReadInt()];
+        for (int i = 0; i < targets.Length; i++)
+            targets[i] = new Target(reader.ReadInt(), reader.ReadString());
+        return (replay, targets);
+    }
+
+    internal static void Commit(CombatReplay replay, IReadOnlyList<Target> targets)
+    {
+        var header = Unpack<CombatReplay>(Pack(replay));
+        header.events.Clear(); header.checksumData.Clear();
+        _header = Pack(header);
+        Events.Clear();
+        Events.AddRange(replay.events.Select(Pack));
+        Boundaries.Clear(); Boundaries.AddRange(targets);
         Hooks.InstallWriter(Unpack<CombatReplay>(Pack(replay)));
-        Hooks.Log($"HISTORY_COMMIT events={count}");
+        Hooks.Log($"HISTORY_COMMIT events={Count} targets={Boundaries.Count} source=proposer");
     }
 
     private static byte[] Pack<T>(T value) where T : IPacketSerializable

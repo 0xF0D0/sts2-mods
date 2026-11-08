@@ -1,0 +1,70 @@
+{
+  "reason": "user requested end current case and deploy",
+  "case": "mp3-008",
+  "parent_pid": 8732,
+  "pids": {
+    "host": {
+      "pid": 13316,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-harness=host",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-d5cktcuh/mp3-008",
+        "--minimal-peers=3",
+        "--minimal-suite=fuzz",
+        "--minimal-seed=CONTENT-B",
+        "--minimal-phases",
+        "--minimal-speed=instant",
+        "--minimal-schedule-seed=TIMING-SWEEP-M3-008",
+        "--headless"
+      ]
+    },
+    "client": {
+      "pid": 13353,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1001",
+        "--minimal-harness=client",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-d5cktcuh/mp3-008",
+        "--minimal-peers=3",
+        "--minimal-suite=fuzz",
+        "--minimal-seed=CONTENT-B",
+        "--minimal-phases",
+        "--minimal-speed=instant",
+        "--minimal-schedule-seed=TIMING-SWEEP-M3-008",
+        "--headless"
+      ]
+    },
+    "client2": {
+      "pid": 13369,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "2001",
+        "--minimal-harness=client2",
+        "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-d5cktcuh/mp3-008",
+        "--minimal-peers=3",
+        "--minimal-suite=fuzz",
+        "--minimal-seed=CONTENT-B",
+        "--minimal-phases",
+        "--minimal-speed=instant",
+        "--minimal-schedule-seed=TIMING-SWEEP-M3-008",
+        "--headless"
+      ]
+    }
+  }
+}

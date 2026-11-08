@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "purpose": "approved multiplayer timing sweep",
+  "planned_cases": 100,
+  "planned_operations": 350,
+  "fixed_content": {
+    "3": "CONTENT-B",
+    "4": "CONTENT-C"
+  },
+  "outcomes": [
+    {
+      "case": "mp3-000",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 8748,
+        "client": 8793,
+        "client2": 8812
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-001",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 9326,
+        "client": 9367,
+        "client2": 9388
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-002",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 9806,
+        "client": 9849,
+        "client2": 9851
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-003",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 10359,
+        "client": 10395,
+        "client2": 10399
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-004",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 10931,
+        "client": 10970,
+        "client2": 10972
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-005",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 11495,
+        "client": 11535,
+        "client2": 11537
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-006",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 12096,
+        "client": 12115,
+        "client2": 12176
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-007",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 12743,
+        "client": 12764,
+        "client2": 12783
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    },
+    {
+      "case": "mp3-008",
+      "peers": 3,
+      "verdict": "PASS",
+      "operations": 3,
+      "pids": {
+        "host": 13316,
+        "client": 13353,
+        "client2": 13369
+      },
+      "phase_coverage": {
+        "busy_votes": 3,
+        "preparing_before_release": 3,
+        "skew_holds": 3,
+        "recorder_faults": 3
+      }
+    }
+  ],
+  "verdict": "STOPPED_BY_USER",
+  "core_sha256": "93461e829142ff633366d1fab4ae26466a5ec29f6e42867bf298015bf031b907",
+  "passed_cases": 9,
+  "passed_operations": 27,
+  "elapsed_seconds": 547.9,
+  "cleanup": {
+    "account-1": "RESTORED",
+    "account-1001": "RESTORED",
+    "account-2001": "RESTORED",
+    "account-3001": "RESTORED",
+    "mod-UndoSync": "RESTORED",
+    "mod-MinimalHarness": "RESTORED",
+    "processes": "NONE",
+    "udp33771": "FREE"
+  },
+  "stop_reason": "User requested current case finish and deploy"
+}

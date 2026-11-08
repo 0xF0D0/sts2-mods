@@ -14,9 +14,9 @@ The validated minimal implementation replaces the former snapshot implementation
 | Module | Owns | Entry points and dependencies |
 | --- | --- | --- |
 | Hook | Mod initialization, native subscriptions/patches, idle detection, replay input suppression, PID log | Binds native events to History; binds Network at RunStarted; installs UI frame/input callbacks. |
-| History | Native replay header, serialized events, stable undo boundaries, frozen replay prefix | Begin/Record/MarkBoundary/Freeze/Commit; native packet serialization only. Never restores or sends messages. |
+| History | Native replay header, serialized events, stable undo boundaries, proposer record | Begin/Record/MarkBoundary/Freeze/Export/Import/Commit; native packet serialization only. Commit adopts the proposer's header, prefix and boundaries. Never restores or sends messages. |
 | Replay | Run teardown/recreate, saved multiplayer lobby, deterministic event playback, historical choices | ExecuteAsync(CombatReplay); calls Network.Attach on replacement service; Hook suppresses native senders while playback runs. |
-| Network | Proposal, unanimous votes, chosen target, operation lifetime, done/checksum/resume barrier, wire message | Request/Vote/Attach/Tick; freezes History, invokes Replay, commits History only after every peer finishes with the same checksum. |
+| Network | Proposer record relay, unanimous votes, preparation, operation lifetime, done/checksum/resume barrier, wire message | Request/Vote/Attach/Tick; relays one proposer record, invokes Replay, commits History only after every peer finishes with the same checksum. |
 | UI | Left-arrow picker, vote buttons, progress/error display | Reads History targets and Network status; calls Request/Vote. No history mutation or native restore logic. |
 
 These are concrete owners, not five interface hierarchies. Bootstrap/logging live
@@ -52,13 +52,19 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
 
 1. Capture the native room-entry header. Record native events only during live
    combat. Mark boundaries only at idle player PlayPhase (two unchanged frames).
-2. Left Arrow selects an earlier boundary. A client requests it from the host;
-   the host broadcasts a proposal. Block new player actions while voting; allow
-   already-running actions to drain. Each peer explicitly accepts/rejects in UI and freezes its own prefix.
-   Votes reflect user choice only; no automatic record-comparison rejection. The host
-   owns the target boundary; peers need the matching prefix, not an identical
-   locally observed idle-frame boundary.
-3. All votes accepted: host sends Start and waits for each client to acknowledge
+2. Left Arrow selects an earlier boundary from the proposer's history. Only the
+   proposer exports its native room-entry header, selected event prefix and undo
+   boundaries. A client uploads that record to the host; the host relays its
+   original bytes with the proposal to all peers. Reliable 1 KiB data chunks
+   keep records independent of a transport's individual packet-size limits.
+   Block new player actions while voting; allow already-running actions to drain.
+   UI votes are recorded and sent immediately, independent of idle state or local
+   history availability. The requester is already counted as agreeing. The UI
+   proposal count also comes from the proposer, not each peer's local targets.
+3. All votes accepted: host broadcasts Prepare. Each peer reports Ready only
+   after the proposer record has arrived and its earlier actions have drained.
+   No vote-time state/checksum equality is required. When all are ready, the host
+   sends Start and waits for each client to acknowledge
    at its replay-start frame. Clients flush that acknowledgement during graceful
    teardown; the host must not close their old connection before that point.
    Keep the frozen plan and participant
@@ -69,8 +75,9 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    hook/resume sends and player input; inject recorded events locally. Suppress
    historical selection UI. Wait for a stable, idle player boundary.
 5. Every peer reports its native final checksum. Host compares all values and
-   broadcasts Resume only when all match. Commit the prefix, truncate future
-   targets and re-enable input. A subsequent undo reuses the original header.
+   broadcasts Resume only when all match. Adopt the proposer's header, event
+   prefix and earlier undo targets, replacing each local recorder, then re-enable
+   input. A subsequent undo exports from this adopted record.
 6. Normal cleanup unbinds subscriptions and clears history. Rebuild cleanup
    preserves frozen history and operation state, then rebinds the new owners.
 

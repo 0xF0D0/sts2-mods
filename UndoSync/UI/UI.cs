@@ -138,6 +138,7 @@ internal static class UI
         }
         if (Network.Busy)
         {
+            if (!Network.Voting) return;
             string view = Network.LocalVoted ? "waiting" : "vote";
             if (_networkView != view) ShowNetworkPopup(view);
         }
@@ -160,7 +161,7 @@ internal static class UI
         if (view == "vote")
         {
             var body = new LocString(LocTableName, "UNDOSYNC.PROPOSAL_BODY");
-            body.Add("steps", History.Targets.Count(t => t.EventCount >= Network.Target));
+            body.Add("steps", Network.Steps);
             answer = popup.WaitForConfirmation(body,
                 new LocString(LocTableName, "UNDOSYNC.PROPOSAL_TITLE"),
                 new LocString(LocTableName, "UNDOSYNC.REJECT"),

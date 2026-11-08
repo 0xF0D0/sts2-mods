@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Godot;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Combat;
@@ -11,7 +12,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace UndoSync;
 
-public enum UndoMinimalOp { Request, Propose, Vote, Start, Done, Resume, Cancel, StartReceived }
+public enum UndoMinimalOp { Request, Propose, Vote, Start, Done, Resume, Cancel, StartReceived, Plan, Prepare, Ready }
 
 // Discovered by the game's GetSubtypesInMods, as in b770 UndoSync's messages.
 public struct UndoMinimalMessage : INetMessage
@@ -19,22 +20,33 @@ public struct UndoMinimalMessage : INetMessage
     public UndoMinimalOp Op;
     public string Session;
     public int Target;
+    public int Steps;
     public ulong Proposer;
     public bool Accepted;
     public uint Checksum;
+    public byte[]? Data;
+    public bool LastChunk;
     public bool ShouldBroadcast => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.Info;
     public bool ShouldBuffer => false;
     public void Serialize(PacketWriter writer)
     {
-        writer.WriteEnum(Op); writer.WriteString(Session ?? ""); writer.WriteInt(Target); writer.WriteULong(Proposer);
+        writer.WriteEnum(Op); writer.WriteString(Session ?? ""); writer.WriteInt(Target); writer.WriteInt(Steps); writer.WriteULong(Proposer);
         writer.WriteBool(Accepted); writer.WriteUInt(Checksum);
+        if (Op == UndoMinimalOp.Plan)
+        {
+            writer.WriteInt(Data!.Length); writer.WriteBytes(Data, Data.Length); writer.WriteBool(LastChunk);
+        }
     }
     public void Deserialize(PacketReader reader)
     {
-        Op = reader.ReadEnum<UndoMinimalOp>(); Session = reader.ReadString(); Target = reader.ReadInt(); Proposer = reader.ReadULong();
+        Op = reader.ReadEnum<UndoMinimalOp>(); Session = reader.ReadString(); Target = reader.ReadInt(); Steps = reader.ReadInt(); Proposer = reader.ReadULong();
         Accepted = reader.ReadBool(); Checksum = reader.ReadUInt();
+        if (Op == UndoMinimalOp.Plan)
+        {
+            Data = new byte[reader.ReadInt()]; reader.ReadBytes(Data, Data.Length); LastChunk = reader.ReadBool();
+        }
     }
 }
 
@@ -45,12 +57,17 @@ internal static class Network
         internal required string Id;
         internal required int Target;
         internal required ulong Proposer;
+        internal int Steps;
         internal required HashSet<ulong> Peers;
         internal readonly Dictionary<ulong, bool> Votes = new();
         internal readonly Dictionary<ulong, uint> Done = new();
         internal readonly HashSet<ulong> StartReceipts = new();
         internal readonly CancellationTokenSource Cancel = new();
         internal CombatReplay? Plan;
+        internal byte[]? PlanData;
+        internal readonly List<byte> Incoming = new();
+        internal readonly HashSet<ulong> ReadyPeers = new();
+        internal bool Proposed, Preparing, ReadySent;
         internal bool Started, StartRequested, ResumeRequested, LocalVoted;
         internal string? Failure;
         internal ulong Deadline = Time.GetTicksMsec() + 30_000;
@@ -61,9 +78,12 @@ internal static class Network
     private static bool _isHost;
     internal static bool LocalVoted => _operation?.LocalVoted == true;
     internal static int Target => _operation?.Target ?? 0;
+    internal static int Steps => _operation?.Steps ?? 0;
     internal static bool Busy => _operation is not null;
     internal static bool Executing => _operation?.Started == true;
-    internal static bool CanVote => _operation is { Started: false, LocalVoted: false } && Hooks.IsIdle();
+    internal static bool Voting => _operation?.Proposed == true;
+    internal static bool Preparing => _operation?.Preparing == true;
+    internal static bool CanVote => _operation is { Proposed: true, Started: false, LocalVoted: false };
     internal static string Status { get; private set; } = "Left Arrow: undo history";
 
     internal static void Attach(INetGameService service)
@@ -74,7 +94,7 @@ internal static class Network
         _isHost = service.Type is NetGameType.Host or NetGameType.Singleplayer;
         service.RegisterMessageHandler<UndoMinimalMessage>(Receive);
         service.Disconnected += Disconnected;
-        Hooks.Log($"NETWORK_ATTACH role={service.Type} id={service.NetId}");
+        Hooks.Log($"NETWORK_ATTACH role={service.Type} platform={service.Platform} id={service.NetId}");
     }
 
     internal static void Detach()
@@ -85,75 +105,122 @@ internal static class Network
         _service = null;
     }
 
+    private static Operation CreateOperation(string id, int target, ulong proposer) => new()
+    {
+        Id = id, Target = target, Proposer = proposer,
+        Peers = RunManager.Instance.DebugOnlyGetState()!.Players.Select(p => p.NetId).ToHashSet()
+    };
+
     internal static void Request(int target)
     {
         if (Busy || _service is null || !Hooks.IsIdle()) return;
-        if (_isHost) Propose(target, _service.NetId);
-        else { _service.SendMessage(new UndoMinimalMessage { Op = UndoMinimalOp.Request, Target = target }); Status = "Undo requested from host"; }
+        if (!History.Targets.Any(t => t.EventCount == target)) return;
+        var data = History.Export(target);
+        var operation = CreateOperation(Guid.NewGuid().ToString("N"), target, _service.NetId);
+        operation.Steps = History.Targets.Count(t => t.EventCount >= target);
+        _operation = operation;
+        InstallPlan(operation, data);
+        if (_isHost) Propose(operation);
+        else
+        {
+            operation.LocalVoted = true; // Requesting is agreement; no own Accept button.
+            Status = "Undo requested from host";
+            Send(UndoMinimalOp.Request);
+            SendPlan(operation);
+        }
     }
 
-    private static void Propose(int target, ulong proposer)
+    private static void InstallPlan(Operation operation, byte[] data)
     {
-        if (Busy || _service is null || !Hooks.IsIdle()) return;
-        if (!History.Targets.Any(t => t.EventCount == target)) return;
-        var plan = History.Freeze(target);
-        _operation = new Operation
+        (operation.Plan, _) = History.Import(data);
+        operation.PlanData = data;
+        Hooks.Log($"PROPOSER_PLAN session={operation.Id} proposer={operation.Proposer} "
+            + $"events={operation.Plan.events.Count} bytes={data.Length} sha256={Convert.ToHexString(SHA256.HashData(data))}");
+    }
+
+    private static void SendPlan(Operation operation)
+    {
+        // Small reliable packets work with both native transports, including long histories.
+        const int chunkSize = 1024;
+        byte[] data = operation.PlanData!;
+        for (int offset = 0; offset < data.Length; offset += chunkSize)
         {
-            Id = Guid.NewGuid().ToString("N"), Target = target, Proposer = proposer,
-            Peers = RunManager.Instance.DebugOnlyGetState()!.Players.Select(p => p.NetId).ToHashSet(), Plan = plan
-        };
-        Status = $"Undo to event {target}: waiting for votes";
+            int count = Math.Min(chunkSize, data.Length - offset);
+            _service!.SendMessage(new UndoMinimalMessage
+            {
+                Op = UndoMinimalOp.Plan, Session = operation.Id, Target = operation.Target,
+                Proposer = operation.Proposer, Data = data[offset..(offset + count)],
+                LastChunk = offset + count == data.Length
+            });
+        }
+        Hooks.Log($"PLAN_SENT session={operation.Id} chunks={(data.Length + chunkSize - 1) / chunkSize}");
+    }
+
+    private static void Propose(Operation operation)
+    {
+        operation.Proposed = true;
+        Status = $"Undo to event {operation.Target}: waiting for votes";
         Send(UndoMinimalOp.Propose);
-        if (proposer == _service.NetId) Vote(true);
-        else ReceiveVote(proposer, true);
-        Hooks.Log($"PROPOSE session={_operation.Id} target={target}");
+        SendPlan(operation); // Relay the proposer's original bytes, never host-local history.
+        if (operation.Proposer == _service!.NetId) Vote(true);
+        else ReceiveVote(operation.Proposer, true);
+        Hooks.Log($"PROPOSE session={operation.Id} proposer={operation.Proposer} target={operation.Target}");
     }
 
     internal static void Vote(bool accepted)
     {
         var operation = _operation;
-        if (operation is null || operation.Started || operation.LocalVoted || _service is null) return;
-        if (accepted && !Hooks.IsIdle()) return;
-        try
-        {
-            if (accepted)
-            {
-                operation.Plan ??= History.Freeze(operation.Target);
-            }
-        }
-        catch (Exception exception)
-        {
-            Fail($"Replay plan unavailable: {exception.Message}");
-            return;
-        }
+        if (operation is null || !operation.Proposed || operation.Started || operation.LocalVoted || _service is null) return;
         operation.LocalVoted = true;
+        Hooks.Log($"VOTE_LOCAL session={operation.Id} accepted={accepted} idle={Hooks.IsIdle()}");
         if (_isHost) ReceiveVote(_service.NetId, accepted);
         else Send(UndoMinimalOp.Vote, accepted);
+        Hooks.Log($"VOTE_SUBMITTED session={operation.Id} accepted={accepted}");
     }
 
     private static void Receive(UndoMinimalMessage message, ulong sender)
     {
         try
         {
+            Hooks.Log($"MESSAGE_RECEIVED op={message.Op} sender={sender} session={message.Session}");
             if (message.Op == UndoMinimalOp.Request)
             {
-                if (_isHost) Propose(message.Target, sender);
+                if (_isHost && !Busy)
+                {
+                    _operation = CreateOperation(message.Session, message.Target, sender);
+                    _operation.Steps = message.Steps;
+                }
                 return;
             }
-            if (message.Op == UndoMinimalOp.Propose && !_isHost && !Busy)
+            if (message.Op == UndoMinimalOp.Propose && !_isHost)
             {
-                _operation = new Operation
-                {
-                    Id = message.Session, Target = message.Target, Proposer = message.Proposer,
-                    Peers = RunManager.Instance.DebugOnlyGetState()!.Players.Select(p => p.NetId).ToHashSet()
-                };
+                if (_operation is null)
+                    _operation = CreateOperation(message.Session, message.Target, message.Proposer);
+                if (_operation.Id != message.Session) return;
+                _operation.Proposed = true;
+                _operation.Steps = message.Steps;
+                if (message.Proposer == _service!.NetId) _operation.LocalVoted = true;
                 Status = $"Undo to event {message.Target}: accept or reject";
-                if (message.Proposer == _service!.NetId) Vote(true);
                 return;
             }
             if (_operation is not { } operation || message.Session != operation.Id) return;
             switch (message.Op)
             {
+                case UndoMinimalOp.Plan:
+                    operation.Incoming.AddRange(message.Data!);
+                    if (message.LastChunk)
+                    {
+                        InstallPlan(operation, operation.Incoming.ToArray());
+                        operation.Incoming.Clear();
+                        if (_isHost && !operation.Proposed) Propose(operation);
+                    }
+                    break;
+                case UndoMinimalOp.Prepare when !_isHost:
+                    operation.Preparing = true;
+                    operation.Deadline = Time.GetTicksMsec() + 180_000;
+                    break;
+                case UndoMinimalOp.Ready when _isHost:
+                    operation.ReadyPeers.Add(sender); break;
                 case UndoMinimalOp.Vote when _isHost && !operation.Started:
                     ReceiveVote(sender, message.Accepted); break;
                 case UndoMinimalOp.Start when !_isHost && !operation.Started:
@@ -175,10 +242,18 @@ internal static class Network
     {
         var operation = _operation!;
         operation.Votes[sender] = accepted;
-        Hooks.Log($"VOTE peer={sender} accepted={accepted}");
+        Hooks.Log($"VOTE peer={sender} accepted={accepted} received={operation.Votes.Count}/{operation.Peers.Count}");
         if (!accepted) { Fail("Undo rejected by a player."); return; }
         if (operation.Peers.All(id => operation.Votes.GetValueOrDefault(id)))
-            operation.StartRequested = true;
+        {
+            if (!operation.Preparing)
+            {
+                operation.Preparing = true;
+                operation.Deadline = Time.GetTicksMsec() + 180_000;
+                Send(UndoMinimalOp.Prepare);
+            }
+            Hooks.Log($"ALL_VOTES_ACCEPTED session={operation.Id}");
+        }
     }
 
     internal static void Tick()
@@ -189,8 +264,18 @@ internal static class Network
         if (!ReferenceEquals(_operation, operation)) return;
         if (Time.GetTicksMsec() > operation.Deadline && operation.Failure is null) Fail("Undo timed out.");
         if (!ReferenceEquals(_operation, operation)) return;
+        if (operation.Preparing && !operation.ReadySent && operation.Plan is not null && Hooks.IsIdle())
+        {
+            operation.ReadySent = true;
+            if (_isHost) operation.ReadyPeers.Add(_service!.NetId);
+            else Send(UndoMinimalOp.Ready);
+            Hooks.Log($"REPLAY_READY session={operation.Id}");
+        }
+        if (_isHost && operation.Preparing && operation.Peers.All(operation.ReadyPeers.Contains))
+            operation.StartRequested = true;
         if (operation.StartRequested && !operation.Started)
         {
+            if (!Hooks.IsIdle()) return;
             if (operation.Plan is null) { Fail("No frozen replay plan."); return; }
             if (_isHost) Send(UndoMinimalOp.Start);
             operation.Started = true;
@@ -229,7 +314,10 @@ internal static class Network
                 return operation.ResumeRequested;
             }, operation.Cancel.Token);
             operation.Cancel.Token.ThrowIfCancellationRequested();
-            History.Commit(operation.Plan!);
+            // Native loaded-lobby setup can mutate the execution copy. Commit
+            // the original proposer bytes, not that live native object.
+            var (record, targets) = History.Import(operation.PlanData!);
+            History.Commit(record, targets);
             await NGame.Instance!.Transition.FadeIn(0.1f);
             Status = "Undo complete";
             Hooks.Log($"RESUME session={operation.Id} peers={operation.Peers.Count} checksum={checksum}");
@@ -294,7 +382,7 @@ internal static class Network
         _service!.SendMessage(new UndoMinimalMessage
         {
             Op = op, Session = operation.Id, Target = operation.Target, Proposer = operation.Proposer,
-            Accepted = accepted, Checksum = checksum
+            Steps = operation.Steps, Accepted = accepted, Checksum = checksum
         });
     }
 }

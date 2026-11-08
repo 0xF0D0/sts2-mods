@@ -373,3 +373,139 @@ ZIP SHA-256: 8f82eba2ef5ab582e893c7e588c78b7f2cf3698ab1e5716f57be9754c8794029.
 Publication receipts and the previous Workshop workspace backup are retained
 under /var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-release-v0.1.9-94d76z2_.
 Upload success and subscriber refresh must be verified separately.
+
+# 2026-11-08: native Accept could silently discard a vote while not idle
+
+Report: three Steam players saw proposal/vote UI; the last participant accepted,
+but vote/wait popups and combat stayed unchanged. User has no incident logs.
+The exact cause of that Steam session is therefore not established.
+
+Verified common-path defect: Network.Vote(true) returned before setting LocalVoted
+or sending Vote whenever Hooks.IsIdle() was false. Propose is only host-idle
+checked; a client may still be finishing an earlier native action. UI displays
+the proposal regardless of that client's idle state. Earlier regressions used
+direct Network.Vote calls after Idle and did not exercise this timing window.
+
+Before/after reproduction uses three real local ENet processes, game v0.111.0 /
+41cef1ea. A normal client2 card is played before the proposal; a harness-only
+PlayCardAction task wrapper holds completion for 8 seconds on that client while
+the host finishes normally. Other votes and the final vote use real native
+NPopupYesNoButton Released callbacks. No production private state is mutated.
+
+Valid before: vote-busy-before-03, PIDs 12548/12587/12588, FAIL as expected:
+LIVE_ACTION_HOLD_BEGIN, non-idle last voter, then native Accept leaves LocalVoted
+false. Host recorded only votes 1 and 1001; no vote from 2001 and no replay start.
+Earlier two attempts are classified as invalid fixtures: new input was requested
+after the proposal and correctly blocked by the existing input gate. Their logs
+are retained and do not count as the defect reproduction.
+
+Fix is confined to Network: retain acceptance immediately, freeze/submit on the
+next idle tick, and wait for local idle before starting reconstruction. Reject
+still sends immediately. Added receipt/local-vote/wait/submission/vote-count
+markers and platform identity for future incident diagnosis. Wire format and
+the five-module architecture remain unchanged.
+
+Focused after: vote-busy-after, PIDs 13168/13207/13208, all HARNESS_PASS and exit 0.
+LAST_ACCEPT_WHILE_BUSY retained=true -> LIVE_ACTION_HOLD_END -> VOTE_SUBMITTED
+-> ALL_VOTES_ACCEPTED -> all three RESUME with checksum 4058208785. Exact combat
+state/history restored; online avatars/cursors and continued real attack passed.
+
+Separate full native-button integration: vote-ui-regression3, PIDs
+13980/14017/14018, all HARNESS_PASS and exit 0. Every participant proposed once;
+other players accepted through native popup buttons. Three restores matched HP,
+full native state/history and checksum 4058208785, with continued attack and
+zero native divergences. Build with warnings as errors and MinimalCheck passed.
+Tested fixed core DLL SHA-256:
+b5e274e9996b934945d9bded502daa9b480bf432d5e511b786cd5996ab81f52c.
+
+Evidence: tools/MinimalHarness/results/2026-11-08/vote-idle/.
+Raw logs/fixtures: /var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-0jp9f0i4.
+Prior installed mods and all four accounts restored with original file hashes;
+all games exited and UDP 33771 free. Existing native cleanup diagnostics remain
+outside this change. No commit, release or Workshop update was made for this fix.
+Cross-machine Steam P2P and the user's exact incident remain unverified.
+
+# 2026-11-08: proposer record, immediate votes and separate preparation
+
+User approved using the proposer's record, not the host's. This supersedes the
+earlier pending-vote fix: acceptance/rejection is now sent immediately even if
+the voter is not idle. Only execution readiness waits for ongoing actions.
+
+Only the proposer exports the native combat-start header, selected event prefix
+and earlier undo boundaries. A remote proposer sends that record to the host;
+the host forwards the exact bytes to all clients in reliable 1 KiB chunks.
+There is no vote-time history/state/checksum equality requirement. Proposal
+step counts also come from the proposer. After unanimous votes, Prepare/Ready
+separately waits for record arrival and local idle, then the existing Start and
+StartReceived barrier runs. Final native checksum equality remains mandatory.
+After Resume every recorder adopts the original proposer header/events/targets.
+Native execution objects may be mutated; commit decodes fresh original bytes.
+Wire messages changed: every participant must run this same new build.
+
+Game v0.111.0 / 41cef1ea; tested core DLL SHA-256:
+93461e829142ff633366d1fab4ae26466a5ec29f6e42867bf298015bf031b907.
+All final runs below use this same core and three actual local ENet processes:
+
+- vote-immediate-ready3-02: PIDs 24302/24345/24346, all HARNESS_PASS, exit 0.
+  A real native card task was held for 8 seconds on client2. Native Accept
+  reached the host and all votes were collected before that task finished;
+  only Ready waited. Replay, exact state/history and continued attack passed.
+- proposer-record3-02: PIDs 24829/24868/24869, all HARNESS_PASS, exit 0.
+  Each player proposed once. As an intentional recorder fault, the other two
+  peers' local History was cleared while the native combat remained intact.
+  Native proposal/wait UI and button callbacks worked without those local
+  records. All peers restored the proposer's nonempty prefix, preserved earlier
+  undo points and re-exported byte-identical proposer data after continued play.
+  The host was itself a history-free recipient for both client proposals.
+- proposer-extended3-03: PIDs 27657/27716/27717, all HARNESS_PASS, exit 0.
+  Native GameAction/HookAction/ResumeAction/PlayerChoice coverage: 3/3/5/5 in the
+  first target prefix. Rejection and a real 30-second withheld-vote timeout left
+  combat unchanged. Every player requested undo, followed by an additional
+  cross-enemy-turn replay and continued native play. Four undos per peer,
+  no replay-time live selection prompts, zero native divergences.
+
+For every final-run session, an artifact check confirms all three real peers
+logged the same proposer payload SHA-256. Multi-chunk sending and native
+reassembly executed. Native UI screenshots were retained and visually reviewed.
+Build with warnings as errors, MinimalCheck and diff whitespace checks passed.
+
+Retained failed attempts are classified, not counted as passes. proposer-record3
+restored combat correctly but caught a host-only future-export discrepancy when
+committing the native execution object; fresh decoding of original bytes fixed
+the repeated same-case check. Initial extended runs failed before any proposal:
+the harness first asserted idle after a blind delay, then compared concurrent
+snapshots before two remote actions had reached a client. Idle now requires five
+consecutive idle frames, and concurrent comparisons wait for all own-completion
+markers plus the common received-event count. Concurrent input remains enabled.
+
+Evidence: tools/MinimalHarness/results/2026-11-08/proposer-record/.
+Raw logs/backups: /var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-gzkqlzsb.
+Cleanup restored installed mods and all four accounts with original file hashes;
+all game processes exited and UDP 33771 free. Existing native teardown diagnostics
+remain outside this change. No commit, release or Workshop update was performed.
+Steam P2P across separate computers, four peers and a deliberately mismatched
+final-checksum fault were not live-tested; the final checksum guard was retained.
+
+## 2026-11-08 additional timing sweep and release authorization
+
+User ended the planned 100-case timing sweep after the current case and requested
+deployment. Nine 3-peer cases (TIMING-SWEEP-M3-000..008, fixed CONTENT-B) passed,
+27 undo operations total. All proposers rotated, busy last UI votes were retained,
+Prepare preceded held-action drain, slow replay peers reached Done before Resume,
+full native target states/checksums matched and post-replay gameplay continued.
+Each of the four phase coverage counters totals 27. No production failure was
+observed in those nine cases. The planned 50/50 batch was not completed; no new
+4-peer batch case was run. Previous four-peer M3 evidence remains separate.
+
+Artifacts: tools/MinimalHarness/results/2026-11-08/timing-sweep/. Every case has
+PID-bound run/verdict/log/trace records. Task dispatcher was stopped after the
+last fully launched case exited 0; installed account/mod hashes were restored.
+The parent process exits via a deliberate KeyboardInterrupt after case completion;
+this is recorded as STOPPED_BY_USER, not a test failure or completed 100-case run.
+
+Release v0.1.10 contains the proposer-authoritative plan relay, immediate votes,
+separate Ready barrier and final checksum enforcement already covered by these
+runs. Core DLL remains SHA256
+93461e829142ff633366d1fab4ae26466a5ec29f6e42867bf298015bf031b907; the manifest
+version changes only. All multiplayer participants must update together. Actual
+cross-machine Steam execution is unverified. ENet retry latency is deferred.
