@@ -1,6 +1,8 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Assets;
+using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Entities.UI;
@@ -10,8 +12,14 @@ using MegaCrit.Sts2.Core.Localization.Fonts;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
+using MegaCrit.Sts2.Core.Nodes.Orbs;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
+using MegaCrit.Sts2.Core.Rooms;
+using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.addons.mega_text;
 
 namespace UndoSync;
@@ -52,6 +60,65 @@ internal static class UI
     internal static bool IsOpen => _popup != null && GodotObject.IsInstanceValid(_popup);
 
     internal static NGenericPopup? CurrentPopup => _popup;
+
+    private static CombatRoom? _restoredRoom;
+    private static bool _restoredUiReady;
+    private static readonly MethodInfo EndTurnRefresh = AccessTools.Method(typeof(NEndTurnButton), "OnTurnStarted");
+
+    internal static async Task AttachRestoredCombatAsync(RunState state, CancellationToken token)
+    {
+        var room = state.CurrentRoom as CombatRoom ?? throw new InvalidOperationException("Restored combat room missing.");
+        await PreloadManager.LoadRoomCombatAssets(room.Encounter, state);
+        token.ThrowIfCancellationRequested();
+        NGame.Instance!.RootSceneContainer.SetCurrentScene(NRun.Create(state));
+        // Mounting native UI must not release checksum isolation before Resume.
+        RunManager.Instance.ChecksumTracker.IsEnabled = false;
+        // GenerateMap ran while NMapScreen was absent. Initialize only the new
+        // view; generating the model map again would advance gameplay state.
+        var map = NRun.Instance!.GlobalUi.MapScreen;
+        map.SetMap(state.Map, state.Rng.Seed, clearDrawings: true);
+        if (state.CurrentMapCoord is { } coord) map.InitMarker(coord);
+        map.SetTravelEnabled(false);
+        var ui = NCombatRoom.Create(room, CombatRoomMode.ActiveCombat)!;
+        _restoredRoom = room;
+        _restoredUiReady = false;
+        try { NRun.Instance!.SetCurrentRoom(ui); }
+        finally { _restoredRoom = null; }
+        if (!_restoredUiReady) throw new InvalidOperationException("Restored combat UI was not initialized.");
+        // Seed the new hand's normal deferred observer with the computed state.
+        PileType.Hand.GetPile(LocalContext.GetMe(state)!).InvokeContentsChanged();
+        await NGame.Instance.AwaitProcessFrame(token);
+        await NGame.Instance.AwaitProcessFrame(token);
+        foreach (var node in ui.CreatureNodes.Where(node => node.Entity.Monster is not null && node.Entity.IsAlive))
+            await node.RefreshIntents();
+    }
+
+    [HarmonyPatch(typeof(NCombatRoom), nameof(NCombatRoom._Ready))]
+    private static class RestoredCombatUi
+    {
+        private static void Postfix(NCombatRoom __instance)
+        {
+            if (_restoredRoom is not { } room) return;
+            // CombatSetUp already happened without UI. Initialize the new view
+            // before SetCurrentRoom updates ActiveScreenContext. Never raise
+            // combat/turn events or SetUpCombat again: those change the model.
+            __instance.Ui.Activate(room.CombatState);
+            __instance.SetUpBackground(room.CombatState.RunState);
+            foreach (var card in PileType.Hand.GetPile(LocalContext.GetMe(room.CombatState.RunState)!).Cards)
+                __instance.Ui.Hand.Add(NCard.Create(card)!);
+            foreach (var node in __instance.CreatureNodes)
+                if (node.Entity.IsAlive && node.Entity.Player?.PlayerCombatState?.OrbQueue is { } queue && node.OrbManager is { } orbs)
+                {
+                    orbs.AddSlotAnim(queue.Capacity);
+                    // AddSlotAnim owns the manager's native slot list. Bind the
+                    // existing orb models into those same nodes in queue order.
+                    foreach (var pair in orbs.GetNode<Control>("%Orbs").GetChildren().OfType<NOrb>().Zip(queue.Orbs))
+                        pair.First.ReplaceOrb(pair.Second);
+                }
+            EndTurnRefresh.Invoke(__instance.Ui.EndTurnButton, new object[] { room.CombatState });
+            _restoredUiReady = true;
+        }
+    }
 
     internal static void ShowRestoring()
     {

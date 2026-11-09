@@ -10,33 +10,32 @@ Rewind combat together in Slay the Spire 2. Choose an earlier point from the act
 [*]After replay finishes for everyone, continue playing from the restored point.
 [/list]
 
-[h2]v0.1.14[/h2]
+[h2]v0.1.15 — faster restoration[/h2]
 [list]
-[*]Acknowledges and retries undo control messages, including votes and replay completion; duplicate deliveries do not execute undo twice.
-[*]Logs each peer's replay stage and missing acknowledgements, and preserves the original failure reason.
-[*]Handles individual player disconnects during undo.
-[*]Cancels discarded combat presentation waits before reconstruction.
-[*]Uses native Instant mode for faster replay, then restores your original speed.
-[*]Keeps the multiplayer room and checks everyone's restored result before resuming.
+[*]Replays the native combat model without rebuilding combat UI for every action, then constructs the restored UI once.
+[*]Keeps native actions, card/pile hooks, damage, RNG and recorded choices. Only replay presentation is skipped.
+[*]Restores the hand, health, enemy intents, End Turn button, map and orb displays from the computed state.
+[*]Keeps the existing multiplayer room and final restored-result checks before everyone resumes.
+[*]One measured local 3-player ENet test of the same 500-action Finesse record: 159.020 seconds in v0.1.14 → 1.024 seconds in v0.1.15, including restoration and input release. This is one workload, not a timing guarantee for every fight or Steam connection.
 [/list]
 
 [h2]Before playing[/h2]
 [list]
-[*]Every participant must enable the mod, update to [b]v0.1.14[/b], and restart the game. Mixed older versions are incompatible with the new control protocol.
+[*]Every participant must enable the mod, update to [b]v0.1.15[/b], and restart the game. Use the same version on every participant.
 [*]History is kept in memory and is not saved between game sessions.
-[*]Repeated undo has been tested in local 3- and 4-player ENet sessions, including different replay speeds. This is local test coverage, not verification of Steam P2P across separate computers.
+[*]This version passed local 3-player ENet repeated undo, choices/enemy turns, 3 timing-fuzz seeds with 9 undo operations, failure propagation and the 500-action test. Steam P2P across separate computers has not been verified.
 [/list]
 
 [h2]Languages[/h2]
 English, Korean, Simplified Chinese and Traditional Chinese. Each player sees the UI in their own game language. Other languages use English.
 
 [h2]한국어[/h2]
-전투 중 [b]왼쪽 방향키[/b]를 눌러 히스토리를 열고, 원하는 시점이나 [b]전투 처음부터[/b]를 선택하세요. 제안자는 자동 동의하며, 나머지 전원이 수락하면 되돌립니다. 현재 행동이 끝나길 기다릴 필요가 없고, 다른 플레이어가 행동해도 선택창은 유지됩니다. 복원 중에는 검은 화면 중앙에 [b]복원 중…[/b]이 표시됩니다. 기존 멀티 방을 유지하며 복원 후 결과를 확인합니다. 모든 참가자가 [b]v0.1.14[/b]로 업데이트한 뒤 게임을 다시 실행해야 합니다.
+전투 중 [b]왼쪽 방향키[/b]를 눌러 히스토리를 열고, 원하는 시점이나 [b]전투 처음부터[/b]를 선택하세요. 제안자는 자동 동의하며, 나머지 전원이 수락하면 되돌립니다. 현재 행동이 끝나길 기다릴 필요가 없고, 다른 플레이어가 행동해도 선택창은 유지됩니다. 복원 중에는 검은 화면 중앙에 [b]복원 중…[/b]이 표시됩니다. 재생 중 화면 효과를 생략하고 마지막에 UI를 복원해 속도를 개선했습니다. 기존 액션 처리와 멀티 방을 유지하며 복원 후 결과를 확인합니다. 모든 참가자가 [b]v0.1.15[/b]로 업데이트한 뒤 게임을 다시 실행해야 합니다.
 
 [h2]简体中文[/h2]
-战斗中按[b]左方向键[/b]打开历史，选择要回退的时点，或选择[b]重新开始战斗[/b]。提议者自动同意，其余玩家全部接受后开始回退。无需等待当前行动结束，其他玩家行动时历史窗口也会保持打开。恢复期间，黑屏中央会显示[b]正在恢复……[/b]。回退保留现有多人房间，并在重放后检查恢复结果。所有玩家均须更新至[b]v0.1.14[/b]并重启游戏。
+战斗中按[b]左方向键[/b]打开历史，选择要回退的时点，或选择[b]重新开始战斗[/b]。提议者自动同意，其余玩家全部接受后开始回退。无需等待当前行动结束，其他玩家行动时历史窗口也会保持打开。恢复期间，黑屏中央会显示[b]正在恢复……[/b]。重放期间跳过画面效果，完成后一次性恢复界面，以加快回退。保留原有动作处理和多人房间，并在重放后检查恢复结果。所有玩家均须更新至[b]v0.1.15[/b]并重启游戏。
 
 [h2]繁體中文[/h2]
-戰鬥中按[b]左方向鍵[/b]開啟歷史，選擇要回溯的時間點，或選擇[b]重新開始戰鬥[/b]。提議者自動同意，其餘玩家全部接受後開始回溯。無須等待目前行動結束，其他玩家行動時歷史視窗也會保持開啟。還原期間，黑畫面中央會顯示[b]正在還原……[/b]。回溯保留既有多人房間，並在重播後檢查還原結果。所有玩家均須更新至[b]v0.1.14[/b]並重新啟動遊戲。
+戰鬥中按[b]左方向鍵[/b]開啟歷史，選擇要回溯的時間點，或選擇[b]重新開始戰鬥[/b]。提議者自動同意，其餘玩家全部接受後開始回溯。無須等待目前行動結束，其他玩家行動時歷史視窗也會保持開啟。還原期間，黑畫面中央會顯示[b]正在還原……[/b]。重播期間略過畫面效果，完成後一次還原介面，以加快回溯。保留原有動作處理與多人房間，並在重播後檢查還原結果。所有玩家均須更新至[b]v0.1.15[/b]並重新啟動遊戲。
 
-[url=https://github.com/0xF0D0/sts2-mods/releases/tag/UndoSync-v0.1.14]Download / Release notes[/url]
+[url=https://github.com/0xF0D0/sts2-mods/releases/tag/UndoSync-v0.1.15]Download / Release notes[/url]

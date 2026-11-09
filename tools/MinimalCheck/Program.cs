@@ -23,6 +23,18 @@ foreach (var type in mod.GetTypes())
 {
     foreach (var attribute in type.GetCustomAttributesData().Where(a => a.AttributeType.FullName == "HarmonyLib.HarmonyPatch"))
     {
+        if (attribute.ConstructorArguments.Count == 0)
+        {
+            Require(type.Name == "TransformedCardVisuals", "explicitly audited dynamic patch");
+            var transform = game.GetType("MegaCrit.Sts2.Core.Commands.CardCmd", true)!.GetMethods(all)
+                .Single(m => m.Name == "Transform" && m.GetParameters().Length == 3
+                    && m.GetParameters()[0].ParameterType.IsGenericType
+                    && m.GetParameters()[0].ParameterType.GetGenericTypeDefinition().FullName == "System.Collections.Generic.IEnumerable`1");
+            var machine = (Type)transform.GetCustomAttributesData().Single(a => a.AttributeType.FullName == "System.Runtime.CompilerServices.AsyncStateMachineAttribute").ConstructorArguments[0].Value!;
+            Require(machine.GetMethod("MoveNext", all)?.ReturnType.FullName == "System.Void", "native Transform async visual patch target");
+            patches++;
+            continue;
+        }
         var target = (Type)attribute.ConstructorArguments[0].Value!;
         string methodName = (string)attribute.ConstructorArguments[1].Value!;
         var methods = target.GetMethods(all).Where(m => m.Name == methodName).ToArray();
@@ -51,7 +63,7 @@ foreach (var type in mod.GetTypes())
         patches++;
     }
 }
-Require(patches == 18, $"all 18 Harmony targets checked (actual {patches})");
+Require(patches == 26, $"all 26 Harmony targets checked (actual {patches})");
 var reflectionMembers = new (string Type, string Name, bool Property)[]
 {
     ("MegaCrit.Sts2.Core.Multiplayer.Replay.CombatReplayWriter", "_replay", false),
@@ -74,6 +86,9 @@ foreach (var member in reflectionMembers)
     Require(member.Property ? type.GetProperty(member.Name, all)?.SetMethod is not null : type.GetField(member.Name, all) is not null,
         $"reflection member {type.Name}.{member.Name}");
 }
+var endTurn = game.GetType("MegaCrit.Sts2.Core.Nodes.Combat.NEndTurnButton", true)!;
+Require(endTurn.GetMethod("OnTurnStarted", all, new[] { game.GetType("MegaCrit.Sts2.Core.Combat.CombatState", true)! })?.ReturnType.FullName == "System.Void",
+    "reflection UI callback NEndTurnButton.OnTurnStarted(CombatState)");
 var queues = game.GetType("MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSet", true)!;
 var nested = queues.GetNestedType("ActionQueue", BindingFlags.NonPublic)!;
 Require(nested.GetField("actions", all)?.FieldType.GetGenericArguments().Single().Name == "GameAction", "literal queue contains GameAction");
@@ -82,7 +97,7 @@ Require(message.IsPublic && message.IsValueType && message.GetInterfaces().Any(i
 var entry = mod.GetType("UndoSync.Hooks", true)!;
 Require(entry.GetCustomAttributesData().Any(a => a.AttributeType.Name == "ModInitializerAttribute")
     && entry.GetMethod("Initialize", BindingFlags.Public | BindingFlags.Static) is not null, "mod initializer");
-Console.WriteLine($"PASS metadata-only: five modules, manifest, {patches} patch targets and injected parameters, {reflectionMembers.Length + 1} reflection surfaces, message, initializer.");
+Console.WriteLine($"PASS metadata-only: five modules, manifest, {patches} patch targets and injected parameters, {reflectionMembers.Length + 2} reflection surfaces, message, initializer.");
 Console.WriteLine("NOT TESTED: Harmony installation, Godot UI, serialization execution, replay, network transport or gameplay.");
 
 static void Require(bool condition, string description)

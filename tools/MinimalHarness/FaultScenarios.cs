@@ -88,6 +88,7 @@ internal static class FaultScenarios
                 await Control.Put("release-error", "true");
             }
             await Harness.Wait(() => !Network.Busy && !Harness.Manager.IsInProgress, 25);
+            Harness.Require(!UndoSync.Replay.ModelOnly, "failed replay leaves model-only presentation mode");
             Harness.Require(Network.Status.Contains("Injected native replay effect failure"), "all peers preserve original failure reason: " + Network.Status);
             Harness.Log("FAULT_TERMINAL " + Network.Status);
         }

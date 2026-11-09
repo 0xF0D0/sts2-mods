@@ -72,7 +72,7 @@ public static class Harness
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
     private static CharacterModel Character => CommandLineHelper.HasArg("minimal-mixed")
-        ? (_role == "host" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
+        ? (_role is "host" or "ui" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
         ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>();
     private static int _divergences, _cards, _undos;
     private static INetGameService? _pump;
@@ -202,22 +202,22 @@ public static class Harness
             await NGame.Instance!.AwaitProcessFrame(Lifetime.Token);
         }
     }
-    internal static async Task Idle()
+    internal static async Task Idle(int seconds = 45)
     {
         int frames = 0;
         await Wait(() =>
         {
             frames = !Network.Busy && Hooks.IsIdle() ? frames + 1 : 0;
             return frames >= 5;
-        });
+        }, seconds);
         Require(Hooks.IsIdle(), "idle native player phase");
     }
     private static Task Mark(string name) => Control.Put(name + "." + _role, History.Count.ToString());
     private static bool Marked(string name, string role) => Control.Read(name + "." + role) is not null;
-    internal static async Task Barrier(string name)
+    internal static async Task Barrier(string name, int seconds = 45)
     {
         await Mark(name);
-        await Wait(() => Roles.All(role => Marked(name, role)));
+        await Wait(() => Roles.All(role => Marked(name, role)), seconds);
     }
     private static int _snapshot;
     internal static string Snapshot()
@@ -274,6 +274,8 @@ public static class Harness
             else if (_suite == "restoring-ui") await RestoringUiAsync();
             else if (_suite is "replay-speed-baseline" or "replay-speed") await ReplaySpeedAsync();
             else if (_suite == "replay-speed-cancel") await ReplaySpeedCancelAsync();
+            else if (_suite == "replay-long") await LongReplayBenchmark.Run();
+            else if (_suite == "model-probe") await ModelReplayProbe.Run();
             else if (_suite.StartsWith("fault-")) await FaultScenarios.Run(_suite);
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
@@ -400,6 +402,31 @@ public static class Harness
         _pump = null; // Native NRun now owns Update; replacement lobbies pump themselves.
         await Manager.SetActInternal(0);
         if (FuzzDriver.Active) await FuzzCases.Prepare();
+        if (_suite == "replay-long") await LongReplayBenchmark.Prepare();
+        if (_suite == "model-probe")
+        {
+            if (CommandLineHelper.HasArg("minimal-probe-orbs"))
+            {
+                foreach (var player in State.Players)
+                    await CardPileCmd.RemoveFromDeck(player.Deck.Cards.Where(c => c.Id.Entry is not "ZAP" and not "DUALCAST").ToArray(), showPreview: false);
+            }
+            else if (CommandLineHelper.HasArg("minimal-probe-generated") || CommandLineHelper.HasArg("minimal-probe-transform"))
+            {
+                foreach (var player in State.Players)
+                {
+                    var keep = player.Deck.Cards.First(c => c.Id.Entry.Contains("DEFEND"));
+                    bool transform = CommandLineHelper.HasArg("minimal-probe-transform");
+                    var strike = transform ? player.Deck.Cards.First(c => c.Id.Entry.Contains("STRIKE")) : null;
+                    await CardPileCmd.RemoveFromDeck(player.Deck.Cards.Where(c => c != keep && c != strike).ToArray(), showPreview: false);
+                    string entry = transform ? "PRIMAL_FORCE" : "ANGER";
+                    var pool = player.Character.CardPool.GetUnlockedCards(player.UnlockState, player.RunState.CardMultiplayerConstraint).Where(c => c.Id.Entry == entry).ToArray();
+                    Require(pool.Length == 1, entry + " is in the native unlocked character pool");
+                    var card = CardFactory.CreateForMerchant(player, pool, transform ? CardRarity.Rare : CardRarity.Common).Card;
+                    Require((await CardPileCmd.Add(card, PileType.Deck)).success, "native merchant card acquired: " + entry);
+                }
+            }
+            else await LongReplayBenchmark.Prepare();
+        }
         // Use the real act's generated encounter sequence and a real Monster map point.
         // No catalogue encounter/loadout injection; native CreateRoom pulls the encounter.
         var point = state.Map.GetAllMapPoints().Where(p => p.PointType == MapPointType.Monster).OrderBy(p => p.coord.row).ThenBy(p => p.coord.col).First();
@@ -938,13 +965,13 @@ public static class Harness
         await Barrier("verdict-ready");
     }
 
-    internal static async Task StateBarrier(string label)
+    internal static async Task StateBarrier(string label, int seconds = 45)
     {
         string snapshot = Snapshot();
         File.WriteAllText(Path.Combine(_directory, label + ".state." + _role), snapshot);
         await Control.Put(label + ".state." + _role, snapshot);
-        await Barrier(label + "-state-ready");
-        await Wait(() => Roles.All(role => Control.Read(label + ".state." + role) is not null));
+        await Barrier(label + "-state-ready", seconds);
+        await Wait(() => Roles.All(role => Control.Read(label + ".state." + role) is not null), seconds);
         Require(Roles.Select(role => Control.Read(label + ".state." + role)).Distinct().Count() == 1,
             label + " all real peer native states match");
     }

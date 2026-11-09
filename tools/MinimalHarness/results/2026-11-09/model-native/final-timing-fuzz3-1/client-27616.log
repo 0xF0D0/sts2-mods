@@ -1,0 +1,188 @@
+[MinimalHarness pid=27616 role=client stage=startup] CHECK phase fuzz requires real multiplayer
+[MinimalHarness pid=27616 role=client stage=startup] HARNESS_INIT
+[MinimalHarness pid=27616 role=client stage=startup] CHECK supported test speed
+[MinimalHarness pid=27616 role=client stage=startup] CHECK native TestMode remains off
+[MinimalHarness pid=27616 role=client stage=startup] TEST_SPEED mode=instant testMode=False
+[MinimalHarness pid=27616 role=client stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR specification matches native run
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=0 relic=RELIC.BRONZE_SCALES
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=0 relic=RELIC.BRONZE_SCALES
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR no duplicate relic
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=0 potion=POTION.DEXTERITY_POTION
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=0 potion=POTION.DEXTERITY_POTION
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR potion procured
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=0 card=CARD.ITERATION upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=0 card=CARD.ITERATION upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=0 card=CARD.SYNCHRONIZE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=0 card=CARD.SYNCHRONIZE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=0 card=CARD.MOMENTUM_STRIKE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=0 card=CARD.MOMENTUM_STRIKE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR requested native upgrade eligible
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=0 upgrade=0:CARD.STRIKE_DEFECT
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=0 upgrade=0:CARD.STRIKE_DEFECT
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 relic=RELIC.PRAYER_WHEEL
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 relic=RELIC.PRAYER_WHEEL
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR no duplicate relic
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 relic=RELIC.CENTENNIAL_PUZZLE
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 relic=RELIC.CENTENNIAL_PUZZLE
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR no duplicate relic
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 potion=POTION.SPEED_POTION
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 potion=POTION.SPEED_POTION
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR potion procured
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 potion=POTION.VULNERABLE_POTION
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 potion=POTION.VULNERABLE_POTION
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR potion procured
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 card=CARD.SLICE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 card=CARD.SLICE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 card=CARD.POISONED_STAB upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 card=CARD.POISONED_STAB upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR requested native upgrade eligible
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 upgrade=1:CARD.STRIKE_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 upgrade=1:CARD.STRIKE_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR requested native upgrade eligible
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 upgrade=2:CARD.STRIKE_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 upgrade=2:CARD.STRIKE_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR requested native upgrade eligible
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=1 upgrade=10:CARD.NEUTRALIZE
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=1 upgrade=10:CARD.NEUTRALIZE
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 relic=RELIC.POTION_BELT
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 relic=RELIC.POTION_BELT
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR no duplicate relic
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 relic=RELIC.LANTERN
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 relic=RELIC.LANTERN
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR no duplicate relic
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 potion=POTION.BLOCK_POTION
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 potion=POTION.BLOCK_POTION
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR potion procured
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 card=CARD.DEADLY_POISON upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 card=CARD.DEADLY_POISON upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 card=CARD.DAGGER_THROW upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 card=CARD.DAGGER_THROW upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 card=CARD.UNTOUCHABLE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 card=CARD.UNTOUCHABLE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 card=CARD.SLICE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 card=CARD.SLICE upgrade=0
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR reward card added
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR requested native upgrade eligible
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 upgrade=2:CARD.STRIKE_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 upgrade=2:CARD.STRIKE_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR requested native upgrade eligible
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 upgrade=5:CARD.DEFEND_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 upgrade=5:CARD.DEFEND_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR requested native upgrade eligible
+[MinimalHarness pid=27616 role=client stage=boot] CHECK FIXTURE_ERROR host factory resolution: player=2 upgrade=6:CARD.DEFEND_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] FIXTURE player=2 upgrade=6:CARD.DEFEND_SILENT
+[MinimalHarness pid=27616 role=client stage=boot] OBSERVED_TRANSPORT transport=enet netId=1001
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=27616 role=client stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.SLUDGE_SPINNER_WEAK
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK FIXTURE_ERROR host factory resolution: native-map encounter=ENCOUNTER.SLUDGE_SPINNER_WEAK
+[MinimalHarness pid=27616 role=client stage=combat-entry] FIXTURE native-map encounter=ENCOUNTER.SLUDGE_SPINNER_WEAK
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-opening all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-prefix all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-discard-host all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-held-host all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] DECLARED_FAULT recorder_absence=true round=host
+[MinimalHarness pid=27616 role=client stage=combat-entry] NATIVE_UI_CALLBACK action=fuzz-accept
+[MinimalHarness pid=27616 role=client stage=combat-entry] VIEWPORT_INPUT action=fuzz-accept position=(1131, 1144)
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native viewport fuzz vote retained
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK production model replay returned with native UI and normal execution mode
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native checksums remain off while other peers replay
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native checksum probe did not generate/send/advance ID
+[MinimalHarness pid=27616 role=client stage=combat-entry] DECLARED_FAULT stale_native_checksum=true round=host
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECKSUM_ISOLATION_PROBE_PASS round=host
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz terminal native resume
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz complete native target restored
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-restored-host all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actual hand matches resolved action
+[MinimalHarness pid=27616 role=client stage=combat-entry] FUZZ_PLAY label=discard-client card=CARD.DEFEND_SILENT owner=1001
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native fuzz action enqueued
+[MinimalHarness pid=27616 role=client stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-discard-client all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-held-client all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK viewport target is selectable history
+[MinimalHarness pid=27616 role=client stage=combat-entry] VIEWPORT_INPUT action=open-picker
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK real history tiles exist
+[MinimalHarness pid=27616 role=client stage=combat-entry] NATIVE_UI_CALLBACK action=propose
+[MinimalHarness pid=27616 role=client stage=combat-entry] VIEWPORT_INPUT action=propose position=(1032.25, 858.95166)
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27616 role=client stage=combat-entry] PHASE_HOLD kind=replay round=client
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native checksums remain off while other peers replay
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native checksum probe did not generate/send/advance ID
+[MinimalHarness pid=27616 role=client stage=combat-entry] DECLARED_FAULT stale_native_checksum=true round=client
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECKSUM_ISOLATION_PROBE_PASS round=client
+[MinimalHarness pid=27616 role=client stage=combat-entry] PHASE_RELEASE kind=replay round=client
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK production model replay returned with native UI and normal execution mode
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz terminal native resume
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz complete native target restored
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-restored-client all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-discard-client2 all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-held-client2 all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] DECLARED_FAULT recorder_absence=true round=client2
+[MinimalHarness pid=27616 role=client stage=combat-entry] NATIVE_UI_CALLBACK action=fuzz-accept
+[MinimalHarness pid=27616 role=client stage=combat-entry] VIEWPORT_INPUT action=fuzz-accept position=(1131, 1144)
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native viewport fuzz vote retained
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27616 role=client stage=combat-entry] PHASE_HOLD kind=replay round=client2
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native checksums remain off while other peers replay
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK native checksum probe did not generate/send/advance ID
+[MinimalHarness pid=27616 role=client stage=combat-entry] DECLARED_FAULT stale_native_checksum=true round=client2
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECKSUM_ISOLATION_PROBE_PASS round=client2
+[MinimalHarness pid=27616 role=client stage=combat-entry] PHASE_RELEASE kind=replay round=client2
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK production model replay returned with native UI and normal execution mode
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz terminal native resume
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz complete native target restored
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-restored-client2 all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR actor matches schedule
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-action-continued all real peer native states match
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-final native roster connected
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-final avatar 1001 online
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-final avatar 1 online
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-final avatar 2001 online
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-final cursor 1 bound
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK fuzz-final cursor 2001 bound
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK TRACE_ERROR consumed complete saved trace
+[MinimalHarness pid=27616 role=client stage=combat-entry] CHECK zero native state divergences
+[MinimalHarness pid=27616 role=client stage=combat-entry] HARNESS_PASS peers=3 suite=fuzz cards=1 undos=3 selections=0 divergences=0

@@ -1,0 +1,12 @@
+{
+  "account-1": "RESTORED",
+  "account-1001": "RESTORED",
+  "account-2001": "RESTORED",
+  "account-3001": "RESTORED",
+  "mod-UndoSync": "RESTORED",
+  "mod-MinimalHarness": "RESTORED",
+  "processes": "NONE",
+  "udp33771": "FREE",
+  "all_original_hashes_verified": true,
+  "installed_undosync_sha256": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534"
+}

@@ -1,0 +1,109 @@
+{
+  "label": "final-timing-fuzz3-1",
+  "peers": 3,
+  "suite": "fuzz",
+  "seed": "MODEL_CONTENT_1",
+  "headless": true,
+  "roles": [
+    "host",
+    "client",
+    "client2"
+  ],
+  "transport": "enet",
+  "game": {
+    "commit": "41cef1ea",
+    "version": "v0.111.0",
+    "date": "2026-08-13T17:39:18-07:00",
+    "branch": "v0.111.0",
+    "main_assembly_hash": 1172974615
+  },
+  "processes": {
+    "host": {
+      "pid": 27574,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=host",
+        "--minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/model-native/final-timing-fuzz3-1",
+        "--minimal-peers=3",
+        "--minimal-suite=fuzz",
+        "--minimal-seed=MODEL_CONTENT_1",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-mixed",
+        "--minimal-phases",
+        "--minimal-speed=instant",
+        "--minimal-schedule-seed=MODEL_TIMING_1",
+        "--headless"
+      ],
+      "exit": 0
+    },
+    "client": {
+      "pid": 27616,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=client",
+        "--minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/model-native/final-timing-fuzz3-1",
+        "--minimal-peers=3",
+        "--minimal-suite=fuzz",
+        "--minimal-seed=MODEL_CONTENT_1",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1001",
+        "--minimal-mixed",
+        "--minimal-phases",
+        "--minimal-speed=instant",
+        "--minimal-schedule-seed=MODEL_TIMING_1",
+        "--headless"
+      ],
+      "exit": 0
+    },
+    "client2": {
+      "pid": 27622,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=client2",
+        "--minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/model-native/final-timing-fuzz3-1",
+        "--minimal-peers=3",
+        "--minimal-suite=fuzz",
+        "--minimal-seed=MODEL_CONTENT_1",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "2001",
+        "--minimal-mixed",
+        "--minimal-phases",
+        "--minimal-speed=instant",
+        "--minimal-schedule-seed=MODEL_TIMING_1",
+        "--headless"
+      ],
+      "exit": 0
+    }
+  },
+  "mixed_characters": true,
+  "retained_session": true,
+  "phases": true,
+  "speed": "instant",
+  "schedule_seed": "MODEL_TIMING_1",
+  "repro": null,
+  "dlls": {
+    "UndoSync": {
+      "UndoSync.dll": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "UndoSync.json": "4bea743cba74906d4bc829f23cf77eb1d3e42ce9ef9399a70f4fd93e709a7571"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "da8753772f9a636caa2e731f241e53d0b8be22f688abc5de0b8d6fdfeac269c4",
+      "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+    }
+  },
+  "verdict": "PASS",
+  "elapsed_seconds": 24.155
+}

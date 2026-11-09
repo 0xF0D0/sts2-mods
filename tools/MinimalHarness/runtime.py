@@ -89,7 +89,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
     if transport == 'steam' and peers != 1: raise ValueError('Only the single-host Steam lifetime smoke is configured here.')
     folder = root/label
     folder.mkdir()
-    roles = ['host'] if transport == 'steam' else ['ui'] if suite == 'fuzz' and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['host'] if transport == 'steam' else ['ui'] if suite in ('fuzz', 'model-probe') and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
     record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else transport, 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
     record['mixed_characters'] = mixed
@@ -209,7 +209,7 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=Path)
     parser.add_argument('--label', default='extended')
     parser.add_argument('--peers', type=int, default=4, choices=[1,2,3,4])
-    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error'])
+    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','replay-long','model-probe','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error'])
     parser.add_argument('--expect', choices=['baseline','fixed'], default='fixed')
     parser.add_argument('--fault-op', default='Done')
     parser.add_argument('--drop-side', choices=['client','host'], default='client')

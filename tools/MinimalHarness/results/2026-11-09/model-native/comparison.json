@@ -1,0 +1,140 @@
+{
+  "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+  "runs": [
+    {
+      "run": "focused-ui",
+      "pids": {
+        "ui": 15791
+      },
+      "core_sha256": "cb48ece046cce5bc60eba59fd52ecee932c1e72bf02ed116f6fb3eb37806fcca",
+      "verdict": "PASS"
+    },
+    {
+      "run": "focused-map-orbs",
+      "pids": {
+        "ui": 19397
+      },
+      "core_sha256": "faf0002d0d714006a47bc627fa1dcd7e3b9d970320a935795fb5d687dc01ebc9",
+      "verdict": "PASS"
+    },
+    {
+      "run": "focused-generated",
+      "pids": {
+        "ui": 24580
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    },
+    {
+      "run": "focused-transform",
+      "pids": {
+        "ui": 25924
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    },
+    {
+      "run": "final-mixed3",
+      "pids": {
+        "host": 26946,
+        "client": 26987,
+        "client2": 27010
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    },
+    {
+      "run": "final-timing-fuzz3-0",
+      "pids": {
+        "host": 27308,
+        "client": 27353,
+        "client2": 27376
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    },
+    {
+      "run": "final-timing-fuzz3-1",
+      "pids": {
+        "host": 27574,
+        "client": 27616,
+        "client2": 27622
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    },
+    {
+      "run": "final-timing-fuzz3-2",
+      "pids": {
+        "host": 27831,
+        "client": 27875,
+        "client2": 27896
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    },
+    {
+      "run": "final-failure3",
+      "pids": {
+        "host": 28094,
+        "client": 28136,
+        "client2": 28160
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    },
+    {
+      "run": "final-500",
+      "pids": {
+        "host": 28364,
+        "client": 28406,
+        "client2": 28427
+      },
+      "core_sha256": "efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30",
+      "verdict": "PASS"
+    }
+  ],
+  "timing_fuzz_seeds": 3,
+  "distinct_three_peer_undos_in_fuzz": 9,
+  "phase_totals": {
+    "busy_votes": 9,
+    "preparing_before_release": 9,
+    "skew_holds": 9,
+    "recorder_faults": 9
+  },
+  "500": [
+    {
+      "role": "host",
+      "pid": 28364,
+      "before_ms": 158960,
+      "after_ms": 959,
+      "core_ms": 657,
+      "event_sha256": "2DD190AF5686039ED6A70C60516D49E37CB8B1B418CB88C3D29C9F46CD6D86BB",
+      "target_sha256": "986CC0861F182E414DCC80FB2498AB0304F7612C818C7C6C777501B6C628AF0D",
+      "checksum": 172059493
+    },
+    {
+      "role": "client",
+      "pid": 28406,
+      "before_ms": 159020,
+      "after_ms": 1024,
+      "core_ms": 771,
+      "event_sha256": "2DD190AF5686039ED6A70C60516D49E37CB8B1B418CB88C3D29C9F46CD6D86BB",
+      "target_sha256": "986CC0861F182E414DCC80FB2498AB0304F7612C818C7C6C777501B6C628AF0D",
+      "checksum": 172059493
+    },
+    {
+      "role": "client2",
+      "pid": 28427,
+      "before_ms": 159016,
+      "after_ms": 1024,
+      "core_ms": 754,
+      "event_sha256": "2DD190AF5686039ED6A70C60516D49E37CB8B1B418CB88C3D29C9F46CD6D86BB",
+      "target_sha256": "986CC0861F182E414DCC80FB2498AB0304F7612C818C7C6C777501B6C628AF0D",
+      "checksum": 172059493
+    }
+  ],
+  "before_max_ms": 159020,
+  "after_max_ms": 1024,
+  "same_event_and_target_hashes": true
+}

@@ -1,10 +1,16 @@
 using HarmonyLib;
 using Godot;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
+using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer;
@@ -14,6 +20,9 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Replay;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
+using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Rooms;
@@ -32,6 +41,8 @@ internal static class Replay
     private static string? _lobbyId;
     private static bool _shouldSave;
     internal static bool NativeResumed { get; private set; }
+    internal static bool ModelOnly { get; private set; }
+    private static int _skippedPileVisuals, _skippedCardNodes, _skippedDamageNumbers, _skippedPreviews, _skippedTransformVisuals;
     internal static bool SuppressNative => Network.Executing && !NativeResumed;
     internal static int PreservedDisconnects { get; private set; }
     internal static int SuppressedChecksumCalls { get; private set; }
@@ -128,6 +139,7 @@ internal static class Replay
         }
         finally
         {
+            ModelOnly = false;
             prefs.FastMode = speed;
             Hooks.Log($"REPLAY_SPEED_RESTORED mode={speed}");
         }
@@ -188,6 +200,9 @@ internal static class Replay
         await oldExecutor.FinishedExecutingActions().WaitAsync(token);
         token.ThrowIfCancellationRequested();
 
+        ModelOnly = true;
+        _skippedPileVisuals = _skippedCardNodes = _skippedDamageNumbers = _skippedPreviews = _skippedTransformVisuals = 0;
+        Hooks.Log("MODEL_REPLAY_BEGIN");
         var state = RunState.FromSerializable(replay.serializableRun);
         Network.ReportProgress("restore-owners");
         if (role == NetGameType.Singleplayer)
@@ -224,7 +239,6 @@ internal static class Replay
         await PreloadManager.LoadActAssets(state.Act);
         token.ThrowIfCancellationRequested();
         manager.Launch();
-        NGame.Instance!.RootSceneContainer.SetCurrentScene(NRun.Create(state));
         await manager.GenerateMap();
         Network.ReportProgress("restore-room");
         manager.ActionQueueSet.FastForwardNextActionId(replay.nextActionId);
@@ -274,7 +288,7 @@ internal static class Replay
                 default: throw new InvalidOperationException($"Unknown replay event {entry.eventType}");
             }
         }
-        // Two idle frames ensure callbacks and the UI play queue have drained.
+        // Drain model callbacks before constructing any native combat UI.
         Network.ReportProgress("replay-idle");
         await WaitUntilAsync(Hooks.IsReplayIdle, token);
         await Frame(token);
@@ -283,9 +297,130 @@ internal static class Replay
         // Pure hash overload: no native packet, tracked checksum or NextId
         // advance. Native traffic stays suppressed until all Done values match.
         uint checksum = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
+        ModelOnly = false;
+        Network.ReportProgress("restore-ui");
+        await UI.AttachRestoredCombatAsync(state, token);
+        token.ThrowIfCancellationRequested();
+        uint attached = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
+        if (attached != checksum) throw new InvalidOperationException("Combat UI attachment changed the restored model.");
+        Hooks.Log($"MODEL_UI_ATTACHED checksum={checksum} pileVisuals={_skippedPileVisuals} cardNodes={_skippedCardNodes} damageNumbers={_skippedDamageNumbers} previews={_skippedPreviews} transforms={_skippedTransformVisuals}");
         Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum} "
             + $"restoreMs={replayStarted - restoreStarted} replayMs={Time.GetTicksMsec() - replayStarted} totalMs={Time.GetTicksMsec() - restoreStarted}");
         return checksum;
+    }
+
+    // These verified native helpers only present model changes. Do not skip
+    // CardPileCmd.Add/Shuffle or their model hooks, and do not enable TestMode.
+    [HarmonyPatch(typeof(RunManager), "ClearScreens")]
+    private static class AbsentScreens
+    {
+        private static bool Prefix() => !ModelOnly;
+    }
+
+    [HarmonyPatch(typeof(CardPileCmd), "CreateCardNodeAndUpdateVisuals")]
+    private static class CardVisual
+    {
+        private static bool Prefix(ref NCard __result)
+        {
+            if (!ModelOnly) return true;
+            _skippedCardNodes++;
+            __result = null!;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(CardPileCmd), nameof(CardPileCmd.GetTweenForCardsChangingPiles), new[] { typeof(IEnumerable<CardPileAddResult>), typeof(bool) })]
+    private static class PileVisuals
+    {
+        private static bool Prefix(IEnumerable<CardPileAddResult> results, bool fromSilentAdd, ref (Tween?, bool) __result)
+        {
+            if (!ModelOnly) return true;
+            _skippedPileVisuals++;
+            // Native silent moves postpone these public events to this helper.
+            // Preserve them while omitting card nodes, trails and tween callbacks.
+            if (fromSilentAdd)
+                foreach (var result in results.Where(result => result.success))
+                {
+                    result.oldPile?.InvokeCardRemoved(result.cardAdded);
+                    result.oldPile?.InvokeCardRemoveFinished();
+                    result.oldPile?.InvokeContentsChanged();
+                }
+            __result = (null, false); // No tween and no animation requiring pacing.
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(NDamageNumVfx), nameof(NDamageNumVfx.Create), new[] { typeof(Vector2), typeof(int) })]
+    private static class DamageNumber
+    {
+        private static bool Prefix(ref NDamageNumVfx __result)
+        {
+            if (!ModelOnly) return true;
+            _skippedDamageNumbers++;
+            __result = null!;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(CardCmd), "PreviewInternal")]
+    private static class CardPreview
+    {
+        private static bool Prefix(ref TaskCompletionSource? __result)
+        {
+            if (!ModelOnly) return true;
+            _skippedPreviews++;
+            __result = null; // The native no-preview return value.
+            return false;
+        }
+    }
+
+    private static bool ShowTransformedCard(CardModel card)
+    {
+        if (!ModelOnly) return LocalContext.IsMine(card);
+        _skippedTransformVisuals++;
+        return false;
+    }
+
+    [HarmonyPatch]
+    private static class TransformedCardVisuals
+    {
+        private static MethodBase TargetMethod()
+        {
+            var method = AccessTools.Method(typeof(CardCmd), nameof(CardCmd.Transform),
+                new[] { typeof(IEnumerable<CardTransformation>), typeof(Rng), typeof(CardPreviewStyle) });
+            return method.GetCustomAttribute<AsyncStateMachineAttribute>()!.StateMachineType
+                .GetMethod(nameof(IAsyncStateMachine.MoveNext), BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!;
+        }
+
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var mine = AccessTools.Method(typeof(LocalContext), nameof(LocalContext.IsMine), new[] { typeof(CardModel) });
+            int matches = 0;
+            foreach (var instruction in instructions)
+            {
+                // Verified single IsMine call guards only Transform's VFX loop.
+                // Keep native transformations, pile order, hooks and removal.
+                if (instruction.Calls(mine))
+                {
+                    instruction.operand = AccessTools.Method(typeof(Replay), nameof(ShowTransformedCard));
+                    matches++;
+                }
+                yield return instruction;
+            }
+            if (matches != 1) throw new InvalidOperationException("Native card transform visual guard changed.");
+        }
+    }
+
+    [HarmonyPatch(typeof(CreatureCmd), nameof(CreatureCmd.TriggerAnim))]
+    private static class CreatureAnimation
+    {
+        private static bool Prefix(ref Task __result)
+        {
+            if (!ModelOnly) return true;
+            // Native code already returns when the creature node is absent.
+            __result = Task.CompletedTask;
+            return false;
+        }
     }
 
     internal static async Task WaitUntilAsync(Func<bool> condition, CancellationToken token, INetGameService? pump = null)
@@ -319,6 +454,7 @@ internal static class Replay
 
     internal static void Clear()
     {
+        ModelOnly = false;
         foreach (var choice in Choices.Values) choice.TrySetCanceled();
         Choices.Clear(); Actions.Clear(); _transport = null; _nativeTransport = null; _lobbyId = null; NativeResumed = false;
     }

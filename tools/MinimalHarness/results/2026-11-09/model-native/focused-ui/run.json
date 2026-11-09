@@ -1,0 +1,60 @@
+{
+  "label": "focused-ui",
+  "peers": 1,
+  "suite": "model-probe",
+  "seed": "MODEL_PROBE_A",
+  "headless": false,
+  "roles": [
+    "ui"
+  ],
+  "transport": "singleplayer",
+  "game": {
+    "commit": "41cef1ea",
+    "version": "v0.111.0",
+    "date": "2026-08-13T17:39:18-07:00",
+    "branch": "v0.111.0",
+    "main_assembly_hash": 1172974615
+  },
+  "processes": {
+    "ui": {
+      "pid": 15791,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=ui",
+        "--minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/model-native/focused-ui",
+        "--minimal-peers=1",
+        "--minimal-suite=model-probe",
+        "--minimal-seed=MODEL_PROBE_A",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-speed=instant",
+        "--windowed",
+        "--resolution",
+        "1280x720"
+      ],
+      "exit": 0
+    }
+  },
+  "mixed_characters": false,
+  "retained_session": false,
+  "phases": false,
+  "speed": "instant",
+  "schedule_seed": null,
+  "repro": null,
+  "dlls": {
+    "UndoSync": {
+      "UndoSync.dll": "cb48ece046cce5bc60eba59fd52ecee932c1e72bf02ed116f6fb3eb37806fcca",
+      "UndoSync.json": "4bea743cba74906d4bc829f23cf77eb1d3e42ce9ef9399a70f4fd93e709a7571"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "ade8f7b316ef5ececf7b50d04d476450f988fd1e3183d56f0af44e1b7f87cf48",
+      "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+    }
+  },
+  "verdict": "PASS",
+  "elapsed_seconds": 31.896
+}

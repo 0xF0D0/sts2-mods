@@ -1,0 +1,69 @@
+OK exactly five production modules
+OK manifest identity
+OK unambiguous patch Cmd.Wait
+OK LiveWaitPatch result injection
+OK unambiguous patch Cmd.CustomScaledWait
+OK LiveScaledWaitPatch result injection
+OK unambiguous patch CombatReplayWriter.RecordInitialState
+OK HeaderPatch instance injection
+OK unambiguous patch RunManager.CleanUp
+OK unambiguous patch ActionQueueSynchronizer.RequestEnqueue
+OK unambiguous patch ActionQueueSynchronizer.RequestEnqueueHookAction
+OK unambiguous patch ActionQueueSynchronizer.RequestResumeActionAfterPlayerChoice
+OK unambiguous patch NGame._Input
+OK InputPatch named parameter inputEvent
+OK unambiguous patch ActionQueueSet.EnqueueWithoutSynchronizing
+OK unambiguous patch ActionQueueSet.ResumeActionWithoutSynchronizing
+OK unambiguous patch PlayerChoiceSynchronizer.SyncLocalChoice
+OK unambiguous patch CardSelectCmd.ShouldSelectLocalCard
+OK CardChoiceGate result injection
+OK unambiguous patch RelicSelectCmd.ShouldSelectLocalRelic
+OK RelicChoiceGate result injection
+OK unambiguous patch PlayerChoiceSynchronizer.WaitForRemoteChoice
+OK ChoiceWaitPatch named parameter player
+OK ChoiceWaitPatch named parameter choiceId
+OK ChoiceWaitPatch result injection
+OK unambiguous patch NetHostGameService.Disconnect
+OK PreserveHost instance injection
+OK unambiguous patch NetClientGameService.Disconnect
+OK PreserveClient instance injection
+OK unambiguous patch NetMessageBus.SendMessageToAllHandlers
+OK ReplayReceiveGate named parameter message
+OK unambiguous patch ChecksumTracker.GenerateChecksum
+OK unambiguous patch RunManager.ClearScreens
+OK unambiguous patch CardPileCmd.CreateCardNodeAndUpdateVisuals
+OK CardVisual result injection
+OK unambiguous patch CardPileCmd.GetTweenForCardsChangingPiles
+OK PileVisuals named parameter results
+OK PileVisuals named parameter fromSilentAdd
+OK PileVisuals result injection
+OK unambiguous patch NDamageNumVfx.Create
+OK DamageNumber result injection
+OK unambiguous patch CardCmd.PreviewInternal
+OK CardPreview result injection
+OK explicitly audited dynamic patch
+OK native Transform async visual patch target
+OK unambiguous patch CreatureCmd.TriggerAnim
+OK CreatureAnimation result injection
+OK unambiguous patch NCombatRoom._Ready
+OK RestoredCombatUi instance injection
+OK all 26 Harmony targets checked (actual 26)
+OK reflection member CombatReplayWriter._replay
+OK reflection member ActionQueueSet._actionQueues
+OK reflection member NCardPlayQueue._playQueue
+OK reflection member RunManager.ShouldSave
+OK reflection member NCard._titleLabel
+OK reflection member NCard._descriptionLabel
+OK reflection member NCard._typeLabel
+OK reflection member NPopupYesNoButton._visuals
+OK reflection member NPopupYesNoButton._outline
+OK reflection member NPopupYesNoButton._image
+OK reflection member NPopupYesNoButton._label
+OK reflection member NPopupYesNoButton._hsv
+OK reflection member NPopupYesNoButton._outlineMaterial
+OK reflection UI callback NEndTurnButton.OnTurnStarted(CombatState)
+OK literal queue contains GameAction
+OK discoverable native wire message
+OK mod initializer
+PASS metadata-only: five modules, manifest, 26 patch targets and injected parameters, 15 reflection surfaces, message, initializer.
+NOT TESTED: Harmony installation, Godot UI, serialization execution, replay, network transport or gameplay.

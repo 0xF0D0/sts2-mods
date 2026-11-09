@@ -542,3 +542,45 @@ release remains v0.1.10; v0.1.11 exists only as a local candidate package.
 The user subsequently authorized publishing the ENet-verified v0.1.11 candidate
 for direct testing. No additional Steam gameplay acceptance is claimed. Package
 DLL SHA256 remains identical to the final retained-session test build above.
+
+## UI-free model replay integration, 2026-11-09
+
+User authorized moving the successful model-only prototype into production.
+Replay and UI implement the change within the existing five modules. Native
+run/combat UI is absent during recorded action playback and created once at the
+end. No global TestMode, engine speed change or transport replacement is used.
+Historical choices, native model effects and final checksum consensus remain.
+
+Candidate DLL SHA256:
+`efa9c8c914fe0401fc22eee5809ca7cce7a582b91f0e2b938427ca2e9b34ea30`.
+Build and MinimalCheck pass (26 patch targets, 15 reflection surfaces). Focused
+rendered tests cover repeat undo, real viewport input, generated Anger cards,
+Primal Force hand transformation, map display, current orb bindings and native
+Dualcast after undo. The former harness implementation adapters were removed;
+the model helper now observes production execution rather than replacing it.
+
+Final three-native-peer integration includes Toolbox choices/all four replay
+event kinds/enemy turns, three content/timing-fuzz seeds with nine distinct
+three-peer undo operations, and declared replay failure/cancellation cleanup.
+All final scenarios reach terminal PASS. Successful operations report no state
+divergences, session replacements or reconnects. Failure cleanup resets ModelOnly.
+
+Final 500-action run PIDs 28364/28406/28427: exact same event bytes and target
+native state as released v0.1.14 baseline; checksum 172059493 on all peers.
+Maximum input-ready time is 1.024s versus 159.020s in the baseline. One measured
+Finesse trace per variant, not an all-content performance guarantee. Per-peer
+logs, hashes, counters, screenshots, before/after measurements, log diagnostic
+classification and untested surfaces are recorded in
+`tools/MinimalHarness/results/2026-11-09/model-native/report.md`.
+
+Installed mod/default test accounts restored to original verified hashes after
+all games exited; no harness/process/33771 listener remains. The original
+installed v0.1.14 remains installed. No commit or publication was requested or
+performed. Remote Steam/P2P and exhaustive content coverage remain unverified.
+
+The user subsequently authorized releasing this implementation as v0.1.15.
+The release ZIP and staged Workshop payload were checked against the exact
+tested DLL SHA256 above. Only the external manifest version changed; packaging
+did not change the DLL. Release notes retain the bounded ENet measurement and
+Steam gameplay exclusions. The existing Workshop item and approved image are
+preserved.

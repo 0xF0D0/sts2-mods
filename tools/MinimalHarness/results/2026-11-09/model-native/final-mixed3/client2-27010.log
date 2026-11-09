@@ -1,0 +1,83 @@
+[MinimalHarness pid=27010 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=27010 role=client2 stage=startup] CHECK supported test speed
+[MinimalHarness pid=27010 role=client2 stage=startup] CHECK native TestMode remains off
+[MinimalHarness pid=27010 role=client2 stage=startup] TEST_SPEED mode=normal testMode=False
+[MinimalHarness pid=27010 role=client2 stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=27010 role=client2 stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=27010 role=client2 stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=27010 role=client2 stage=boot] CHECK native shop factory produced Toolbox fixture
+[MinimalHarness pid=27010 role=client2 stage=boot] OBSERVED_TRANSPORT transport=enet netId=2001
+[MinimalHarness pid=27010 role=client2 stage=combat-entry] NATIVE_SELECTION player=2001 choice=0 count=1
+[MinimalHarness pid=27010 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=27010 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=27010 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.CORPSE_SLUGS_WEAK
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK user speed is Normal outside replay
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] PLAY card=CARD.SURVIVOR owner=2001 events=13
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK native manual card accepted
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] NATIVE_SELECTION player=2001 choice=1 count=1
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK post-action native state available
+[MinimalHarness pid=27010 role=client2 stage=replay-speed-prefix] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] TURN_ADVANCED from=1 to=2
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK speed-enemy-turn-end all real peer native states match
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] PLAY card=CARD.DEFEND_SILENT owner=2001 events=24
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK native manual card accepted
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK post-action native state available
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK benchmark includes native GameAction
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK benchmark includes native HookAction
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK benchmark includes native ResumeAction
+[MinimalHarness pid=27010 role=client2 stage=speed-enemy-turn] CHECK benchmark includes native PlayerChoice
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] OBSERVED_REBUILD_SPEED mode=Instant
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK production model replay returned with native UI and normal execution mode
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK speed-undo-0 terminal resume: Undo complete
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK speed-undo-0 exact target state and history truncation
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK speed-undo-0 replay did not invoke the live choice selector
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK speed-undo-0-resumed all real peer native states match
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK reconstruction uses Instant from a Normal user setting
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK Normal speed restored after undo
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-0] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] OBSERVED_REBUILD_SPEED mode=Instant
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK MODEL_ACTION_WITHOUT_COMBAT_UI production=true testMode=false
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK production model replay returned with native UI and normal execution mode
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK late orb slots and model identities match native queue
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK speed-undo-1 terminal resume: Undo complete
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK speed-undo-1 exact target state and history truncation
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK speed-undo-1 replay did not invoke the live choice selector
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK speed-undo-1-resumed all real peer native states match
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK reconstruction uses Instant from a Normal user setting
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK Normal speed restored after undo
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK idle native player phase
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK continued live gameplay retains Normal speed
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK speed-final all real peer native states match
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] CHECK zero native state divergences
+[MinimalHarness pid=27010 role=client2 stage=speed-undo-1] HARNESS_PASS peers=3 suite=replay-speed cards=2 undos=2 selections=2 divergences=0
