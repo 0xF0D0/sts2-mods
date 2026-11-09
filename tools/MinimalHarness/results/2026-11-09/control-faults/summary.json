@@ -1,0 +1,131 @@
+{
+  "scope": "real local ENet only; no Steam acceptance",
+  "game": "v0.111.0 / 41cef1ea",
+  "core_sha256": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534",
+  "cases": {
+    "accepted-peer-error3": {
+      "verdict": "PASS",
+      "pids": {
+        "host": 10369,
+        "client": 10397,
+        "client2": 10418
+      },
+      "elapsed_seconds": 19.646,
+      "undos_per_peer": {
+        "host": 0,
+        "client": 0,
+        "client2": 0
+      },
+      "logs": {
+        "host": "host-10369.log",
+        "client": "client-10397.log",
+        "client2": "client2-10418.log"
+      }
+    },
+    "accepted-old-action3": {
+      "verdict": "PASS",
+      "pids": {
+        "host": 10568,
+        "client": 10611,
+        "client2": 10634
+      },
+      "elapsed_seconds": 18.631,
+      "undos_per_peer": {
+        "host": 1,
+        "client": 1,
+        "client2": 1
+      },
+      "logs": {
+        "host": "host-10568.log",
+        "client": "client-10611.log",
+        "client2": "client2-10634.log"
+      }
+    },
+    "accepted-disconnect3": {
+      "verdict": "PASS",
+      "pids": {
+        "host": 10766,
+        "client": 10809,
+        "client2": 10834
+      },
+      "elapsed_seconds": 16.638,
+      "undos_per_peer": {
+        "host": 0,
+        "client": 0,
+        "client2": 0
+      },
+      "logs": {
+        "host": "host-10766.log",
+        "client": "client-10809.log",
+        "client2": "client2-10834.log"
+      }
+    },
+    "accepted-control-matrix3": {
+      "verdict": "PASS",
+      "pids": {
+        "host": 10942,
+        "client": 10982,
+        "client2": 11008
+      },
+      "elapsed_seconds": 55.772,
+      "undos_per_peer": {
+        "host": 14,
+        "client": 14,
+        "client2": 14
+      },
+      "logs": {
+        "host": "host-10942.log",
+        "client": "client-10982.log",
+        "client2": "client2-11008.log"
+      },
+      "dropped_cases": 14,
+      "duplicate_receipts": 28
+    },
+    "accepted-regression4": {
+      "verdict": "PASS",
+      "pids": {
+        "host": 11524,
+        "client": 11569,
+        "client2": 11590,
+        "client3": 11594
+      },
+      "elapsed_seconds": 23.181,
+      "undos_per_peer": {
+        "host": 4,
+        "client": 4,
+        "client2": 4,
+        "client3": 4
+      },
+      "logs": {
+        "host": "host-11524.log",
+        "client": "client-11569.log",
+        "client2": "client2-11590.log",
+        "client3": "client3-11594.log"
+      }
+    },
+    "accepted-old-action-normal3": {
+      "verdict": "PASS",
+      "pids": {
+        "host": 12014,
+        "client": 12062,
+        "client2": 12066
+      },
+      "elapsed_seconds": 22.64,
+      "speed_after_replay": "Normal",
+      "undos_per_peer": {
+        "host": 1,
+        "client": 1,
+        "client2": 1
+      }
+    }
+  },
+  "cleanup": {
+    "game_processes": "NONE",
+    "task_harness_removed": true,
+    "task_created_accounts_removed": true,
+    "original_restore": "INCOMPLETE: missing original local DLL/settings/diagnostic replay backups",
+    "current_local_dll": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534",
+    "release": "NOT_PUBLISHED",
+    "steam_accounts": "UNMODIFIED"
+  }
+}

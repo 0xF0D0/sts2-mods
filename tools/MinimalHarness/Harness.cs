@@ -70,7 +70,7 @@ public static class Harness
     private static int _peers = 2, _selections, _generation;
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
-    private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss";
+    private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
     private static CharacterModel Character => CommandLineHelper.HasArg("minimal-mixed")
         ? (_role == "host" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
         ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>();
@@ -130,6 +130,11 @@ public static class Harness
         {
             _generation++;
             var service = Manager.NetService;
+            if (Network.Executing && _suite is "replay-speed-baseline" or "replay-speed")
+            {
+                _rebuildSpeed = SaveManager.Instance.PrefsSave.FastMode;
+                Log("OBSERVED_REBUILD_SPEED mode=" + _rebuildSpeed);
+            }
             if (service.Type is NetGameType.Host or NetGameType.Client)
             {
                 if (_initialService is null)
@@ -139,7 +144,7 @@ public static class Harness
                     if (service is NetHostGameService host)
                     {
                         host.ClientConnected += _ => { if (Network.Busy) _connectionsOpened++; };
-                        host.ClientDisconnected += (_, _) => { if (Network.Busy) _connectionsClosed++; };
+                        host.ClientDisconnected += (peer, reason) => { if (Network.Busy) _connectionsClosed++; Log($"NATIVE_CLIENT_DISCONNECTED peer={peer} reason={reason}"); };
                     }
                     if (service is NetClientGameService client)
                         client.ConnectedToHost += () => { if (Network.Busy) _connectionsOpened++; };
@@ -267,6 +272,9 @@ public static class Harness
             else if (_suite == "picker-remote") await PickerRemoteAsync();
             else if (_suite == "ended-voter") await EndedVoterAsync();
             else if (_suite == "restoring-ui") await RestoringUiAsync();
+            else if (_suite is "replay-speed-baseline" or "replay-speed") await ReplaySpeedAsync();
+            else if (_suite == "replay-speed-cancel") await ReplaySpeedCancelAsync();
+            else if (_suite.StartsWith("fault-")) await FaultScenarios.Run(_suite);
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
             else if (_suite == "localization-ui") await LocalizationUiAsync();
@@ -294,7 +302,7 @@ public static class Harness
                 verdict = exit == 0 ? "PASS" : "FAIL", failure = _failure,
                 cards = _cards, undos = _undos, selections = _selections, divergences = _divergences,
                 viewport_inputs = _viewportInputs, native_callbacks = _nativeCallbacks, target_checks = _targetChecks,
-                final_state_sha256 = exit == 0 ? Snapshot() : null,
+                final_state_sha256 = exit == 0 && Manager.IsInProgress ? Snapshot() : null,
                 post_replay_actions = _postReplayActions, phase_coverage = FuzzDriver.Coverage,
                 session_replacements = _sessionReplacements, connections_opened = _connectionsOpened,
                 connections_closed = _connectionsClosed, native_checksums_during_replay = _checksumsDuringReplay,
@@ -399,7 +407,7 @@ public static class Harness
         await NGame.Instance.Transition.FadeIn(0.05f);
     }
 
-    private static async Task PlayOne(bool attack = false)
+    internal static async Task PlayOne(bool attack = false)
     {
         await Idle();
         var player = LocalContext.GetMe(State)!;
@@ -621,6 +629,64 @@ public static class Harness
         await Barrier("ended-voter-terminal");
     }
 
+    private static FastModeType? _rebuildSpeed;
+    private static async Task ReplaySpeedAsync()
+    {
+        _stage = "replay-speed-prefix";
+        Require(SaveManager.Instance.PrefsSave.FastMode == FastModeType.Normal, "user speed is Normal outside replay");
+        foreach (string role in Roles) await Actor("speed-prefix-" + role, role);
+        await EndTurnAll("speed-enemy-turn");
+        foreach (string role in Roles) await Actor("speed-turn2-" + role, role);
+        int target = History.Count;
+        string expected = Snapshot();
+        await Actor("speed-extra-first", "host");
+        var prefix = History.Freeze(target);
+        foreach (var kind in new[] { CombatReplayEventType.GameAction, CombatReplayEventType.HookAction,
+            CombatReplayEventType.ResumeAction, CombatReplayEventType.PlayerChoice })
+            Require(prefix.events.Any(e => e.eventType == kind), "benchmark includes native " + kind);
+        var eventWriter = new PacketWriter();
+        foreach (var entry in prefix.events) eventWriter.Write(entry);
+        string eventHash = Convert.ToHexString(SHA256.HashData(eventWriter.Buffer.AsSpan(0, eventWriter.BytePosition)));
+        var samples = new List<object>();
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            if (attempt > 0) await Actor("speed-extra-second", "host");
+            _rebuildSpeed = null;
+            ulong started = Time.GetTicksMsec();
+            await UndoTo(target, expected, attempt == 0 ? "host" : Roles[^1], "speed-undo-" + attempt);
+            ulong elapsed = Time.GetTicksMsec() - started;
+            var wanted = _suite == "replay-speed-baseline" ? FastModeType.Normal : FastModeType.Instant;
+            Require(_rebuildSpeed == wanted, "reconstruction uses " + wanted + " from a Normal user setting");
+            Require(SaveManager.Instance.PrefsSave.FastMode == FastModeType.Normal, "Normal speed restored after undo");
+            samples.Add(new { attempt, events = target, event_sha256 = eventHash, target_sha256 = expected, elapsed_ms = elapsed, rebuild_speed = _rebuildSpeed.ToString() });
+        }
+        File.WriteAllText(Path.Combine(_directory, "speed." + _role + ".json"), JsonSerializer.Serialize(samples));
+        await Actor("speed-post-replay", "client", attack: true);
+        Require(SaveManager.Instance.PrefsSave.FastMode == FastModeType.Normal, "continued live gameplay retains Normal speed");
+        await StateBarrier("speed-final");
+        await Barrier("speed-terminal");
+    }
+
+    private static async Task ReplaySpeedCancelAsync()
+    {
+        _stage = "replay-speed-cancel";
+        var speed = SaveManager.Instance.PrefsSave.FastMode;
+        await PlayOne(attack: true);
+        int target = History.Count;
+        await PlayOne();
+        _delayApplied = false;
+        await RequestViaViewport(target);
+        await Wait(() => Control.Read("cancel-replay-held") is not null);
+        Require(SaveManager.Instance.PrefsSave.FastMode == FastModeType.Instant, "replay uses Instant before cancellation");
+        Network.Fail("Declared cancellation during speed-restoration test");
+        await Wait(() => !Network.Busy && !Manager.IsInProgress && NGame.Instance!.MainMenu is not null, 30);
+        Require(SaveManager.Instance.PrefsSave.FastMode == speed, "original user speed restored after cancelled replay");
+        Require(NGame.Instance!.GetNodeOrNull("UndoSyncRestoring") is null, "cancelled replay removes restoration overlay");
+        await Control.Put("cancel-release", "true");
+        await Wait(() => Control.Read("cancel-old-task-finished") is not null);
+        Log("EXPECTED_REPLAY_CANCELLATION restoredSpeed=" + speed);
+    }
+
     private static string _restoringLanguage = "";
     private static async Task RestoringUiAsync()
     {
@@ -631,6 +697,8 @@ public static class Harness
         {
             _stage = "restoring-ui-" + language;
             _restoringLanguage = language;
+            var originalSpeed = SaveManager.Instance.PrefsSave.FastMode;
+            bool transitionVisible = NGame.Instance!.Transition.Visible;
             LocManager.Instance.SetLanguage(language);
             _delayApplied = false;
             await PlayOne();
@@ -654,6 +722,8 @@ public static class Harness
             Require(!GodotObject.IsInstanceValid(layer) && NGame.Instance.GetNodeOrNull("UndoSyncRestoring") is null,
                 "restoration overlay is removed after undo");
             Require(History.Count == target && Snapshot() == expected, "overlay leaves exact restored state unchanged");
+            Require(SaveManager.Instance.PrefsSave.FastMode == originalSpeed, "UI replay restores the user's speed");
+            Require(NGame.Instance.Transition.Visible == transitionVisible, "replay preserves visibility of future native transitions");
             RecordUndo();
         }
         await PlayOne(attack: true);
@@ -879,7 +949,7 @@ public static class Harness
             label + " all real peer native states match");
     }
 
-    private static async Task Actor(string label, string role, bool attack = false)
+    internal static async Task Actor(string label, string role, bool attack = false)
     {
         if (_role == role) { await PlayOne(attack); await Mark(label); }
         await Wait(() => Marked(label, role));
@@ -948,6 +1018,12 @@ public static class Harness
     {
         private static void Postfix(ref Task __result)
         {
+            if (_suite == "replay-speed-cancel" && Network.Executing && !_delayApplied)
+            {
+                _delayApplied = true;
+                __result = HoldCancelledReplayAsync(__result);
+                return;
+            }
             if (_suite == "restoring-ui" && Network.Executing && !_delayApplied)
             {
                 _delayApplied = true;
@@ -963,6 +1039,14 @@ public static class Harness
             if (_suite != "speed-skew" || !Network.Executing || _role != _slowRole || _delayApplied) return;
             _delayApplied = true;
             __result = DelayAsync(__result);
+        }
+
+        private static async Task HoldCancelledReplayAsync(Task original)
+        {
+            await original;
+            await Control.Put("cancel-replay-held", "true");
+            await Wait(() => Control.Read("cancel-release") is not null, 30);
+            await Control.Put("cancel-old-task-finished", "true");
         }
 
         private static async Task CaptureRestoringAsync(Task original)

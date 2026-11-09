@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "verdict": "PASS",
+  "transport": "enet",
+  "suite": "fault-send-matrix",
+  "core_sha256": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534",
+  "harness_sha256": "979ab2bf7c3ad36fa32d8ccc1b4d34dcef03ae5e4fc6f1b18344e80e778bc7f9",
+  "roles": [
+    "host",
+    "client",
+    "client2"
+  ],
+  "participants": {
+    "host": {
+      "schema": 1,
+      "role": "host",
+      "pid": 10942,
+      "suite": "fault-send-matrix",
+      "speed": "Instant",
+      "transport": "enet",
+      "net_id": "1",
+      "peers": 3,
+      "verdict": "PASS",
+      "failure": null,
+      "cards": 28,
+      "undos": 14,
+      "selections": 0,
+      "divergences": 0,
+      "viewport_inputs": 0,
+      "native_callbacks": 0,
+      "target_checks": 14,
+      "final_state_sha256": "BF13D4F4BFF2DF9057360DB88A40F6D5EA0D1B4A823D114A533B2185DB6BDCE8",
+      "post_replay_actions": 27,
+      "phase_coverage": {
+        "busy_votes": 0,
+        "preparing_before_release": 0,
+        "skew_holds": 0,
+        "recorder_faults": 0
+      },
+      "session_replacements": 0,
+      "connections_opened": 0,
+      "connections_closed": 0,
+      "native_checksums_during_replay": 0,
+      "preserved_disconnects": 14,
+      "suppressed_checksum_calls": 14,
+      "dropped_checksum_messages": 0,
+      "core_sha256": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534",
+      "harness_sha256": "979ab2bf7c3ad36fa32d8ccc1b4d34dcef03ae5e4fc6f1b18344e80e778bc7f9"
+    },
+    "client": {
+      "schema": 1,
+      "role": "client",
+      "pid": 10982,
+      "suite": "fault-send-matrix",
+      "speed": "Instant",
+      "transport": "enet",
+      "net_id": "1001",
+      "peers": 3,
+      "verdict": "PASS",
+      "failure": null,
+      "cards": 14,
+      "undos": 14,
+      "selections": 0,
+      "divergences": 0,
+      "viewport_inputs": 0,
+      "native_callbacks": 0,
+      "target_checks": 14,
+      "final_state_sha256": "BF13D4F4BFF2DF9057360DB88A40F6D5EA0D1B4A823D114A533B2185DB6BDCE8",
+      "post_replay_actions": 13,
+      "phase_coverage": {
+        "busy_votes": 0,
+        "preparing_before_release": 0,
+        "skew_holds": 0,
+        "recorder_faults": 0
+      },
+      "session_replacements": 0,
+      "connections_opened": 0,
+      "connections_closed": 0,
+      "native_checksums_during_replay": 0,
+      "preserved_disconnects": 14,
+      "suppressed_checksum_calls": 14,
+      "dropped_checksum_messages": 0,
+      "core_sha256": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534",
+      "harness_sha256": "979ab2bf7c3ad36fa32d8ccc1b4d34dcef03ae5e4fc6f1b18344e80e778bc7f9"
+    },
+    "client2": {
+      "schema": 1,
+      "role": "client2",
+      "pid": 11008,
+      "suite": "fault-send-matrix",
+      "speed": "Instant",
+      "transport": "enet",
+      "net_id": "2001",
+      "peers": 3,
+      "verdict": "PASS",
+      "failure": null,
+      "cards": 0,
+      "undos": 14,
+      "selections": 0,
+      "divergences": 0,
+      "viewport_inputs": 0,
+      "native_callbacks": 0,
+      "target_checks": 14,
+      "final_state_sha256": "BF13D4F4BFF2DF9057360DB88A40F6D5EA0D1B4A823D114A533B2185DB6BDCE8",
+      "post_replay_actions": 0,
+      "phase_coverage": {
+        "busy_votes": 0,
+        "preparing_before_release": 0,
+        "skew_holds": 0,
+        "recorder_faults": 0
+      },
+      "session_replacements": 0,
+      "connections_opened": 0,
+      "connections_closed": 0,
+      "native_checksums_during_replay": 0,
+      "preserved_disconnects": 14,
+      "suppressed_checksum_calls": 14,
+      "dropped_checksum_messages": 0,
+      "core_sha256": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534",
+      "harness_sha256": "979ab2bf7c3ad36fa32d8ccc1b4d34dcef03ae5e4fc6f1b18344e80e778bc7f9"
+    }
+  },
+  "sessions": {
+    "bbddd88ed9454f24bf0bae6d9e8f165b": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "0b4c635db46148a2b23273cecc2d0c7d": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "995a3f62d3964a08b11656e0f3469bb3": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "fb892033203f4fd183f1e2ef216691f6": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "b358566f9ed346f181f254686b3e50e9": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "2fe9ca65827947a994a88688d2cce8a4": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "98ef345b3adf4098a873b68cf82984a0": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "6841e8d8b0d34f34a6f9eed6ecc38687": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "825d0921875744ae8ab7641794536c64": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "41c28361aa5b46d7a940a6b35d5d7e25": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "c9de12603bc940b4806c9d1f3d3aa161": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "8e2301bffaa241a4a1579adeab588a0c": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "22217932ca904101adf5bb8cab6cf2c1": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    },
+    "25f69e283c574ef394ba5e8195093b3f": {
+      "host": "4058208785",
+      "client": "4058208785",
+      "client2": "4058208785"
+    }
+  },
+  "issues": [],
+  "input_requirement": null,
+  "content_coverage": null
+}

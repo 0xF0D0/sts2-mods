@@ -1,0 +1,100 @@
+{
+  "label": "accepted-control-matrix3",
+  "peers": 3,
+  "suite": "fault-send-matrix",
+  "seed": "MINIMAL_MP_A",
+  "headless": true,
+  "roles": [
+    "host",
+    "client",
+    "client2"
+  ],
+  "transport": "enet",
+  "game": {
+    "commit": "41cef1ea",
+    "version": "v0.111.0",
+    "date": "2026-08-13T17:39:18-07:00",
+    "branch": "v0.111.0",
+    "main_assembly_hash": 1172974615
+  },
+  "processes": {
+    "host": {
+      "pid": 10942,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=host",
+        "--minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/control-faults/accepted-control-matrix3",
+        "--minimal-peers=3",
+        "--minimal-suite=fault-send-matrix",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1",
+        "--minimal-speed=instant",
+        "--headless"
+      ],
+      "exit": 0
+    },
+    "client": {
+      "pid": 10982,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=client",
+        "--minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/control-faults/accepted-control-matrix3",
+        "--minimal-peers=3",
+        "--minimal-suite=fault-send-matrix",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "1001",
+        "--minimal-speed=instant",
+        "--headless"
+      ],
+      "exit": 0
+    },
+    "client2": {
+      "pid": 11008,
+      "args": [
+        "caffeinate",
+        "-dimsu",
+        "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+        "--minimal-harness=client2",
+        "--minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/control-faults/accepted-control-matrix3",
+        "--minimal-peers=3",
+        "--minimal-suite=fault-send-matrix",
+        "--minimal-seed=MINIMAL_MP_A",
+        "--force-steam",
+        "off",
+        "--clientId",
+        "2001",
+        "--minimal-speed=instant",
+        "--headless"
+      ],
+      "exit": 0
+    }
+  },
+  "mixed_characters": false,
+  "retained_session": false,
+  "phases": false,
+  "speed": "instant",
+  "schedule_seed": null,
+  "repro": null,
+  "dlls": {
+    "UndoSync": {
+      "UndoSync.dll": "b334773af8ab445e0c6a1cb3129d6817bdc12725c1a0c1b0d372c11f4acc3534",
+      "UndoSync.json": "7506b4ccdee0f3224fcee278b4eafbe170e0c7c9fca037b0d34c0bcc6abc7892"
+    },
+    "MinimalHarness": {
+      "MinimalHarness.dll": "979ab2bf7c3ad36fa32d8ccc1b4d34dcef03ae5e4fc6f1b18344e80e778bc7f9",
+      "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+    }
+  },
+  "verdict": "PASS",
+  "elapsed_seconds": 55.772
+}

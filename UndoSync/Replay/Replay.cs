@@ -18,6 +18,8 @@ using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.Settings;
 
 namespace UndoSync;
 
@@ -85,9 +87,55 @@ internal static class Replay
     internal static bool OwnsCleanup { get; private set; }
     private static int _choiceWaits;
     private static int _choiceInjections;
+    private static CancellationTokenSource _liveWaits = new();
+    private static int _liveWaitCount;
+    internal static Task GuardLiveWait(Task task)
+    {
+        if (SuppressNative || !CombatManager.Instance.IsInProgress || task.IsCompleted) return task;
+        return Guard(task, _liveWaits.Token);
+    }
+    internal static string DescribeProgress()
+    {
+        var manager = RunManager.Instance;
+        var combat = CombatManager.Instance;
+        if (!manager.IsInProgress) return "run=false";
+        return $"run=true combat={combat.IsInProgress} side={combat.DebugOnlyGetState()?.CurrentSide} "
+            + $"ending={combat.EndingPlayerTurnPhaseOne}/{combat.EndingPlayerTurnPhaseTwo} "
+            + $"sync={manager.ActionQueueSynchronizer.CombatState} executor={manager.ActionExecutor.IsRunning}/{manager.ActionExecutor.IsPaused}";
+    }
+    private static async Task Guard(Task task, CancellationToken token)
+    {
+        _liveWaitCount++;
+        try { await task.WaitAsync(token); }
+        finally { _liveWaitCount--; }
+    }
+    private static void CancelDiscardedWaits()
+    {
+        var discarded = _liveWaits;
+        _liveWaits = new();
+        Hooks.Log($"DISCARDED_WAITS_CANCEL count={_liveWaitCount}");
+        discarded.Cancel();
+        discarded.Dispose();
+    }
 
     internal static async Task<uint> ExecuteAsync(CombatReplay replay, CancellationToken token)
     {
+        var prefs = SaveManager.Instance.PrefsSave;
+        var speed = prefs.FastMode;
+        try
+        {
+            return await ExecuteCoreAsync(replay, token);
+        }
+        finally
+        {
+            prefs.FastMode = speed;
+            Hooks.Log($"REPLAY_SPEED_RESTORED mode={speed}");
+        }
+    }
+
+    private static async Task<uint> ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+    {
+        ulong restoreStarted = Time.GetTicksMsec();
         var manager = RunManager.Instance;
         var old = manager.NetService;
         var role = old.Type;
@@ -108,8 +156,12 @@ internal static class Replay
         Choices.Clear(); Actions.Clear(); _choiceWaits = _choiceInjections = 0;
         foreach (var entry in replay.events.Where(e => e.eventType == CombatReplayEventType.PlayerChoice))
             Choices.Add((entry.playerId!.Value, entry.choiceId!.Value), new());
-        Hooks.Log($"RESTORE_BEGIN role={role} events={replay.events.Count}");
+        Hooks.Log($"RESTORE_BEGIN role={role} events={replay.events.Count} speed={SaveManager.Instance.PrefsSave.FastMode}");
         await NGame.Instance!.Transition.FadeOut(0.05f);
+        // Keep the normal fade-out path: Instant FadeOut permanently hides the
+        // native transition node. Accelerate reconstruction only after it ends.
+        Hooks.Log($"REPLAY_SPEED from={SaveManager.Instance.PrefsSave.FastMode} to={FastModeType.Instant}");
+        SaveManager.Instance.PrefsSave.FastMode = FastModeType.Instant;
         UI.ShowRestoring();
         // Exit native UI against its original run owners before disposing them.
         NGame.Instance.RootSceneContainer.SetCurrentScene(new Control());
@@ -119,6 +171,7 @@ internal static class Replay
         // to become playable/idle. Drain its callbacks before creating owners.
         var oldExecutor = manager.ActionExecutor;
         oldExecutor.Cancel();
+        CancelDiscardedWaits();
         OwnsCleanup = true;
         try
         {
@@ -136,6 +189,7 @@ internal static class Replay
         token.ThrowIfCancellationRequested();
 
         var state = RunState.FromSerializable(replay.serializableRun);
+        Network.ReportProgress("restore-owners");
         if (role == NetGameType.Singleplayer)
         {
             await manager.SetUpSavedSingleplayer(state, replay.serializableRun);
@@ -166,11 +220,13 @@ internal static class Replay
         manager.ChecksumTracker.IsEnabled = false;
         manager.CombatStateSynchronizer.IsDisabled = true;
         await PreloadManager.LoadRunAssets(state.Players.Select(p => p.Character));
+        Network.ReportProgress("restore-assets");
         await PreloadManager.LoadActAssets(state.Act);
         token.ThrowIfCancellationRequested();
         manager.Launch();
         NGame.Instance!.RootSceneContainer.SetCurrentScene(NRun.Create(state));
         await manager.GenerateMap();
+        Network.ReportProgress("restore-room");
         manager.ActionQueueSet.FastForwardNextActionId(replay.nextActionId);
         manager.ActionQueueSynchronizer.FastForwardHookId(replay.nextHookId);
         manager.PlayerChoiceSynchronizer.FastForwardChoiceIds(replay.choiceIds);
@@ -180,12 +236,14 @@ internal static class Replay
         await manager.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(replay.serializableRun.PreFinishedRoom, state));
         await WaitUntilAsync(() => !manager.ActionExecutor.IsPaused, token);
 
+        ulong replayStarted = Time.GetTicksMsec();
         for (int i = 0; i < replay.events.Count; i++)
         {
             token.ThrowIfCancellationRequested();
             ThrowIfActionFailed();
             var entry = replay.events[i];
             Hooks.Log($"REPLAY_EVENT index={i} kind={entry.eventType}");
+            Network.ReportProgress($"replay-event:{i}/{replay.events.Count}:{entry.eventType}");
             switch (entry.eventType)
             {
                 case CombatReplayEventType.GameAction:
@@ -217,6 +275,7 @@ internal static class Replay
             }
         }
         // Two idle frames ensure callbacks and the UI play queue have drained.
+        Network.ReportProgress("replay-idle");
         await WaitUntilAsync(Hooks.IsReplayIdle, token);
         await Frame(token);
         await WaitUntilAsync(Hooks.IsReplayIdle, token);
@@ -224,7 +283,8 @@ internal static class Replay
         // Pure hash overload: no native packet, tracked checksum or NextId
         // advance. Native traffic stays suppressed until all Done values match.
         uint checksum = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
-        Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum}");
+        Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum} "
+            + $"restoreMs={replayStarted - restoreStarted} replayMs={Time.GetTicksMsec() - replayStarted} totalMs={Time.GetTicksMsec() - restoreStarted}");
         return checksum;
     }
 
@@ -248,7 +308,8 @@ internal static class Replay
     private static void ThrowIfActionFailed()
     {
         foreach (var action in Actions)
-            if (action.Exception is not null) throw new InvalidOperationException("Replayed action failed.", action.Exception);
+            if (action.Exception is not null)
+                throw new InvalidOperationException($"Replayed {action.GetType().Name} {action.Id} failed: {action.Exception.GetBaseException().Message}", action.Exception);
     }
     private static void Inject(Action action)
     {

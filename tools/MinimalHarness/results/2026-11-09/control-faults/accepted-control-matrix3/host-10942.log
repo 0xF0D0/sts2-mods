@@ -1,0 +1,326 @@
+[MinimalHarness pid=10942 role=host stage=startup] HARNESS_INIT
+[MinimalHarness pid=10942 role=host stage=startup] CHECK supported test speed
+[MinimalHarness pid=10942 role=host stage=startup] CHECK native TestMode remains off
+[MinimalHarness pid=10942 role=host stage=startup] TEST_SPEED mode=instant testMode=False
+[MinimalHarness pid=10942 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=10942 role=host stage=boot] HOST_LISTENING port=33771
+[MinimalHarness pid=10942 role=host stage=boot] OBSERVED_TRANSPORT transport=enet netId=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=10942 role=host stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Vote side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-1-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-1-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Ready side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-2-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-2-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=StartReceived side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-3-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-3-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Done side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-4-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-4-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Resumed side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-5-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-5-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Ack side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-6-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-6-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Request side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-7-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-7-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Plan side=client
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-8-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-8-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Propose side=host
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-9-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_NATIVE_SEND_DROPPED op=Propose count=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-9-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Plan side=host
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-10-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_NATIVE_SEND_DROPPED op=Plan count=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-10-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Prepare side=host
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-11-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_NATIVE_SEND_DROPPED op=Prepare count=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-11-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Start side=host
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-12-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_NATIVE_SEND_DROPPED op=Start count=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-12-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Resume side=host
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-13-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_NATIVE_SEND_DROPPED op=Resume count=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-13-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_MATRIX_CASE op=Release side=host
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-14-opening all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] FAULT_NATIVE_SEND_DROPPED op=Release count=1
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK exact target after fault
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK real native send fault executed
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK native manual card accepted
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK fault-14-continued all real peer native states match
+[MinimalHarness pid=10942 role=host stage=combat-entry] CHECK zero native state divergences
+[MinimalHarness pid=10942 role=host stage=combat-entry] HARNESS_PASS peers=3 suite=fault-send-matrix cards=28 undos=14 selections=0 divergences=0

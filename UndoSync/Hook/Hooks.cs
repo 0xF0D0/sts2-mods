@@ -45,7 +45,7 @@ public static class Hooks
 
     internal static void Log(string message)
     {
-        string line = $"[UndoSync pid={System.Environment.ProcessId}] {message}";
+        string line = $"[UndoSync pid={System.Environment.ProcessId}] {message} atMs={Time.GetTicksMsec()} utc={DateTime.UtcNow:O}";
         GD.Print(line);
         try
         {
@@ -137,6 +137,22 @@ public static class Hooks
 
     internal static void InstallWriter(CombatReplay replay) =>
         ReplayField.SetValue(RunManager.Instance.CombatReplayWriter, replay);
+
+    // Native executor cancellation stops scheduling, not the effect body.
+    // Cancel its presentation awaits when the old timeline is discarded.
+    [HarmonyPatch(typeof(Cmd), nameof(Cmd.Wait), new[] { typeof(float), typeof(CancellationToken), typeof(bool) })]
+    private static class LiveWaitPatch
+    {
+        [HarmonyPriority(Priority.Last)]
+        private static void Postfix(ref Task __result) => __result = Replay.GuardLiveWait(__result);
+    }
+
+    [HarmonyPatch(typeof(Cmd), nameof(Cmd.CustomScaledWait))]
+    private static class LiveScaledWaitPatch
+    {
+        [HarmonyPriority(Priority.Last)]
+        private static void Postfix(ref Task __result) => __result = Replay.GuardLiveWait(__result);
+    }
 
     [HarmonyPatch(typeof(CombatReplayWriter), nameof(CombatReplayWriter.RecordInitialState))]
     private static class HeaderPatch

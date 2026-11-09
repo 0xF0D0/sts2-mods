@@ -1,0 +1,490 @@
+MegaDot v4.5.1.m.14.mono.custom_build - https://godotengine.org
+
+FMOD Sound System: Successfully initialized
+[INFO] Found release_info.json at: /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/../Resources/release_info.json
+[INFO] [Sentry.NET] Initialized: env=unknown, release=v0.111.0
+[INFO] Steam initialization skipped (editor mode). Use --force-steam to enable.
+[INFO] Registered 22 migrations
+[INFO] Current save versions: PrefsSave v2; ProfileSave v2; SerializableProgress v24; RunHistory v10; SerializableRun v20; SettingsSave v8
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/MinimalHarness/MinimalHarness.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/NetPingTest/NetPingTest.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/PeerView/PeerView.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/SimHarness/SimHarness.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/UndoSync/UndoSync.json
+[INFO] Skipping loading mod NetPingTest, it is set to disabled in settings
+[INFO] Skipping loading mod PeerView, it is set to disabled in settings
+[INFO] Skipping loading mod SimHarness, it is set to disabled in settings
+[INFO] Mods have been re-sorted because we detected a change or dependency order was broken. New sorting order:
+[INFO]   0: Undo Sync (UndoSync)
+[INFO]   1: Minimal Harness (MinimalHarness)
+[WARN] Mod UndoSync does not declare min game version. Assuming that it is supported.
+[INFO] Loading assembly DLL /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/UndoSync/UndoSync.dll
+[INFO] Calling initializer method of type UndoSync.Hooks for UndoSync, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+[UndoSync pid=12014] INIT five-modules atMs=1336 utc=2026-11-09T02:52:50.8746110Z
+[INFO] Finished mod initialization for 'Undo Sync' (UndoSync).
+[WARN] Mod MinimalHarness does not declare min game version. Assuming that it is supported.
+[INFO] Loading assembly DLL /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/MinimalHarness/MinimalHarness.dll
+[INFO] Calling initializer method of type MinimalHarness.Harness for MinimalHarness, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+[MinimalHarness pid=12014 role=host stage=startup] HARNESS_INIT
+[INFO] Finished mod initialization for 'Minimal Harness' (MinimalHarness).
+[INFO]  --- RUNNING MODDED! --- Loaded 2 mods (5 total)
+[WARN] Asset not cached: res://scenes/debug/dev_console.tscn
+[WARN] Asset not cached: res://scenes/cards/card.tscn
+[WARN] Asset not cached: res://scenes/cards/holders/grid_card_holder.tscn
+[INFO] AtlasManager: Loaded ui_atlas with 102 sprites
+[INFO] AtlasManager: Loaded compressed with 45 sprites
+[INFO] Loading locale path=res://localization/eng
+[INFO] ModelIdSerializationCache initialized. Categories: 20 Entries: 1658 Epochs: 57 Properties: 47 Hash: 1568834832
+[INFO]   There are mods included that do not affect gameplay. Hash may not include all IDs.
+[WARN] Tried to read file at user://default/1/leaderboards.save, but there was no such file
+[INFO] Profile-scoped data path initialized: user://default/1/modded/profile1
+[INFO] [Sentry.NET] Steam not initialized
+[INFO] [Sentry.NET] Shutting down because event reporting is disabled.
+[INFO] [Sentry.NET] Shutting down
+[INFO] AtlasManager: Loaded controller_atlas with 112 sprites
+[WARN] Cannot initialize Steam Input because Steamworks is not initialized. Falling back to standard input.
+[INFO] === Godot OS Debug Information ===
+Timestamp: 11/09/2026 11:52:50
+OS: macOS
+OS Version: 26.5.2
+Distribution Name: macOS
+Device Model: Mac14,10
+Is Debug Build: False
+Is Sandboxed: False
+Executable Path: /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2
+Data Directory: /Users/kimbeomsu/Library/Application Support
+User Data Directory: /Users/kimbeomsu/Library/Application Support/SlayTheSpire2
+Command Line Args: --minimal-harness=host --minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/control-faults/accepted-old-action-normal3 --minimal-peers=3 --minimal-suite=fault-old-action --minimal-seed=MINIMAL_MP_A --force-steam off --clientId 1 --minimal-speed=normal
+User Command Line Args: 
+OS Locale: en_KR
+OS Language: en
+Game Locale: en_KR
+Is UserFS Persistent: True
+Is Stdout Verbose: False
+Is Low Processor Usage Mode: False
+Architecture: arm64
+Engine Version: 4.5.1-m.14 (custom_build)
+Is Editor: False
+Release Version: v0.111.0
+Release Commit: 41cef1ea
+Release Date: 08/14/2026 00:39:18
+Processor Count: 12
+Processor Name: Apple M2 Pro
+Main assembly hash: 1010476334
+Rendering device name: N/A (headless)
+Screen info (primary 0):
+Video Memory Used: 0.0B
+Memory Info:
+  physical: 32.0GB
+  free: 1.4GB
+  available: 2.3GB
+  stack: 8.0MB
+  Static Memory Usage: 0.0B
+  Static Memory Peak Usage: 0.0B
+Disk Info:
+  Index 0: Name: / Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 2: Name: /System/Volumes/VM Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 3: Name: /System/Volumes/Preboot Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 4: Name: /System/Volumes/Update Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 5: Name: /System/Volumes/xarts Type: Fixed Format: apfs Available: 481.0MB Total Free: 481.0MB Total Size: 500.0MB
+  Index 6: Name: /System/Volumes/iSCPreboot Type: Fixed Format: apfs Available: 481.0MB Total Free: 481.0MB Total Size: 500.0MB
+  Index 7: Name: /System/Volumes/Hardware Type: Fixed Format: apfs Available: 481.0MB Total Free: 481.0MB Total Size: 500.0MB
+  Index 8: Name: /System/Volumes/Data Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 10: Name: /Library/Developer/CoreSimulator/Volumes/iOS_23F77 Type: Fixed Format: apfs Available: 444.5MB Total Free: 444.5MB Total Size: 16.8GB
+  Index 11: Name: /System/Volumes/Update/SFR/mnt1 Type: Fixed Format: apfs Available: 3.0GB Total Free: 3.0GB Total Size: 5.0GB
+  Index 12: Name: /System/Volumes/Update/mnt1 Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+Granted Permissions:
+  macos.permission.RECORD_SCREEN
+Important Environment Variables:
+  PATH: ~/.local/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Library/TeX/texbin:/usr/local/go/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:~/.codex/tmp/arg0-macos/codex-arg03aaiIB:~/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:~/.unity/bin:/opt/homebrew/opt/llvm/bin:~/.local/bin:~/.bun/bin:/opt/homebrew/opt/openjdk@11/bin:/opt/homebrew/opt/libpq/bin:/opt/homebrew/bin:/opt/homebrew/sbin:~/.linkerd2/bin:~/.cargo/bin:~/go/bin:~/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS
+  GODOT_ROOT_DIR: 
+  HOME: ~
+  DYLD_LIBRARY_PATH: 
+  LD_LIBRARY_PATH: 
+
+[INFO] Preloading 'MainMenuEssentials' assets... count=7 vfx=0
+[INFO] Preloading 'MainMenuEssentials' Complete: assets=7 time_elapsed=151ms
+[INFO] [Startup] Time to main menu (Godot ticks): 3014ms
+[INFO] [Startup] Time to main menu: 3,019ms
+[INFO] [Startup] Resource stats (main menu loaded (essential)): StaticMem=0B, VRAM=0B, Objects=8,155, Resources=456, Nodes=1,570, CachedAssets=10
+[INFO] AtlasManager: Loaded epoch_atlas with 57 sprites
+[INFO] AtlasManager: Loaded relic_atlas with 346 sprites
+[INFO] AtlasManager: Loaded relic_outline_atlas with 346 sprites
+[INFO] AtlasManager: Loaded power_atlas with 271 sprites
+[INFO] AtlasManager: Loaded card_atlas with 626 sprites
+[INFO] AtlasManager: Loaded potion_atlas with 64 sprites
+[INFO] AtlasManager: Loaded potion_outline_atlas with 64 sprites
+[INFO] AtlasManager: Loaded stats_screen_atlas with 16 sprites
+[INFO] AtlasManager: Loaded intent_atlas with 310 sprites
+[INFO] AtlasManager: Loaded era_atlas with 27 sprites
+[INFO] Unloading 3 missed cache assets
+[MinimalHarness pid=12014 role=host stage=startup] CHECK supported test speed
+[MinimalHarness pid=12014 role=host stage=startup] CHECK native TestMode remains off
+[MinimalHarness pid=12014 role=host stage=startup] TEST_SPEED mode=normal testMode=False
+[MinimalHarness pid=12014 role=host stage=boot] CHECK real ENet host started
+[MinimalHarness pid=12014 role=host stage=boot] HOST_LISTENING port=33771
+[INFO] Preloading 'Common' assets... count=698 vfx=94
+[INFO] [Startup] Resource stats (main menu loaded (complete)): StaticMem=0B, VRAM=0B, Objects=8,181, Resources=467, Nodes=1,570, CachedAssets=5
+ERROR: Parameter "t" is null.
+   at: texture_2d_initialize (servers/rendering/dummy/storage/texture_storage.h:84)
+ERROR: Parameter "t" is null.
+   at: texture_2d_initialize (servers/rendering/dummy/storage/texture_storage.h:84)
+ERROR: Parameter "t" is null.
+   at: texture_2d_initialize (servers/rendering/dummy/storage/texture_storage.h:84)
+[INFO] Preloading 'Common' Complete: assets=792 time_elapsed=3,652ms
+[INFO] [HandshakeManager] Got handshake from sender 1001. Version: v0.111.0 Branch: None Hash: 1568834832
+[INFO] [StartRunLobby (1)] Client 1001 connected. Sending initial game info message
+[INFO] [NetMessageBus] Received message MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.ClientLobbyJoinRequestMessage, sending to 1 handlers
+[INFO] [StartRunLobby (1)] Received ClientLobbyJoinRequestMessage for 1001
+[INFO] [StartRunLobby (1)] Cancel initial message timeout for 1001
+[INFO] [HandshakeManager] Got handshake from sender 2001. Version: v0.111.0 Branch: None Hash: 1568834832
+[INFO] [StartRunLobby (1)] Client 2001 connected. Sending initial game info message
+[INFO] [NetMessageBus] Received message MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.ClientLobbyJoinRequestMessage, sending to 1 handlers
+[INFO] [StartRunLobby (1)] Received ClientLobbyJoinRequestMessage for 2001
+[INFO] [StartRunLobby (1)] Cancel initial message timeout for 2001
+[INFO] [StartRunLobby (1)] Local player 1 is ready
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT' assets... count=37 vfx=9
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT' Complete: assets=46 time_elapsed=368ms
+[UndoSync pid=12014] NETWORK_ATTACH role=Host platform=None id=1 atMs=9396 utc=2026-11-09T02:52:58.9342660Z
+[UndoSync pid=12014] BIND players=3 atMs=9396 utc=2026-11-09T02:52:58.9346940Z
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait.png
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait_shadow.png
+[INFO] Preloading 'Act=OVERGROWTH' assets... count=8 vfx=0
+[INFO] Preloading 'Act=OVERGROWTH' Complete: assets=8 time_elapsed=51ms
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=12014] HISTORY_BEGIN atMs=9739 utc=2026-11-09T02:52:59.2778300Z
+[INFO] Unloading 2 missed cache assets
+[INFO] Preloading 'Combat Room' assets... count=9 vfx=0
+[INFO] Preloading 'Combat Room' Complete: assets=9 time_elapsed=66ms
+[INFO] Creating NCombatRoom with mode=ActiveCombat encounter=FUZZY_WURM_CRAWLER_WEAK.
+[WARN] Asset not cached: res://scenes/combat/multiplayer_player_intent.tscn
+[WARN] Asset not cached: res://scenes/ui/multiplayer/remote_mouse_cursor.tscn
+[MinimalHarness pid=12014 role=host stage=boot] OBSERVED_TRANSPORT transport=enet netId=1
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=12014] BOUNDARY events=0 atMs=16764 utc=2026-11-09T02:53:06.3025640Z
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=12014 role=host stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK fault-1-opening all real peer native states match
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=12014 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=0
+[INFO] Player 1 playing card DEFEND_SILENT (no target)
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK native manual card accepted
+[UndoSync pid=12014] BOUNDARY events=1 atMs=17281 utc=2026-11-09T02:53:06.8192490Z
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[INFO] Player 1001 playing card DEFEND_SILENT (no target)
+[UndoSync pid=12014] BOUNDARY events=2 atMs=18430 utc=2026-11-09T02:53:07.9689050Z
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[INFO] Player 2001 playing card STRIKE_SILENT (targeting Fuzzy Wurm Crawler (index 3))
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=12014] PROPOSER_PLAN session=421391e2e64b4cb3b44c65df3a698a83 proposer=1 events=1 bytes=3038 sha256=13DE597D0696C3D3001970BFDCAD6349B7F4ADE729F465F917D8560C10FBF782 atMs=18755 utc=2026-11-09T02:53:08.2933050Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=1 op=Propose attempt=1 atMs=18761 utc=2026-11-09T02:53:08.2991910Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=1 op=Propose attempt=1 atMs=18762 utc=2026-11-09T02:53:08.3008970Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=2 op=Plan attempt=1 atMs=18763 utc=2026-11-09T02:53:08.3014610Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=2 op=Plan attempt=1 atMs=18763 utc=2026-11-09T02:53:08.3015880Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=3 op=Plan attempt=1 atMs=18763 utc=2026-11-09T02:53:08.3018050Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=3 op=Plan attempt=1 atMs=18763 utc=2026-11-09T02:53:08.3018920Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=4 op=Plan attempt=1 atMs=18763 utc=2026-11-09T02:53:08.3020090Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=4 op=Plan attempt=1 atMs=18764 utc=2026-11-09T02:53:08.3020850Z
+[UndoSync pid=12014] PLAN_SENT session=421391e2e64b4cb3b44c65df3a698a83 chunks=3 atMs=18764 utc=2026-11-09T02:53:08.3021520Z
+[UndoSync pid=12014] VOTE_LOCAL session=421391e2e64b4cb3b44c65df3a698a83 accepted=True idle=False atMs=18764 utc=2026-11-09T02:53:08.3023410Z
+[UndoSync pid=12014] VOTE peer=1 accepted=True received=1/3 atMs=18764 utc=2026-11-09T02:53:08.3030170Z
+[UndoSync pid=12014] VOTE_SUBMITTED session=421391e2e64b4cb3b44c65df3a698a83 accepted=True atMs=18765 utc=2026-11-09T02:53:08.3036530Z
+[UndoSync pid=12014] PROPOSE session=421391e2e64b4cb3b44c65df3a698a83 proposer=1 target=1 atMs=18765 utc=2026-11-09T02:53:08.3037340Z
+[UndoSync pid=12014] UNDO_WAIT session=421391e2e64b4cb3b44c65df3a698a83 stage=voting stageMs=18 missingVotes=[1001,2001] missingReady=[1,1001,2001] missingStart=[1001,2001] missingDone=[1,1001,2001] missingResumed=[1,1001,2001] links=[peer=1001,pending=Propose,Plan,cancelPending=False,remote=not reported,ageMs=unseen;peer=2001,pending=Propose,Plan,cancelPending=False,remote=not reported,ageMs=unseen] atMs=18773 utc=2026-11-09T02:53:08.3111510Z
+[WARN] Asset not cached: res://scenes/ui/generic_popup.tscn
+[UndoSync pid=12014] UI_WAITING target=1 atMs=18781 utc=2026-11-09T02:53:08.3193450Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=1 op=Propose attempts=1 atMs=18784 utc=2026-11-09T02:53:08.3226200Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=2 op=Plan attempts=1 atMs=18785 utc=2026-11-09T02:53:08.3233410Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=3 op=Plan attempts=1 atMs=18785 utc=2026-11-09T02:53:08.3234540Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=4 op=Plan attempts=1 atMs=18785 utc=2026-11-09T02:53:08.3235290Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=1 op=Propose attempts=1 atMs=18797 utc=2026-11-09T02:53:08.3357710Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=2 op=Plan attempts=1 atMs=18797 utc=2026-11-09T02:53:08.3359220Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=3 op=Plan attempts=1 atMs=18798 utc=2026-11-09T02:53:08.3361910Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=4 op=Plan attempts=1 atMs=18798 utc=2026-11-09T02:53:08.3362660Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] PEER_PROGRESS session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 stage=voting stageMs=10 localVoted=False localDone=False run=true combat=True side=Player ending=False/False sync=PlayPhase executor=True/False atMs=18798 utc=2026-11-09T02:53:08.3364450Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Vote sender=2001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=18800 utc=2026-11-09T02:53:08.3384340Z
+[UndoSync pid=12014] VOTE peer=2001 accepted=True received=2/3 atMs=18800 utc=2026-11-09T02:53:08.3385610Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] PEER_PROGRESS session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 stage=voting stageMs=10 localVoted=False localDone=False run=true combat=True side=Player ending=False/False sync=PlayPhase executor=True/False atMs=18814 utc=2026-11-09T02:53:08.3524270Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Vote sender=1001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=18814 utc=2026-11-09T02:53:08.3525960Z
+[UndoSync pid=12014] VOTE peer=1001 accepted=True received=3/3 atMs=18814 utc=2026-11-09T02:53:08.3526800Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=5 op=Prepare attempt=1 atMs=18814 utc=2026-11-09T02:53:08.3527750Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=5 op=Prepare attempt=1 atMs=18814 utc=2026-11-09T02:53:08.3528400Z
+[UndoSync pid=12014] ALL_VOTES_ACCEPTED session=421391e2e64b4cb3b44c65df3a698a83 atMs=18814 utc=2026-11-09T02:53:08.3528890Z
+[UndoSync pid=12014] REPLAY_READY session=421391e2e64b4cb3b44c65df3a698a83 atMs=18830 utc=2026-11-09T02:53:08.3688820Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=5 op=Prepare attempts=1 atMs=18831 utc=2026-11-09T02:53:08.3697950Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=5 op=Prepare attempts=1 atMs=18831 utc=2026-11-09T02:53:08.3699460Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Ready sender=2001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=18847 utc=2026-11-09T02:53:08.3853670Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Ready sender=1001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=18847 utc=2026-11-09T02:53:08.3855840Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=6 op=Start attempt=1 atMs=18864 utc=2026-11-09T02:53:08.4022150Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=6 op=Start attempt=1 atMs=18864 utc=2026-11-09T02:53:08.4023890Z
+[UndoSync pid=12014] [UndoPicker] closed atMs=18865 utc=2026-11-09T02:53:08.4033810Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=6 op=Start attempts=1 atMs=18881 utc=2026-11-09T02:53:08.4194350Z
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=18897 utc=2026-11-09T02:53:08.4358380Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=6 op=Start attempts=1 atMs=18897 utc=2026-11-09T02:53:08.4360250Z
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=18914 utc=2026-11-09T02:53:08.4524300Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=StartReceived sender=1001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=18914 utc=2026-11-09T02:53:08.4526380Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=StartReceived sender=2001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=18914 utc=2026-11-09T02:53:08.4527270Z
+[UndoSync pid=12014] START_RECEIVED_ALL session=421391e2e64b4cb3b44c65df3a698a83 atMs=18930 utc=2026-11-09T02:53:08.4686750Z
+[UndoSync pid=12014] RESTORE_BEGIN role=Host events=1 speed=Normal atMs=18936 utc=2026-11-09T02:53:08.4741590Z
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=18939 utc=2026-11-09T02:53:08.4776100Z
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=18964 utc=2026-11-09T02:53:08.5023860Z
+[UndoSync pid=12014] REPLAY_SPEED from=Normal to=Instant atMs=18997 utc=2026-11-09T02:53:08.5358000Z
+[UndoSync pid=12014] UI_RESTORING_SHOW text=Restoring… atMs=19000 utc=2026-11-09T02:53:08.5381530Z
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=19032 utc=2026-11-09T02:53:08.5708670Z
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=19033 utc=2026-11-09T02:53:08.5711670Z
+[UndoSync pid=12014] DISCARDED_WAITS_CANCEL count=0 atMs=19033 utc=2026-11-09T02:53:08.5714770Z
+[UndoSync pid=12014] UNBIND replay=True atMs=19035 utc=2026-11-09T02:53:08.5733540Z
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreatureValueChanged(Int32 _, Int32 __)
+   at MegaCrit.Sts2.Core.Entities.Creatures.Creature.set_Block(Int32 value)
+   at MegaCrit.Sts2.Core.Entities.Creatures.Creature.Reset()
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[UndoSync pid=12014] TRANSPORT_DISCONNECT_SUPPRESSED atMs=19044 utc=2026-11-09T02:53:08.5825710Z
+[INFO] Wrote 56510 bytes to path=user://default/1/modded/profile1/saves/current_run_mp.save save_dir=user://default/1
+[UndoSync pid=12014] TRANSPORT_RETAINED role=Host platform=None lobby= atMs=19172 utc=2026-11-09T02:53:08.7104890Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT' assets... count=0 vfx=0
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT' Complete: assets=0 time_elapsed=0ms
+[INFO] Preloading 'Act=OVERGROWTH' assets... count=8 vfx=0
+[INFO] Preloading 'Act=OVERGROWTH' Complete: assets=8 time_elapsed=49ms
+[UndoSync pid=12014] BIND players=3 atMs=19248 utc=2026-11-09T02:53:08.7867600Z
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait.png
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait_shadow.png
+[WARN] Asset not cached: res://images/ui/top_panel/character_icon_silent_outline.png
+[UndoSync pid=12014] RESTORE_SEEDED action=0 hook=0 atMs=19333 utc=2026-11-09T02:53:08.8717160Z
+[INFO] Unloading 6 missed cache assets
+[INFO] Preloading 'Combat Room' assets... count=9 vfx=0
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=19341 utc=2026-11-09T02:53:08.8792320Z
+[UndoSync pid=12014] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=19341 utc=2026-11-09T02:53:08.8794490Z
+[INFO] Preloading 'Combat Room' Complete: assets=9 time_elapsed=51ms
+[INFO] Creating NCombatRoom with mode=ActiveCombat encounter=FUZZY_WURM_CRAWLER_WEAK.
+[WARN] Asset not cached: res://scenes/combat/multiplayer_player_intent.tscn
+[UndoSync pid=12014] REPLAY_EVENT index=0 kind=GameAction atMs=19521 utc=2026-11-09T02:53:09.0598780Z
+[INFO] Player 1 playing card DEFEND_SILENT (no target)
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=12014] REPLAY_DONE events=1 waits=0 choices=0 checksum=2908990680 restoreMs=588 replayMs=33 totalMs=621 atMs=19554 utc=2026-11-09T02:53:09.0927980Z
+[UndoSync pid=12014] REPLAY_SPEED_RESTORED mode=Normal atMs=19555 utc=2026-11-09T02:53:09.0935320Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Done sender=2001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=19704 utc=2026-11-09T02:53:09.2426160Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Done sender=1001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=19704 utc=2026-11-09T02:53:09.2428560Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=7 op=Resume attempt=1 atMs=19722 utc=2026-11-09T02:53:09.2607900Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=7 op=Resume attempt=1 atMs=19723 utc=2026-11-09T02:53:09.2610630Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=12014] HISTORY_COMMIT events=1 targets=2 source=proposer atMs=19725 utc=2026-11-09T02:53:09.2639550Z
+[UndoSync pid=12014] UI_RESTORING_HIDE atMs=19726 utc=2026-11-09T02:53:09.2641070Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=7 op=Resume attempts=1 atMs=19736 utc=2026-11-09T02:53:09.2749980Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=7 op=Resume attempts=1 atMs=19737 utc=2026-11-09T02:53:09.2751320Z
+[UndoSync pid=12014] TRANSPORT_RETAINED role=Host platform=None lobby= atMs=19837 utc=2026-11-09T02:53:09.3757190Z
+[UndoSync pid=12014] NATIVE_REARMED checksumNextId=0 atMs=19838 utc=2026-11-09T02:53:09.3764270Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Resumed sender=2001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=19870 utc=2026-11-09T02:53:09.4085560Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] MESSAGE_RECEIVED op=Resumed sender=1001 session=421391e2e64b4cb3b44c65df3a698a83 atMs=19870 utc=2026-11-09T02:53:09.4087270Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=8 op=Release attempt=1 atMs=19887 utc=2026-11-09T02:53:09.4257350Z
+[UndoSync pid=12014] CONTROL_SEND session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=8 op=Release attempt=1 atMs=19887 utc=2026-11-09T02:53:09.4259170Z
+[UndoSync pid=12014] RESUME session=421391e2e64b4cb3b44c65df3a698a83 peers=3 checksum=2908990680 atMs=19887 utc=2026-11-09T02:53:09.4259960Z
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK fault recovery terminal resume: Undo complete
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=2001 seq=8 op=Release attempts=1 atMs=19906 utc=2026-11-09T02:53:09.4440600Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=12014] CONTROL_ACK session=421391e2e64b4cb3b44c65df3a698a83 peer=1001 seq=8 op=Release attempts=1 atMs=19906 utc=2026-11-09T02:53:09.4442210Z
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK exact target after fault
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=12014 role=host stage=combat-entry] OLD_EFFECT_RESULT unchanged=True
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK discarded native effect cannot alter restored run
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=12014 role=host stage=combat-entry] PLAY card=CARD.DEFEND_SILENT owner=1 events=1
+[INFO] Player 1 playing card DEFEND_SILENT (no target)
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK native manual card accepted
+[UndoSync pid=12014] BOUNDARY events=2 atMs=20987 utc=2026-11-09T02:53:10.5255960Z
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=12014 role=host stage=combat-entry] POST_REPLAY_ACTION native=true
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK post-action native state available
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK fault-1-continued all real peer native states match
+[MinimalHarness pid=12014 role=host stage=combat-entry] CHECK zero native state divergences
+[MinimalHarness pid=12014 role=host stage=combat-entry] HARNESS_PASS peers=3 suite=fault-old-action cards=2 undos=1 selections=0 divergences=0
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=12014] UNBIND replay=False atMs=21394 utc=2026-11-09T02:53:10.9328700Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 4096 bytes to 8192 bytes!
+[INFO] Stopping host. Reason: Quit. Now: False
+[INFO] [ENetHost] Disconnecting client 1001, reason: Quit. Now: False
+[INFO] [ENetHost] Disconnecting client 2001, reason: Quit. Now: False
+FMOD Sound System: System released
+WARNING: 638 RIDs of type "CanvasItem" were leaked.
+     at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2678)
+ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit.
+ERROR: 31 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 17 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 58 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 6 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 205 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit.
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+     at: cleanup (core/object/object.cpp:2514)
+ERROR: 71 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:795)

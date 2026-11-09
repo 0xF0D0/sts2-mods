@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Task-owned real ENet fixture; never use alongside a user's game instance."""
 from pathlib import Path
-import argparse, hashlib, json, shutil, subprocess, tempfile, time
+import argparse, hashlib, json, shutil, subprocess, tempfile, time, zipfile
 from verify_run import verify
 
 REPO = Path(__file__).resolve().parents[2]
@@ -46,8 +46,24 @@ def prepare():
             continue
         state['backups'][tag] = path.exists()
         if path.exists():
+            expected = hashes(path)
             shutil.copytree(path, root/tag)
-            state['hashes'][tag] = hashes(path)
+            if hashes(root/tag) != expected:
+                raise RuntimeError(f'Backup verification failed for {tag}; deployment has not started.')
+            state['hashes'][tag] = expected
+    # Keep a second, hash-verified copy outside the OS temporary directory.
+    # It contains private saves/settings and MUST remain gitignored.
+    archive = REPO/'tools/MinimalHarness/.backups'/(root.name+'.zip')
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zipped:
+        for tag, files in state['hashes'].items():
+            for name in files: zipped.write(root/tag/name, tag+'/'+name)
+    state['archive'] = str(archive)
+    with zipfile.ZipFile(archive) as zipped:
+        for tag, files in state['hashes'].items():
+            for name, expected in files.items():
+                if hashlib.sha256(zipped.read(tag+'/'+name)).hexdigest() != expected:
+                    raise RuntimeError(f'Archive verification failed for {tag}/{name}; deployment has not started.')
     save(root/'fixture.json', state)
     deploy()
     known = [p.name for p in MODS.iterdir() if p.is_dir()]
@@ -68,12 +84,12 @@ def prepare():
     print(root, flush=True)
     return root
 
-def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_seed=None, repro=None, speed=None, phases=False, retained=False, transport="enet", save_dir=None, mixed=False):
+def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_seed=None, repro=None, speed=None, phases=False, retained=False, transport="enet", save_dir=None, mixed=False, extra_args=()):
     no_game()
     if transport == 'steam' and peers != 1: raise ValueError('Only the single-host Steam lifetime smoke is configured here.')
     folder = root/label
     folder.mkdir()
-    roles = ['host'] if transport == 'steam' else ['ui'] if suite == 'fuzz' and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['host'] if transport == 'steam' else ['ui'] if suite == 'fuzz' and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
     record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else transport, 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
     record['mixed_characters'] = mixed
@@ -98,6 +114,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
             args += ['--minimal-speed='+record['speed']]
             if schedule_seed is not None: args += ['--minimal-schedule-seed='+schedule_seed]
             if repro is not None: args += ['--minimal-repro='+str(repro)]
+            args += list(extra_args)
             args += ['--headless'] if headless else ['--windowed', '--resolution', '1280x720']
             with (folder/(role+'-terminal.log')).open('w') as out:
                 process = subprocess.Popen(args, cwd=APP/'Contents/MacOS', stdout=out, stderr=subprocess.STDOUT)
@@ -154,6 +171,23 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
 def restore(root):
     no_game()
     state = json.loads((root/'fixture.json').read_text())
+    # Verify EVERY original before moving even one installed path. A missing
+    # backup must not replace a populated account with an empty directory.
+    for tag, original in state['backups'].items():
+        if not original or hashes(root/tag) == state['hashes'][tag]: continue
+        archive = state.get('archive')
+        if not archive or not Path(archive).is_file():
+            raise RuntimeError(f'Original backup unavailable: {tag}; installed paths have not been moved.')
+        with zipfile.ZipFile(archive) as zipped:
+            payloads = {name: zipped.read(tag+'/'+name) for name in state['hashes'][tag]}
+        if any(hashlib.sha256(data).hexdigest() != state['hashes'][tag][name] for name, data in payloads.items()):
+            raise RuntimeError(f'Original archive hash mismatch: {tag}; installed paths have not been moved.')
+        for name, data in payloads.items():
+            target = root/tag/name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+        if hashes(root/tag) != state['hashes'][tag]:
+            raise RuntimeError(f'Original backup still differs: {tag}; installed paths have not been moved.')
     result = {}
     for tag, original in state['backups'].items():
         path = ACCOUNTS.parent/'steam'/tag.removeprefix('steam-account-') if tag.startswith('steam-account-') else ACCOUNTS/tag.removeprefix('account-') if tag.startswith('account-') else MODS/tag.removeprefix('mod-')
@@ -175,7 +209,11 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=Path)
     parser.add_argument('--label', default='extended')
     parser.add_argument('--peers', type=int, default=4, choices=[1,2,3,4])
-    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui'])
+    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error'])
+    parser.add_argument('--expect', choices=['baseline','fixed'], default='fixed')
+    parser.add_argument('--fault-op', default='Done')
+    parser.add_argument('--drop-side', choices=['client','host'], default='client')
+    parser.add_argument('--drop-count', type=int, default=1)
     parser.add_argument('--visible', action='store_true')
     parser.add_argument('--speed', choices=['normal', 'instant'])
     parser.add_argument('--schedule-seed')
@@ -184,5 +222,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.command == 'prepare': prepare()
     elif args.command == 'deploy': no_game(); deploy()
-    elif args.command == 'run': run(args.root, args.label, args.peers, args.suite, not args.visible, args.seed, args.schedule_seed, args.repro, args.speed)
+    elif args.command == 'run':
+        run(args.root, args.label, args.peers, args.suite, not args.visible, args.seed, args.schedule_seed, args.repro, args.speed,
+            extra_args=['--minimal-expect='+args.expect, '--minimal-fault-op='+args.fault_op,
+                        '--minimal-drop-side='+args.drop_side, '--minimal-drop-count='+str(args.drop_count)])
+        result = json.loads((args.root/args.label/'run.json').read_text())
+        if result['verdict'] == 'FAIL': raise SystemExit(1)
     else: restore(args.root)

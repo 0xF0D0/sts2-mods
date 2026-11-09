@@ -1,0 +1,20 @@
+[MinimalHarness pid=10834 role=client2 stage=startup] HARNESS_INIT
+[MinimalHarness pid=10834 role=client2 stage=startup] CHECK supported test speed
+[MinimalHarness pid=10834 role=client2 stage=startup] CHECK native TestMode remains off
+[MinimalHarness pid=10834 role=client2 stage=startup] TEST_SPEED mode=instant testMode=False
+[MinimalHarness pid=10834 role=client2 stage=boot] CHECK real client joined native lobby
+[MinimalHarness pid=10834 role=client2 stage=boot] OBSERVED_TRANSPORT transport=enet netId=2001
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] COMBAT_READY players=3 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK fault-1-opening all real peer native states match
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] FAULT_MID_EFFECT_HOLD before native card body completes replay=True
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] FAULT_REAL_DISCONNECT during replay
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] FAULT_MID_EFFECT_RELEASE
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK disconnect never commits partial replay
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] FAULT_TERMINAL Disconnected: DisconnectionReason Quit True
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] CHECK zero native state divergences
+[MinimalHarness pid=10834 role=client2 stage=combat-entry] HARNESS_PASS peers=3 suite=fault-disconnect cards=0 undos=0 selections=0 divergences=0

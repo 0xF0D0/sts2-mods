@@ -1,0 +1,1408 @@
+MegaDot v4.5.1.m.14.mono.custom_build - https://godotengine.org
+
+FMOD Sound System: Successfully initialized
+[INFO] Found release_info.json at: /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/../Resources/release_info.json
+[INFO] [Sentry.NET] Initialized: env=unknown, release=v0.111.0
+[INFO] Steam initialization skipped (editor mode). Use --force-steam to enable.
+[INFO] Registered 22 migrations
+[INFO] Current save versions: PrefsSave v2; ProfileSave v2; SerializableProgress v24; RunHistory v10; SerializableRun v20; SettingsSave v8
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/MinimalHarness/MinimalHarness.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/NetPingTest/NetPingTest.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/PeerView/PeerView.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/SimHarness/SimHarness.json
+[INFO] Found mod manifest file /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/UndoSync/UndoSync.json
+[INFO] Skipping loading mod NetPingTest, it is set to disabled in settings
+[INFO] Skipping loading mod PeerView, it is set to disabled in settings
+[INFO] Skipping loading mod SimHarness, it is set to disabled in settings
+[INFO] Mods have been re-sorted because we detected a change or dependency order was broken. New sorting order:
+[INFO]   0: Undo Sync (UndoSync)
+[INFO]   1: Minimal Harness (MinimalHarness)
+[WARN] Mod UndoSync does not declare min game version. Assuming that it is supported.
+[INFO] Loading assembly DLL /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/UndoSync/UndoSync.dll
+[INFO] Calling initializer method of type UndoSync.Hooks for UndoSync, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+[UndoSync pid=11590] INIT five-modules atMs=1210 utc=2026-11-09T02:52:06.6901030Z
+[INFO] Finished mod initialization for 'Undo Sync' (UndoSync).
+[WARN] Mod MinimalHarness does not declare min game version. Assuming that it is supported.
+[INFO] Loading assembly DLL /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/MinimalHarness/MinimalHarness.dll
+[INFO] Calling initializer method of type MinimalHarness.Harness for MinimalHarness, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+[MinimalHarness pid=11590 role=client2 stage=startup] HARNESS_INIT
+[INFO] Finished mod initialization for 'Minimal Harness' (MinimalHarness).
+[INFO]  --- RUNNING MODDED! --- Loaded 2 mods (5 total)
+[WARN] Asset not cached: res://scenes/debug/dev_console.tscn
+[WARN] Asset not cached: res://scenes/cards/card.tscn
+[WARN] Asset not cached: res://scenes/cards/holders/grid_card_holder.tscn
+[INFO] AtlasManager: Loaded ui_atlas with 102 sprites
+[INFO] AtlasManager: Loaded compressed with 45 sprites
+[INFO] Loading locale path=res://localization/eng
+[INFO] ModelIdSerializationCache initialized. Categories: 20 Entries: 1658 Epochs: 57 Properties: 47 Hash: 1568834832
+[INFO]   There are mods included that do not affect gameplay. Hash may not include all IDs.
+[WARN] Tried to read file at user://default/2001/leaderboards.save, but there was no such file
+[INFO] Profile-scoped data path initialized: user://default/2001/modded/profile1
+[INFO] [Sentry.NET] Steam not initialized
+[INFO] [Sentry.NET] Shutting down because event reporting is disabled.
+[INFO] [Sentry.NET] Shutting down
+[INFO] AtlasManager: Loaded controller_atlas with 112 sprites
+[WARN] Cannot initialize Steam Input because Steamworks is not initialized. Falling back to standard input.
+[INFO] === Godot OS Debug Information ===
+Timestamp: 11/09/2026 11:52:06
+OS: macOS
+OS Version: 26.5.2
+Distribution Name: macOS
+Device Model: Mac14,10
+Is Debug Build: False
+Is Sandboxed: False
+Executable Path: /Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2
+Data Directory: /Users/kimbeomsu/Library/Application Support
+User Data Directory: /Users/kimbeomsu/Library/Application Support/SlayTheSpire2
+Command Line Args: --minimal-harness=client2 --minimal-dir=/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-09/control-faults/accepted-regression4 --minimal-peers=4 --minimal-suite=regression --minimal-seed=MINIMAL_MP_A --force-steam off --clientId 2001 --minimal-speed=instant
+User Command Line Args: 
+OS Locale: en_KR
+OS Language: en
+Game Locale: en_KR
+Is UserFS Persistent: True
+Is Stdout Verbose: False
+Is Low Processor Usage Mode: False
+Architecture: arm64
+Engine Version: 4.5.1-m.14 (custom_build)
+Is Editor: False
+Release Version: v0.111.0
+Release Commit: 41cef1ea
+Release Date: 08/14/2026 00:39:18
+Processor Count: 12
+Processor Name: Apple M2 Pro
+Main assembly hash: 1010476334
+Rendering device name: N/A (headless)
+Screen info (primary 0):
+Video Memory Used: 0.0B
+Memory Info:
+  physical: 32.0GB
+  free: 0.5GB
+  available: 1.4GB
+  stack: 8.0MB
+  Static Memory Usage: 0.0B
+  Static Memory Peak Usage: 0.0B
+Disk Info:
+  Index 0: Name: / Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 2: Name: /System/Volumes/VM Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 3: Name: /System/Volumes/Preboot Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 4: Name: /System/Volumes/Update Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 5: Name: /System/Volumes/xarts Type: Fixed Format: apfs Available: 481.0MB Total Free: 481.0MB Total Size: 500.0MB
+  Index 6: Name: /System/Volumes/iSCPreboot Type: Fixed Format: apfs Available: 481.0MB Total Free: 481.0MB Total Size: 500.0MB
+  Index 7: Name: /System/Volumes/Hardware Type: Fixed Format: apfs Available: 481.0MB Total Free: 481.0MB Total Size: 500.0MB
+  Index 8: Name: /System/Volumes/Data Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+  Index 10: Name: /Library/Developer/CoreSimulator/Volumes/iOS_23F77 Type: Fixed Format: apfs Available: 444.5MB Total Free: 444.5MB Total Size: 16.8GB
+  Index 11: Name: /System/Volumes/Update/SFR/mnt1 Type: Fixed Format: apfs Available: 3.0GB Total Free: 3.0GB Total Size: 5.0GB
+  Index 12: Name: /System/Volumes/Update/mnt1 Type: Fixed Format: apfs Available: 81.3GB Total Free: 81.3GB Total Size: 460.4GB
+Granted Permissions:
+  macos.permission.RECORD_SCREEN
+Important Environment Variables:
+  PATH: ~/.local/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Library/TeX/texbin:/usr/local/go/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:~/.codex/tmp/arg0-macos/codex-arg03aaiIB:~/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:~/.unity/bin:/opt/homebrew/opt/llvm/bin:~/.local/bin:~/.bun/bin:/opt/homebrew/opt/openjdk@11/bin:/opt/homebrew/opt/libpq/bin:/opt/homebrew/bin:/opt/homebrew/sbin:~/.linkerd2/bin:~/.cargo/bin:~/go/bin:~/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS
+  GODOT_ROOT_DIR: 
+  HOME: ~
+  DYLD_LIBRARY_PATH: 
+  LD_LIBRARY_PATH: 
+
+[INFO] Preloading 'MainMenuEssentials' assets... count=7 vfx=0
+[INFO] Preloading 'MainMenuEssentials' Complete: assets=7 time_elapsed=151ms
+[INFO] [Startup] Time to main menu (Godot ticks): 2978ms
+[INFO] [Startup] Time to main menu: 2,983ms
+[INFO] [Startup] Resource stats (main menu loaded (essential)): StaticMem=0B, VRAM=0B, Objects=8,155, Resources=456, Nodes=1,570, CachedAssets=10
+[INFO] AtlasManager: Loaded epoch_atlas with 57 sprites
+[INFO] AtlasManager: Loaded relic_atlas with 346 sprites
+[INFO] AtlasManager: Loaded relic_outline_atlas with 346 sprites
+[INFO] AtlasManager: Loaded power_atlas with 271 sprites
+[INFO] AtlasManager: Loaded card_atlas with 626 sprites
+[INFO] AtlasManager: Loaded potion_atlas with 64 sprites
+[INFO] AtlasManager: Loaded potion_outline_atlas with 64 sprites
+[INFO] AtlasManager: Loaded stats_screen_atlas with 16 sprites
+[INFO] AtlasManager: Loaded intent_atlas with 310 sprites
+[INFO] AtlasManager: Loaded era_atlas with 27 sprites
+[INFO] Unloading 3 missed cache assets
+[MinimalHarness pid=11590 role=client2 stage=startup] CHECK supported test speed
+[MinimalHarness pid=11590 role=client2 stage=startup] CHECK native TestMode remains off
+[MinimalHarness pid=11590 role=client2 stage=startup] TEST_SPEED mode=instant testMode=False
+[INFO] [JoinFlow] Beginning join with initializer MegaCrit.Sts2.Core.Multiplayer.Connection.ENetClientConnectionInitializer
+[INFO] Preloading 'Common' assets... count=698 vfx=94
+[INFO] [Startup] Resource stats (main menu loaded (complete)): StaticMem=0B, VRAM=0B, Objects=8,180, Resources=467, Nodes=1,570, CachedAssets=5
+[INFO] [ENetClient] Sending handshake with net ID 2001
+ERROR: Parameter "t" is null.
+   at: texture_2d_initialize (servers/rendering/dummy/storage/texture_storage.h:84)
+ERROR: Parameter "t" is null.
+   at: texture_2d_initialize (servers/rendering/dummy/storage/texture_storage.h:84)
+[INFO] [JoinFlow] Initializer connection completed, awaiting initial game info message
+[INFO] [HandshakeManager] Got handshake from sender 1. Version: v0.111.0 Branch: None Hash: 1568834832
+[INFO] [NetMessageBus] Received message MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.InitialGameInfoMessage, sending to 1 handlers
+[INFO] [JoinFlow] Sending ClientLobbyJoinRequestMessage and waiting for response message
+[INFO] [NetMessageBus] Received message ClientLobbyJoinResponseMessage Players: 3 Ascension: 0, sending to 1 handlers
+[INFO] [JoinFlow] Received ClientLobbyJoinResponseMessage: ClientLobbyJoinResponseMessage Players: 3 Ascension: 0
+[MinimalHarness pid=11590 role=client2 stage=boot] CHECK real client joined native lobby
+[DEBUG] [StartRunLobby] Received PlayerJoinedMessage with (Player 3001, IRONCLAD)
+[INFO] [StartRunLobby] Local player 2001 is ready
+[DEBUG] [StartRunLobby] Received LobbyPlayerSetReadyMessage for player 1 with value True
+[DEBUG] [StartRunLobby] Received LobbyPlayerChangedCharacterMessage for 3001 CHARACTER.SILENT (62740869)
+[DEBUG] [StartRunLobby] Received LobbyPlayerSetReadyMessage for player 3001 with value True
+[DEBUG] [StartRunLobby] Received LobbyPlayerSetReadyMessage for player 1001 with value True
+[DEBUG] [StartRunLobby] Received LobbyBeginRunMessage
+[DEBUG] [NetMessageBus] NetMessageBus is starting to buffer messages.
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage
+[DEBUG] [ActionExecutor] Pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' assets... count=37 vfx=55
+[DEBUG] [NetMessageBus] Received message of type MegaCrit.Sts2.Core.Multiplayer.Messages.Game.SyncPlayerDataMessage but we are currently buffering messages.
+[DEBUG] [NetMessageBus] Received message of type MegaCrit.Sts2.Core.Multiplayer.Messages.Game.SyncRngMessage but we are currently buffering messages.
+[DEBUG] [NetMessageBus] Received message of type MegaCrit.Sts2.Core.Multiplayer.Messages.Game.SyncPlayerDataMessage but we are currently buffering messages.
+[INFO] Preloading 'Common' Complete: assets=792 time_elapsed=3,733ms
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' Complete: assets=46 time_elapsed=1,934ms
+[DEBUG] [NetMessageBus] NetMessageBus is releasing 3 buffered messages.
+[DEBUG] [CombatStateSynchronizer] Received sync player message from 1
+[DEBUG] [CombatStateSynchronizer] Received sync RNG message from 1
+[DEBUG] [CombatStateSynchronizer] Received sync player message from 1001
+[UndoSync pid=11590] NETWORK_ATTACH role=Client platform=None id=2001 atMs=7486 utc=2026-11-09T02:52:12.9654180Z
+[UndoSync pid=11590] BIND players=4 atMs=7486 utc=2026-11-09T02:52:12.9657810Z
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait.png
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait_shadow.png
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (null) room  (previously at: act 0 coord (null) room ), checking if we have enqueued messages
+[INFO] Preloading 'Act=OVERGROWTH' assets... count=8 vfx=0
+[INFO] Preloading 'Act=OVERGROWTH' Complete: assets=8 time_elapsed=53ms
+[DEBUG] [CombatStateSynchronizer] Broadcasting combat sync message to all peers
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=11590] HISTORY_BEGIN atMs=7829 utc=2026-11-09T02:52:13.3084620Z
+[DEBUG] [CombatStateSynchronizer] Waiting to receive all sync messages from all clients
+[DEBUG] [CombatStateSynchronizer] Received sync player message from 3001
+[INFO] Unloading 2 missed cache assets
+[INFO] Preloading 'Combat Room' assets... count=9 vfx=0
+[INFO] Preloading 'Combat Room' Complete: assets=9 time_elapsed=83ms
+[INFO] Creating NCombatRoom with mode=ActiveCombat encounter=FUZZY_WURM_CRAWLER_WEAK.
+[WARN] Asset not cached: res://scenes/combat/multiplayer_player_intent.tscn
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PreCombatSetup. Allowing non-combat actions to execute, but not combat actions.
+[DEBUG] [ActionQueueSet] Setting up for combat.
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionExecutor] Pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat becomes NotPlayPhase from PreCombatSetup. Signaling queues that combat has begun
+[DEBUG] [ActionQueueSet] Combat started.
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotPlayPhase. Pausing all player queues
+[DEBUG] [ActionQueueSet] Pausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (null) room ), checking if we have enqueued messages
+[WARN] Asset not cached: res://scenes/ui/multiplayer/remote_mouse_cursor.tscn
+[DEBUG] [ChecksumTracker] Generating checksum for context: After player turn start action:  id: 0
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PlayPhase. Requesting 0 actions and unpausing action queues
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] BOUNDARY events=0 atMs=9932 utc=2026-11-09T02:52:15.4112990Z
+[MinimalHarness pid=11590 role=client2 stage=boot] OBSERVED_TRANSPORT transport=enet netId=2001
+[MinimalHarness pid=11590 role=client2 stage=combat-entry] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=combat-entry] CHECK native checksum enabled
+[MinimalHarness pid=11590 role=client2 stage=combat-entry] CHECK real native combat UI exists
+[MinimalHarness pid=11590 role=client2 stage=combat-entry] COMBAT_READY players=4 encounter=ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK regression-opening all real peer native states match
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening native roster connected
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening avatar 2001 online
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening avatar 1 online
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening avatar 1001 online
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening avatar 3001 online
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening cursor 1 bound
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening cursor 1001 bound
+[MinimalHarness pid=11590 role=client2 stage=manual-report-regression] CHECK opening cursor 3001 bound
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[DEBUG] [NetMessageBus] Received message ActionEnqueuedMessage PlayerID: 1 Action: NetPlayCardAction (NetCombatCard 0) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike), sending to 1 handlers
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Handling map-targeted message ActionEnqueuedMessage PlayerID: 1 Action: NetPlayCardAction (NetCombatCard 0) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) from 1 for location act 0 coord (0, 1) room 0
+[DEBUG] [ActionQueueSynchronizer] Received handle action enqueued message ActionEnqueuedMessage PlayerID: 1 Action: NetPlayCardAction (NetCombatCard 0) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) at 02:52:16
+[DEBUG] [ActionQueueSynchronizer] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 from owner 1
+[DEBUG] [ActionQueueSet] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 to player queue owned by 1
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Action PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 with id 0 belonging to 1 becomes new ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] Got ready action PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 (0)
+[DEBUG] [ActionExecutor] Executing action: PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 began executing
+[INFO] Player 1 playing card STRIKE_SILENT (targeting Fuzzy Wurm Crawler (index 4))
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 finished execution
+[DEBUG] [ChecksumTracker] Generating checksum for context: finished action execution PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 action: PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4 id: 1
+[DEBUG] [ActionExecutor] Completed execution of action PlayCardAction card: CARD.STRIKE_SILENT (6412487) index: 0 targetid: 4, attempting to find new action
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] BOUNDARY events=1 atMs=11040 utc=2026-11-09T02:52:16.5193400Z
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK real attack reduced enemy HP before undo
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK damaged-host all real peer native states match
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Propose sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=11145 utc=2026-11-09T02:52:16.6246760Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=11146 utc=2026-11-09T02:52:16.6259070Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=11146 utc=2026-11-09T02:52:16.6260430Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=11146 utc=2026-11-09T02:52:16.6261390Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=11146 utc=2026-11-09T02:52:16.6262200Z
+[UndoSync pid=11590] PROPOSER_PLAN session=6218b3972674421c85baabaa758b9f04 proposer=1 events=0 bytes=3424 sha256=D80969848126A97E5B8AB32E837968FAB66D3E51FC0F4449E8A2D8F30D74B48E atMs=11149 utc=2026-11-09T02:52:16.6283930Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] PEER_PROGRESS session=6218b3972674421c85baabaa758b9f04 peer=1 stage=voting stageMs=12 votes=1/4 done=0/4 run=true combat=True side=Player ending=False/False sync=PlayPhase executor=False/False atMs=11149 utc=2026-11-09T02:52:16.6287630Z
+[UndoSync pid=11590] UNDO_WAIT session=6218b3972674421c85baabaa758b9f04 stage=voting stageMs=14 localVoted=False localDone=False links=[peer=1,pending=,cancelPending=False,remote=voting stageMs=12 votes=1/4 done=0/4 run=true combat=True side=Player ending=False/False sync=PlayPhase executor=False/False,ageMs=11] atMs=11160 utc=2026-11-09T02:52:16.6400760Z
+[WARN] Asset not cached: res://scenes/ui/generic_popup.tscn
+[UndoSync pid=11590] UI_VOTE target=0 atMs=11167 utc=2026-11-09T02:52:16.6470460Z
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK other participant must explicitly vote
+[UndoSync pid=11590] VOTE_LOCAL session=6218b3972674421c85baabaa758b9f04 accepted=True idle=True atMs=11241 utc=2026-11-09T02:52:16.7204230Z
+[UndoSync pid=11590] CONTROL_SEND session=6218b3972674421c85baabaa758b9f04 peer=1 seq=1 op=Vote attempt=1 atMs=11243 utc=2026-11-09T02:52:16.7227230Z
+[UndoSync pid=11590] VOTE_SUBMITTED session=6218b3972674421c85baabaa758b9f04 accepted=True atMs=11243 utc=2026-11-09T02:52:16.7229030Z
+[UndoSync pid=11590] [UndoPicker] closed atMs=11258 utc=2026-11-09T02:52:16.7374800Z
+[UndoSync pid=11590] UI_WAITING target=0 atMs=11260 utc=2026-11-09T02:52:16.7394830Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=6218b3972674421c85baabaa758b9f04 peer=1 seq=1 op=Vote attempts=1 atMs=11262 utc=2026-11-09T02:52:16.7421390Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Prepare sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=11274 utc=2026-11-09T02:52:16.7540920Z
+[UndoSync pid=11590] CONTROL_SEND session=6218b3972674421c85baabaa758b9f04 peer=1 seq=2 op=Ready attempt=1 atMs=11290 utc=2026-11-09T02:52:16.7699440Z
+[UndoSync pid=11590] REPLAY_READY session=6218b3972674421c85baabaa758b9f04 atMs=11290 utc=2026-11-09T02:52:16.7701150Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=6218b3972674421c85baabaa758b9f04 peer=1 seq=2 op=Ready attempts=1 atMs=11307 utc=2026-11-09T02:52:16.7869410Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Start sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=11323 utc=2026-11-09T02:52:16.8031010Z
+[UndoSync pid=11590] [UndoPicker] closed atMs=11340 utc=2026-11-09T02:52:16.8198780Z
+[UndoSync pid=11590] CONTROL_SEND session=6218b3972674421c85baabaa758b9f04 peer=1 seq=3 op=StartReceived attempt=1 atMs=11342 utc=2026-11-09T02:52:16.8215410Z
+[UndoSync pid=11590] RESTORE_BEGIN role=Client events=0 speed=Instant atMs=11347 utc=2026-11-09T02:52:16.8265940Z
+[UndoSync pid=11590] REPLAY_SPEED from=Instant to=Instant atMs=11347 utc=2026-11-09T02:52:16.8267290Z
+[UndoSync pid=11590] UI_RESTORING_SHOW text=Restoring… atMs=11349 utc=2026-11-09T02:52:16.8289810Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11389 utc=2026-11-09T02:52:16.8687530Z
+[DEBUG] [ActionExecutor] Cancelling queue
+[UndoSync pid=11590] DISCARDED_WAITS_CANCEL count=0 atMs=11390 utc=2026-11-09T02:52:16.8696380Z
+[UndoSync pid=11590] UNBIND replay=True atMs=11392 utc=2026-11-09T02:52:16.8715390Z
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotInCombat. Cancelling deferred actions and cancelling all remaining combat actions
+[DEBUG] [ActionQueueSet] Combat ended. Cancelling all non-executing combat actions in all queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] TRANSPORT_DISCONNECT_SUPPRESSED atMs=11400 utc=2026-11-09T02:52:16.8794440Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage
+[DEBUG] [ActionExecutor] Pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room  (previously at: act 0 coord (null) room ), checking if we have enqueued messages
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=11407 utc=2026-11-09T02:52:16.8866640Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' assets... count=0 vfx=0
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=6218b3972674421c85baabaa758b9f04 peer=1 seq=3 op=StartReceived attempts=1 atMs=11414 utc=2026-11-09T02:52:16.8941670Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' Complete: assets=0 time_elapsed=0ms
+[INFO] Preloading 'Act=OVERGROWTH' assets... count=8 vfx=0
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11482 utc=2026-11-09T02:52:16.9617180Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11482 utc=2026-11-09T02:52:16.9618570Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11482 utc=2026-11-09T02:52:16.9619180Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11482 utc=2026-11-09T02:52:16.9619700Z
+[INFO] Preloading 'Act=OVERGROWTH' Complete: assets=8 time_elapsed=58ms
+[UndoSync pid=11590] BIND players=4 atMs=11489 utc=2026-11-09T02:52:16.9691060Z
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait.png
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait_shadow.png
+[WARN] Asset not cached: res://images/ui/top_panel/character_icon_silent_outline.png
+[DEBUG] [PlayerChoiceSynchronizer] Fast-forwarded choice IDs to: 
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 0 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 1 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 2 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 3 to 0
+[UndoSync pid=11590] RESTORE_SEEDED action=0 hook=0 atMs=11581 utc=2026-11-09T02:52:17.0610210Z
+[DEBUG] [CombatStateSynchronizer] Broadcasting combat sync message to all peers
+[DEBUG] [CombatStateSynchronizer] Waiting to receive all sync messages from all clients
+[DEBUG] [ActionExecutor] Pausing queue
+[INFO] Unloading 6 missed cache assets
+[INFO] Preloading 'Combat Room' assets... count=9 vfx=0
+[INFO] Preloading 'Combat Room' Complete: assets=9 time_elapsed=50ms
+[INFO] Creating NCombatRoom with mode=ActiveCombat encounter=FUZZY_WURM_CRAWLER_WEAK.
+[WARN] Asset not cached: res://scenes/combat/multiplayer_player_intent.tscn
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PreCombatSetup. Allowing non-combat actions to execute, but not combat actions.
+[DEBUG] [ActionQueueSet] Setting up for combat.
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionExecutor] Pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat becomes NotPlayPhase from PreCombatSetup. Signaling queues that combat has begun
+[DEBUG] [ActionQueueSet] Combat started.
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotPlayPhase. Pausing all player queues
+[DEBUG] [ActionQueueSet] Pausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room ), checking if we have enqueued messages
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room 0), checking if we have enqueued messages
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11684 utc=2026-11-09T02:52:17.1642240Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11718 utc=2026-11-09T02:52:17.1978460Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PlayPhase. Requesting 0 actions and unpausing action queues
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=11590] REPLAY_DONE events=0 waits=0 choices=0 checksum=1705177514 restoreMs=436 replayMs=19 totalMs=455 atMs=11800 utc=2026-11-09T02:52:17.2800460Z
+[UndoSync pid=11590] REPLAY_SPEED_RESTORED mode=Instant atMs=11801 utc=2026-11-09T02:52:17.2806470Z
+[UndoSync pid=11590] CONTROL_SEND session=6218b3972674421c85baabaa758b9f04 peer=1 seq=4 op=Done attempt=1 atMs=11802 utc=2026-11-09T02:52:17.2813170Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11831 utc=2026-11-09T02:52:17.3105040Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=6218b3972674421c85baabaa758b9f04 peer=1 seq=4 op=Done attempts=1 atMs=11831 utc=2026-11-09T02:52:17.3107620Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=11915 utc=2026-11-09T02:52:17.3945320Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Resume sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=12048 utc=2026-11-09T02:52:17.5277480Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=11590] HISTORY_COMMIT events=0 targets=1 source=proposer atMs=12068 utc=2026-11-09T02:52:17.5475020Z
+[UndoSync pid=11590] UI_RESTORING_HIDE atMs=12068 utc=2026-11-09T02:52:17.5476490Z
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=12068 utc=2026-11-09T02:52:17.5477200Z
+[UndoSync pid=11590] NATIVE_REARMED checksumNextId=0 atMs=12068 utc=2026-11-09T02:52:17.5478890Z
+[UndoSync pid=11590] CONTROL_SEND session=6218b3972674421c85baabaa758b9f04 peer=1 seq=5 op=Resumed attempt=1 atMs=12068 utc=2026-11-09T02:52:17.5480010Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=6218b3972674421c85baabaa758b9f04 peer=1 seq=5 op=Resumed attempts=1 atMs=12081 utc=2026-11-09T02:52:17.5610210Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Release sender=1 session=6218b3972674421c85baabaa758b9f04 atMs=12115 utc=2026-11-09T02:52:17.5943750Z
+[UndoSync pid=11590] RESUME session=6218b3972674421c85baabaa758b9f04 peers=4 checksum=1705177514 atMs=12131 utc=2026-11-09T02:52:17.6107630Z
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK real multiplayer replay resumed
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK enemy HP and full native state restored
+[WARN] Asset not cached: res://scenes/ui/multiplayer/remote_mouse_cursor.tscn
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host native roster connected
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host avatar 2001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host avatar 1 online
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host avatar 1001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host avatar 3001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host cursor 1 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host cursor 1001 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-host cursor 3001 bound
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-host] CHECK restored-state-host all real peer native states match
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[DEBUG] [NetMessageBus] Received message ActionEnqueuedMessage PlayerID: 1001 Action: NetPlayCardAction (NetCombatCard 13) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike), sending to 1 handlers
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Handling map-targeted message ActionEnqueuedMessage PlayerID: 1001 Action: NetPlayCardAction (NetCombatCard 13) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) from 1 for location act 0 coord (0, 1) room 0
+[DEBUG] [ActionQueueSynchronizer] Received handle action enqueued message ActionEnqueuedMessage PlayerID: 1001 Action: NetPlayCardAction (NetCombatCard 13) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) at 02:52:17
+[DEBUG] [ActionQueueSynchronizer] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 from owner 1001
+[DEBUG] [ActionQueueSet] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 to player queue owned by 1001
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Action PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 with id 0 belonging to 1001 becomes new ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] Got ready action PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 (0)
+[DEBUG] [ActionExecutor] Executing action: PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 began executing
+[INFO] Player 1001 playing card STRIKE_SILENT (targeting Fuzzy Wurm Crawler (index 4))
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 finished execution
+[DEBUG] [ChecksumTracker] Generating checksum for context: finished action execution PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 action: PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4 id: 0
+[DEBUG] [ActionExecutor] Completed execution of action PlayCardAction card: CARD.STRIKE_SILENT (4260070) index: 13 targetid: 4, attempting to find new action
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] BOUNDARY events=1 atMs=12764 utc=2026-11-09T02:52:18.2440350Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK real attack reduced enemy HP before undo
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK damaged-client all real peer native states match
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Propose sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=12864 utc=2026-11-09T02:52:18.3439500Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=12864 utc=2026-11-09T02:52:18.3441280Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=12864 utc=2026-11-09T02:52:18.3442130Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=12865 utc=2026-11-09T02:52:18.3442840Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=12865 utc=2026-11-09T02:52:18.3443900Z
+[UndoSync pid=11590] PROPOSER_PLAN session=9953b9cbc1244b4bb4e1e4b626dffae9 proposer=1001 events=0 bytes=3424 sha256=D80969848126A97E5B8AB32E837968FAB66D3E51FC0F4449E8A2D8F30D74B48E atMs=12865 utc=2026-11-09T02:52:18.3451100Z
+[WARN] Asset not cached: res://scenes/ui/generic_popup.tscn
+[UndoSync pid=11590] UI_VOTE target=0 atMs=12883 utc=2026-11-09T02:52:18.3630050Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK other participant must explicitly vote
+[UndoSync pid=11590] VOTE_LOCAL session=9953b9cbc1244b4bb4e1e4b626dffae9 accepted=True idle=True atMs=12964 utc=2026-11-09T02:52:18.4441800Z
+[UndoSync pid=11590] CONTROL_SEND session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=6 op=Vote attempt=1 atMs=12965 utc=2026-11-09T02:52:18.4443110Z
+[UndoSync pid=11590] VOTE_SUBMITTED session=9953b9cbc1244b4bb4e1e4b626dffae9 accepted=True atMs=12965 utc=2026-11-09T02:52:18.4443940Z
+[UndoSync pid=11590] [UndoPicker] closed atMs=12981 utc=2026-11-09T02:52:18.4605540Z
+[UndoSync pid=11590] UI_WAITING target=0 atMs=12983 utc=2026-11-09T02:52:18.4623730Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Prepare sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=12983 utc=2026-11-09T02:52:18.4629590Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=6 op=Vote attempts=1 atMs=12983 utc=2026-11-09T02:52:18.4630960Z
+[UndoSync pid=11590] CONTROL_SEND session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=7 op=Ready attempt=1 atMs=12998 utc=2026-11-09T02:52:18.4778870Z
+[UndoSync pid=11590] REPLAY_READY session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=12998 utc=2026-11-09T02:52:18.4780510Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=7 op=Ready attempts=1 atMs=13015 utc=2026-11-09T02:52:18.4942870Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Start sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=13031 utc=2026-11-09T02:52:18.5108500Z
+[UndoSync pid=11590] [UndoPicker] closed atMs=13047 utc=2026-11-09T02:52:18.5271130Z
+[UndoSync pid=11590] CONTROL_SEND session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=8 op=StartReceived attempt=1 atMs=13047 utc=2026-11-09T02:52:18.5272590Z
+[UndoSync pid=11590] RESTORE_BEGIN role=Client events=0 speed=Instant atMs=13048 utc=2026-11-09T02:52:18.5274280Z
+[UndoSync pid=11590] REPLAY_SPEED from=Instant to=Instant atMs=13048 utc=2026-11-09T02:52:18.5276280Z
+[UndoSync pid=11590] UI_RESTORING_SHOW text=Restoring… atMs=13048 utc=2026-11-09T02:52:18.5279450Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13071 utc=2026-11-09T02:52:18.5508680Z
+[DEBUG] [ActionExecutor] Cancelling queue
+[UndoSync pid=11590] DISCARDED_WAITS_CANCEL count=0 atMs=13071 utc=2026-11-09T02:52:18.5510360Z
+[UndoSync pid=11590] UNBIND replay=True atMs=13071 utc=2026-11-09T02:52:18.5511340Z
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotInCombat. Cancelling deferred actions and cancelling all remaining combat actions
+[DEBUG] [ActionQueueSet] Combat ended. Cancelling all non-executing combat actions in all queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] TRANSPORT_DISCONNECT_SUPPRESSED atMs=13073 utc=2026-11-09T02:52:18.5523920Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage
+[DEBUG] [ActionExecutor] Pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room  (previously at: act 0 coord (null) room ), checking if we have enqueued messages
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=13078 utc=2026-11-09T02:52:18.5576580Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' assets... count=0 vfx=0
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=8 op=StartReceived attempts=1 atMs=13080 utc=2026-11-09T02:52:18.5599720Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13098 utc=2026-11-09T02:52:18.5774800Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13098 utc=2026-11-09T02:52:18.5776130Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' Complete: assets=0 time_elapsed=18ms
+[INFO] Preloading 'Act=OVERGROWTH' assets... count=8 vfx=0
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13131 utc=2026-11-09T02:52:18.6105880Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13131 utc=2026-11-09T02:52:18.6107110Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] PEER_PROGRESS session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 stage=restore-owners stageMs=11 votes=4/4 done=0/4 run=true combat=False side= ending=False/False sync=NotInCombat executor=False/False atMs=13147 utc=2026-11-09T02:52:18.6268950Z
+[UndoSync pid=11590] UNDO_WAIT session=9953b9cbc1244b4bb4e1e4b626dffae9 stage=restore-assets stageMs=53 localVoted=True localDone=False links=[peer=1,pending=,cancelPending=False,remote=restore-owners stageMs=11 votes=4/4 done=0/4 run=true combat=False side= ending=False/False sync=NotInCombat executor=False/False,ageMs=17] atMs=13164 utc=2026-11-09T02:52:18.6441110Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13165 utc=2026-11-09T02:52:18.6443690Z
+[INFO] Preloading 'Act=OVERGROWTH' Complete: assets=8 time_elapsed=53ms
+[UndoSync pid=11590] BIND players=4 atMs=13171 utc=2026-11-09T02:52:18.6506310Z
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait.png
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait_shadow.png
+[WARN] Asset not cached: res://images/ui/top_panel/character_icon_silent_outline.png
+[DEBUG] [PlayerChoiceSynchronizer] Fast-forwarded choice IDs to: 
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 0 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 1 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 2 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 3 to 0
+[UndoSync pid=11590] RESTORE_SEEDED action=0 hook=0 atMs=13264 utc=2026-11-09T02:52:18.7432680Z
+[DEBUG] [CombatStateSynchronizer] Broadcasting combat sync message to all peers
+[DEBUG] [CombatStateSynchronizer] Waiting to receive all sync messages from all clients
+[DEBUG] [ActionExecutor] Pausing queue
+[INFO] Unloading 6 missed cache assets
+[INFO] Preloading 'Combat Room' assets... count=9 vfx=0
+[INFO] Preloading 'Combat Room' Complete: assets=9 time_elapsed=50ms
+[INFO] Creating NCombatRoom with mode=ActiveCombat encounter=FUZZY_WURM_CRAWLER_WEAK.
+[WARN] Asset not cached: res://scenes/combat/multiplayer_player_intent.tscn
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PreCombatSetup. Allowing non-combat actions to execute, but not combat actions.
+[DEBUG] [ActionQueueSet] Setting up for combat.
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionExecutor] Pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat becomes NotPlayPhase from PreCombatSetup. Signaling queues that combat has begun
+[DEBUG] [ActionQueueSet] Combat started.
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotPlayPhase. Pausing all player queues
+[DEBUG] [ActionQueueSet] Pausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room ), checking if we have enqueued messages
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room 0), checking if we have enqueued messages
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13403 utc=2026-11-09T02:52:18.8825220Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13403 utc=2026-11-09T02:52:18.8827000Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=13437 utc=2026-11-09T02:52:18.9163410Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PlayPhase. Requesting 0 actions and unpausing action queues
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=11590] REPLAY_DONE events=0 waits=0 choices=0 checksum=1705177514 restoreMs=402 replayMs=18 totalMs=420 atMs=13468 utc=2026-11-09T02:52:18.9474910Z
+[UndoSync pid=11590] REPLAY_SPEED_RESTORED mode=Instant atMs=13468 utc=2026-11-09T02:52:18.9476760Z
+[UndoSync pid=11590] CONTROL_SEND session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=9 op=Done attempt=1 atMs=13468 utc=2026-11-09T02:52:18.9477820Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=9 op=Done attempts=1 atMs=13489 utc=2026-11-09T02:52:18.9691850Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Resume sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=13550 utc=2026-11-09T02:52:19.0295170Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=11590] HISTORY_COMMIT events=0 targets=1 source=proposer atMs=13568 utc=2026-11-09T02:52:19.0480460Z
+[UndoSync pid=11590] UI_RESTORING_HIDE atMs=13568 utc=2026-11-09T02:52:19.0481750Z
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=13568 utc=2026-11-09T02:52:19.0482520Z
+[UndoSync pid=11590] NATIVE_REARMED checksumNextId=0 atMs=13569 utc=2026-11-09T02:52:19.0483120Z
+[UndoSync pid=11590] CONTROL_SEND session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=10 op=Resumed attempt=1 atMs=13569 utc=2026-11-09T02:52:19.0483800Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=9953b9cbc1244b4bb4e1e4b626dffae9 peer=1 seq=10 op=Resumed attempts=1 atMs=13584 utc=2026-11-09T02:52:19.0634470Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Release sender=1 session=9953b9cbc1244b4bb4e1e4b626dffae9 atMs=13617 utc=2026-11-09T02:52:19.0967960Z
+[UndoSync pid=11590] RESUME session=9953b9cbc1244b4bb4e1e4b626dffae9 peers=4 checksum=1705177514 atMs=13633 utc=2026-11-09T02:52:19.1132140Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK real multiplayer replay resumed
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK enemy HP and full native state restored
+[WARN] Asset not cached: res://scenes/ui/multiplayer/remote_mouse_cursor.tscn
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client native roster connected
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client avatar 2001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client avatar 1 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client avatar 1001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client avatar 3001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client cursor 1 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client cursor 1001 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-client cursor 3001 bound
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client] CHECK restored-state-client all real peer native states match
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] PLAY card=CARD.STRIKE_SILENT owner=2001 events=0
+[DEBUG] [ActionQueueSynchronizer] Sending message to host requesting to enqueue action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 at 02:52:19
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK native manual card accepted
+[DEBUG] [NetMessageBus] Received message ActionEnqueuedMessage PlayerID: 2001 Action: NetPlayCardAction (NetCombatCard 24) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike), sending to 1 handlers
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Handling map-targeted message ActionEnqueuedMessage PlayerID: 2001 Action: NetPlayCardAction (NetCombatCard 24) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) from 1 for location act 0 coord (0, 1) room 0
+[DEBUG] [ActionQueueSynchronizer] Received handle action enqueued message ActionEnqueuedMessage PlayerID: 2001 Action: NetPlayCardAction (NetCombatCard 24) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) at 02:52:19
+[DEBUG] [ActionQueueSynchronizer] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 from owner 2001
+[DEBUG] [ActionQueueSet] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 to player queue owned by 2001
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 with id 0 belonging to 2001 becomes new ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] Got ready action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 (0)
+[DEBUG] [ActionExecutor] Executing action: PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 began executing
+[INFO] Player 2001 playing card STRIKE_SILENT (targeting Fuzzy Wurm Crawler (index 4))
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 finished execution
+[DEBUG] [ChecksumTracker] Generating checksum for context: finished action execution PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 action: PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4 id: 0
+[DEBUG] [ActionExecutor] Completed execution of action PlayCardAction card: CARD.STRIKE_SILENT (28648012) index: 24 targetid: 4, attempting to find new action
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] BOUNDARY events=1 atMs=13967 utc=2026-11-09T02:52:19.4463700Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] POST_REPLAY_ACTION native=true
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK post-action native state available
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK real attack reduced enemy HP before undo
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK damaged-client2 all real peer native states match
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=11590] PROPOSER_PLAN session=1093241285ea4f2aad538987abb34584 proposer=2001 events=0 bytes=3424 sha256=D80969848126A97E5B8AB32E837968FAB66D3E51FC0F4449E8A2D8F30D74B48E atMs=14354 utc=2026-11-09T02:52:19.8336040Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=11 op=Request attempt=1 atMs=14354 utc=2026-11-09T02:52:19.8337880Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=12 op=Plan attempt=1 atMs=14354 utc=2026-11-09T02:52:19.8341320Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=13 op=Plan attempt=1 atMs=14355 utc=2026-11-09T02:52:19.8343550Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=14 op=Plan attempt=1 atMs=14355 utc=2026-11-09T02:52:19.8344590Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=15 op=Plan attempt=1 atMs=14355 utc=2026-11-09T02:52:19.8345560Z
+[UndoSync pid=11590] PLAN_SENT session=1093241285ea4f2aad538987abb34584 chunks=4 atMs=14355 utc=2026-11-09T02:52:19.8346170Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=11 op=Request attempts=1 atMs=14383 utc=2026-11-09T02:52:19.8625340Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=12 op=Plan attempts=1 atMs=14383 utc=2026-11-09T02:52:19.8628890Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=13 op=Plan attempts=1 atMs=14383 utc=2026-11-09T02:52:19.8629670Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=14 op=Plan attempts=1 atMs=14383 utc=2026-11-09T02:52:19.8631060Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Propose sender=1 session=1093241285ea4f2aad538987abb34584 atMs=14383 utc=2026-11-09T02:52:19.8631750Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=1093241285ea4f2aad538987abb34584 atMs=14383 utc=2026-11-09T02:52:19.8632560Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=1093241285ea4f2aad538987abb34584 atMs=14384 utc=2026-11-09T02:52:19.8633300Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=1093241285ea4f2aad538987abb34584 atMs=14384 utc=2026-11-09T02:52:19.8634130Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=1093241285ea4f2aad538987abb34584 atMs=14384 utc=2026-11-09T02:52:19.8634740Z
+[UndoSync pid=11590] PROPOSER_PLAN session=1093241285ea4f2aad538987abb34584 proposer=2001 events=0 bytes=3424 sha256=D80969848126A97E5B8AB32E837968FAB66D3E51FC0F4449E8A2D8F30D74B48E atMs=14384 utc=2026-11-09T02:52:19.8642070Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=15 op=Plan attempts=1 atMs=14385 utc=2026-11-09T02:52:19.8642680Z
+[WARN] Asset not cached: res://scenes/ui/generic_popup.tscn
+[UndoSync pid=11590] UI_WAITING target=0 atMs=14402 utc=2026-11-09T02:52:19.8821810Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK proposer already accepted its own proposal
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK proposer native waiting popup exists
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK proposer sees waiting rather than accept
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] PROPOSER_UI header=Undo Proposed
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Prepare sender=1 session=1093241285ea4f2aad538987abb34584 atMs=14500 utc=2026-11-09T02:52:19.9800720Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=16 op=Ready attempt=1 atMs=14516 utc=2026-11-09T02:52:19.9957890Z
+[UndoSync pid=11590] REPLAY_READY session=1093241285ea4f2aad538987abb34584 atMs=14516 utc=2026-11-09T02:52:19.9959570Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=16 op=Ready attempts=1 atMs=14534 utc=2026-11-09T02:52:20.0134070Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Start sender=1 session=1093241285ea4f2aad538987abb34584 atMs=14550 utc=2026-11-09T02:52:20.0301510Z
+[UndoSync pid=11590] [UndoPicker] closed atMs=14567 utc=2026-11-09T02:52:20.0468000Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=17 op=StartReceived attempt=1 atMs=14567 utc=2026-11-09T02:52:20.0469910Z
+[UndoSync pid=11590] RESTORE_BEGIN role=Client events=0 speed=Instant atMs=14567 utc=2026-11-09T02:52:20.0471240Z
+[UndoSync pid=11590] REPLAY_SPEED from=Instant to=Instant atMs=14567 utc=2026-11-09T02:52:20.0471780Z
+[UndoSync pid=11590] UI_RESTORING_SHOW text=Restoring… atMs=14568 utc=2026-11-09T02:52:20.0474400Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14595 utc=2026-11-09T02:52:20.0742920Z
+[DEBUG] [ActionExecutor] Cancelling queue
+[UndoSync pid=11590] DISCARDED_WAITS_CANCEL count=0 atMs=14595 utc=2026-11-09T02:52:20.0744890Z
+[UndoSync pid=11590] UNBIND replay=True atMs=14595 utc=2026-11-09T02:52:20.0745720Z
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.SetResult()
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotInCombat. Cancelling deferred actions and cancelling all remaining combat actions
+[DEBUG] [ActionQueueSet] Combat ended. Cancelling all non-executing combat actions in all queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] TRANSPORT_DISCONNECT_SUPPRESSED atMs=14596 utc=2026-11-09T02:52:20.0757820Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage
+[DEBUG] [ActionExecutor] Pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room  (previously at: act 0 coord (null) room ), checking if we have enqueued messages
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=14597 utc=2026-11-09T02:52:20.0770090Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' assets... count=0 vfx=0
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=17 op=StartReceived attempts=1 atMs=14617 utc=2026-11-09T02:52:20.0966640Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14617 utc=2026-11-09T02:52:20.0967860Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14617 utc=2026-11-09T02:52:20.0968510Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' Complete: assets=0 time_elapsed=17ms
+[INFO] Preloading 'Act=OVERGROWTH' assets... count=8 vfx=0
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14649 utc=2026-11-09T02:52:20.1291290Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14650 utc=2026-11-09T02:52:20.1292920Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14683 utc=2026-11-09T02:52:20.1631950Z
+[INFO] Preloading 'Act=OVERGROWTH' Complete: assets=8 time_elapsed=51ms
+[UndoSync pid=11590] BIND players=4 atMs=14691 utc=2026-11-09T02:52:20.1704820Z
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait.png
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait_shadow.png
+[WARN] Asset not cached: res://images/ui/top_panel/character_icon_silent_outline.png
+[DEBUG] [PlayerChoiceSynchronizer] Fast-forwarded choice IDs to: 
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 0 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 1 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 2 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 3 to 0
+[UndoSync pid=11590] RESTORE_SEEDED action=0 hook=0 atMs=14786 utc=2026-11-09T02:52:20.2658830Z
+[DEBUG] [CombatStateSynchronizer] Broadcasting combat sync message to all peers
+[DEBUG] [CombatStateSynchronizer] Waiting to receive all sync messages from all clients
+[DEBUG] [ActionExecutor] Pausing queue
+[INFO] Unloading 6 missed cache assets
+[INFO] Preloading 'Combat Room' assets... count=9 vfx=0
+[INFO] Preloading 'Combat Room' Complete: assets=9 time_elapsed=51ms
+[INFO] Creating NCombatRoom with mode=ActiveCombat encounter=FUZZY_WURM_CRAWLER_WEAK.
+[WARN] Asset not cached: res://scenes/combat/multiplayer_player_intent.tscn
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PreCombatSetup. Allowing non-combat actions to execute, but not combat actions.
+[DEBUG] [ActionQueueSet] Setting up for combat.
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionExecutor] Pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat becomes NotPlayPhase from PreCombatSetup. Signaling queues that combat has begun
+[DEBUG] [ActionQueueSet] Combat started.
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotPlayPhase. Pausing all player queues
+[DEBUG] [ActionQueueSet] Pausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room ), checking if we have enqueued messages
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room 0), checking if we have enqueued messages
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14880 utc=2026-11-09T02:52:20.3600520Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14880 utc=2026-11-09T02:52:20.3601950Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=14942 utc=2026-11-09T02:52:20.4213940Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PlayPhase. Requesting 0 actions and unpausing action queues
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=11590] REPLAY_DONE events=0 waits=0 choices=0 checksum=1705177514 restoreMs=406 replayMs=18 totalMs=424 atMs=14991 utc=2026-11-09T02:52:20.4705100Z
+[UndoSync pid=11590] REPLAY_SPEED_RESTORED mode=Instant atMs=14991 utc=2026-11-09T02:52:20.4706230Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=18 op=Done attempt=1 atMs=14991 utc=2026-11-09T02:52:20.4706970Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=18 op=Done attempts=1 atMs=15007 utc=2026-11-09T02:52:20.4863730Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Resume sender=1 session=1093241285ea4f2aad538987abb34584 atMs=15056 utc=2026-11-09T02:52:20.5362160Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=11590] HISTORY_COMMIT events=0 targets=1 source=proposer atMs=15075 utc=2026-11-09T02:52:20.5552060Z
+[UndoSync pid=11590] UI_RESTORING_HIDE atMs=15076 utc=2026-11-09T02:52:20.5554010Z
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=15076 utc=2026-11-09T02:52:20.5557000Z
+[UndoSync pid=11590] NATIVE_REARMED checksumNextId=0 atMs=15076 utc=2026-11-09T02:52:20.5558800Z
+[UndoSync pid=11590] CONTROL_SEND session=1093241285ea4f2aad538987abb34584 peer=1 seq=19 op=Resumed attempt=1 atMs=15076 utc=2026-11-09T02:52:20.5559790Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=1093241285ea4f2aad538987abb34584 peer=1 seq=19 op=Resumed attempts=1 atMs=15090 utc=2026-11-09T02:52:20.5699010Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Release sender=1 session=1093241285ea4f2aad538987abb34584 atMs=15123 utc=2026-11-09T02:52:20.6032030Z
+[UndoSync pid=11590] RESUME session=1093241285ea4f2aad538987abb34584 peers=4 checksum=1705177514 atMs=15140 utc=2026-11-09T02:52:20.6196170Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK real multiplayer replay resumed
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK enemy HP and full native state restored
+[WARN] Asset not cached: res://scenes/ui/multiplayer/remote_mouse_cursor.tscn
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 native roster connected
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 avatar 2001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 avatar 1 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 avatar 1001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 avatar 3001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 cursor 1 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 cursor 1001 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-client2 cursor 3001 bound
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client2] CHECK restored-state-client2 all real peer native states match
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[DEBUG] [NetMessageBus] Received message ActionEnqueuedMessage PlayerID: 3001 Action: NetPlayCardAction (NetCombatCard 37) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike), sending to 1 handlers
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Handling map-targeted message ActionEnqueuedMessage PlayerID: 3001 Action: NetPlayCardAction (NetCombatCard 37) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) from 1 for location act 0 coord (0, 1) room 0
+[DEBUG] [ActionQueueSynchronizer] Received handle action enqueued message ActionEnqueuedMessage PlayerID: 3001 Action: NetPlayCardAction (NetCombatCard 37) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) at 02:52:20
+[DEBUG] [ActionQueueSynchronizer] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 from owner 3001
+[DEBUG] [ActionQueueSet] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 to player queue owned by 3001
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Action PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 with id 0 belonging to 3001 becomes new ready action
+[VERYDEBUG] [ActionQueueSet] Got ready action PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 (0)
+[DEBUG] [ActionExecutor] Executing action: PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 began executing
+[INFO] Player 3001 playing card STRIKE_SILENT (targeting Fuzzy Wurm Crawler (index 4))
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 finished execution
+[DEBUG] [ChecksumTracker] Generating checksum for context: finished action execution PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 action: PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4 id: 0
+[DEBUG] [ActionExecutor] Completed execution of action PlayCardAction card: CARD.STRIKE_SILENT (44064126) index: 37 targetid: 4, attempting to find new action
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] BOUNDARY events=1 atMs=15790 utc=2026-11-09T02:52:21.2695670Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK real attack reduced enemy HP before undo
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK damaged-client3 all real peer native states match
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Propose sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=15890 utc=2026-11-09T02:52:21.3698540Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=15890 utc=2026-11-09T02:52:21.3700330Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=15890 utc=2026-11-09T02:52:21.3701140Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=15890 utc=2026-11-09T02:52:21.3701850Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Plan sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=15890 utc=2026-11-09T02:52:21.3702570Z
+[UndoSync pid=11590] PROPOSER_PLAN session=b1ebbe3b418d4597ba310ebe062f29d8 proposer=3001 events=0 bytes=3424 sha256=D80969848126A97E5B8AB32E837968FAB66D3E51FC0F4449E8A2D8F30D74B48E atMs=15891 utc=2026-11-09T02:52:21.3710080Z
+[UndoSync pid=11590] UNDO_WAIT session=b1ebbe3b418d4597ba310ebe062f29d8 stage=voting stageMs=17 localVoted=False localDone=False links=[peer=1,pending=,cancelPending=False,remote=restore-owners stageMs=11 votes=4/4 done=0/4 run=true combat=False side= ending=False/False sync=NotInCombat executor=False/False,ageMs=2760] atMs=15907 utc=2026-11-09T02:52:21.3862660Z
+[WARN] Asset not cached: res://scenes/ui/generic_popup.tscn
+[UndoSync pid=11590] UI_VOTE target=0 atMs=15909 utc=2026-11-09T02:52:21.3892580Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] PEER_PROGRESS session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 stage=voting stageMs=15 votes=1/4 done=0/4 run=true combat=True side=Player ending=False/False sync=PlayPhase executor=False/False atMs=15910 utc=2026-11-09T02:52:21.3898550Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK other participant must explicitly vote
+[UndoSync pid=11590] VOTE_LOCAL session=b1ebbe3b418d4597ba310ebe062f29d8 accepted=True idle=True atMs=15990 utc=2026-11-09T02:52:21.4697050Z
+[UndoSync pid=11590] CONTROL_SEND session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=20 op=Vote attempt=1 atMs=15990 utc=2026-11-09T02:52:21.4698910Z
+[UndoSync pid=11590] VOTE_SUBMITTED session=b1ebbe3b418d4597ba310ebe062f29d8 accepted=True atMs=15990 utc=2026-11-09T02:52:21.4699900Z
+[UndoSync pid=11590] [UndoPicker] closed atMs=16007 utc=2026-11-09T02:52:21.4865300Z
+[UndoSync pid=11590] UI_WAITING target=0 atMs=16009 utc=2026-11-09T02:52:21.4883430Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=20 op=Vote attempts=1 atMs=16009 utc=2026-11-09T02:52:21.4888280Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Prepare sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=16009 utc=2026-11-09T02:52:21.4889330Z
+[UndoSync pid=11590] CONTROL_SEND session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=21 op=Ready attempt=1 atMs=16024 utc=2026-11-09T02:52:21.5035120Z
+[UndoSync pid=11590] REPLAY_READY session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=16024 utc=2026-11-09T02:52:21.5036690Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=21 op=Ready attempts=1 atMs=16040 utc=2026-11-09T02:52:21.5198070Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Start sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=16057 utc=2026-11-09T02:52:21.5363880Z
+[UndoSync pid=11590] [UndoPicker] closed atMs=16073 utc=2026-11-09T02:52:21.5531340Z
+[UndoSync pid=11590] CONTROL_SEND session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=22 op=StartReceived attempt=1 atMs=16074 utc=2026-11-09T02:52:21.5532680Z
+[UndoSync pid=11590] RESTORE_BEGIN role=Client events=0 speed=Instant atMs=16074 utc=2026-11-09T02:52:21.5533830Z
+[UndoSync pid=11590] REPLAY_SPEED from=Instant to=Instant atMs=16074 utc=2026-11-09T02:52:21.5534340Z
+[UndoSync pid=11590] UI_RESTORING_SHOW text=Restoring… atMs=16074 utc=2026-11-09T02:52:21.5536790Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16100 utc=2026-11-09T02:52:21.5795670Z
+[DEBUG] [ActionExecutor] Cancelling queue
+[UndoSync pid=11590] DISCARDED_WAITS_CANCEL count=0 atMs=16100 utc=2026-11-09T02:52:21.5797590Z
+[UndoSync pid=11590] UNBIND replay=True atMs=16100 utc=2026-11-09T02:52:21.5798440Z
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[ERROR] System.InvalidOperationException: Local player not found in combat.
+   at MegaCrit.Sts2.Core.Context.LocalContext.GetMe(ICombatState combatState)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.CallCombatStateChangedDeferred()
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
+   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.NotifyCombatStateChanged(String caller)
+   at MegaCrit.Sts2.Core.Combat.CombatStateTracker.OnCreaturesChanged(CombatState _)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.RemoveCreature(Creature creature)
+   at MegaCrit.Sts2.Core.Combat.CombatManager.Reset(Boolean graceful)
+   at MegaCrit.Sts2.Core.Runs.RunManager.CleanUp_Patch1(RunManager this, Boolean graceful)
+   at UndoSync.Replay.ExecuteCoreAsync(CombatReplay replay, CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at UndoSync.Replay.Frame(CancellationToken token)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.ExecutionContextCallback(Object s)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext()
+   at System.Threading.Tasks.AwaitTaskContinuation.RunCallback(ContextCallback callback, Object state, Task& currentTask)
+   at System.Threading.Tasks.Task.RunContinuations(Object continuationObject)
+   at MegaCrit.Sts2.Core.Nodes.GodotExtensions.NodeUtil.AwaitProcessFrame(Node node, CancellationToken ct)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.AsyncStateMachineBox`1.MoveNext(Thread threadPoolThread)
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull)
+
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotInCombat. Cancelling deferred actions and cancelling all remaining combat actions
+[DEBUG] [ActionQueueSet] Combat ended. Cancelling all non-executing combat actions in all queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] TRANSPORT_DISCONNECT_SUPPRESSED atMs=16101 utc=2026-11-09T02:52:21.5810530Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestEnqueueHookActionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.HookActionEnqueuedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.RequestResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.ResumeActionAfterPlayerChoiceMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.VotedForSharedEventOptionMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SharedEventOptionChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardObtainedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.GoldLostMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CardRemovedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSelectedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RewardSetSkippedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.MerchantCardRemovalMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.TreasureChestOpenedMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.CrystalSphereRewardsMessage
+[DEBUG] [ActionExecutor] Pausing queue
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.OptionIndexChosenMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Flavor.RestSiteOptionHoveredMessage
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Register message handler MegaCrit.Sts2.Core.Multiplayer.Game.MessageHandlerDelegate`1[MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage] for MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.RestSiteSkippedMessage
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room  (previously at: act 0 coord (null) room ), checking if we have enqueued messages
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=16102 utc=2026-11-09T02:52:21.5820570Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' assets... count=0 vfx=0
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16123 utc=2026-11-09T02:52:21.6029150Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=22 op=StartReceived attempts=1 atMs=16123 utc=2026-11-09T02:52:21.6030830Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16124 utc=2026-11-09T02:52:21.6032870Z
+[INFO] Preloading 'characters=SILENT,SILENT,SILENT,SILENT' Complete: assets=0 time_elapsed=19ms
+[INFO] Preloading 'Act=OVERGROWTH' assets... count=8 vfx=0
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16157 utc=2026-11-09T02:52:21.6363200Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16157 utc=2026-11-09T02:52:21.6364570Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16190 utc=2026-11-09T02:52:21.6693330Z
+[INFO] Preloading 'Act=OVERGROWTH' Complete: assets=8 time_elapsed=50ms
+[UndoSync pid=11590] BIND players=4 atMs=16197 utc=2026-11-09T02:52:21.6766370Z
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait.png
+[WARN] Asset not cached: res://images/packed/run_history/attack_portrait_shadow.png
+[WARN] Asset not cached: res://images/ui/top_panel/character_icon_silent_outline.png
+[DEBUG] [PlayerChoiceSynchronizer] Fast-forwarded choice IDs to: 
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 0 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 1 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 2 to 0
+[DEBUG] [RewardsSetSynchronizer] Fast-forwarded reward set ID for 3 to 0
+[UndoSync pid=11590] RESTORE_SEEDED action=0 hook=0 atMs=16282 utc=2026-11-09T02:52:21.7614260Z
+[DEBUG] [CombatStateSynchronizer] Broadcasting combat sync message to all peers
+[DEBUG] [CombatStateSynchronizer] Waiting to receive all sync messages from all clients
+[DEBUG] [ActionExecutor] Pausing queue
+[INFO] Unloading 6 missed cache assets
+[INFO] Preloading 'Combat Room' assets... count=9 vfx=0
+[INFO] Preloading 'Combat Room' Complete: assets=9 time_elapsed=50ms
+[INFO] Creating NCombatRoom with mode=ActiveCombat encounter=FUZZY_WURM_CRAWLER_WEAK.
+[WARN] Asset not cached: res://scenes/combat/multiplayer_player_intent.tscn
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PreCombatSetup. Allowing non-combat actions to execute, but not combat actions.
+[DEBUG] [ActionQueueSet] Setting up for combat.
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionExecutor] Pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat becomes NotPlayPhase from PreCombatSetup. Signaling queues that combat has begun
+[DEBUG] [ActionQueueSet] Combat started.
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotPlayPhase. Pausing all player queues
+[DEBUG] [ActionQueueSet] Pausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room ), checking if we have enqueued messages
+[DEBUG] [RunLocationTargetedMessageBuffer] Run location changed to act 0 coord (0, 1) room 0 (previously at: act 0 coord (0, 1) room 0), checking if we have enqueued messages
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16403 utc=2026-11-09T02:52:21.8832370Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16404 utc=2026-11-09T02:52:21.8834330Z
+[UndoSync pid=11590] REPLAY_MESSAGE_DROPPED type=PeerInputMessage atMs=16437 utc=2026-11-09T02:52:21.9170180Z
+[DEBUG] [ActionExecutor] Un-pausing queue
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes PlayPhase. Requesting 0 actions and unpausing action queues
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=11590] REPLAY_DONE events=0 waits=0 choices=0 checksum=1705177514 restoreMs=394 replayMs=18 totalMs=412 atMs=16486 utc=2026-11-09T02:52:21.9654500Z
+[UndoSync pid=11590] REPLAY_SPEED_RESTORED mode=Instant atMs=16486 utc=2026-11-09T02:52:21.9656600Z
+[UndoSync pid=11590] CONTROL_SEND session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=23 op=Done attempt=1 atMs=16486 utc=2026-11-09T02:52:21.9657630Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=23 op=Done attempts=1 atMs=16501 utc=2026-11-09T02:52:21.9808420Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Resume sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=16568 utc=2026-11-09T02:52:22.0477360Z
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[UndoSync pid=11590] HISTORY_COMMIT events=0 targets=1 source=proposer atMs=16593 utc=2026-11-09T02:52:22.0728780Z
+[UndoSync pid=11590] UI_RESTORING_HIDE atMs=16593 utc=2026-11-09T02:52:22.0731640Z
+[UndoSync pid=11590] TRANSPORT_RETAINED role=Client platform=None lobby= atMs=16594 utc=2026-11-09T02:52:22.0732910Z
+[UndoSync pid=11590] NATIVE_REARMED checksumNextId=0 atMs=16594 utc=2026-11-09T02:52:22.0733850Z
+[UndoSync pid=11590] CONTROL_SEND session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=24 op=Resumed attempt=1 atMs=16594 utc=2026-11-09T02:52:22.0734650Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] CONTROL_ACK session=b1ebbe3b418d4597ba310ebe062f29d8 peer=1 seq=24 op=Resumed attempts=1 atMs=16618 utc=2026-11-09T02:52:22.0981740Z
+[INFO] [NetMessageBus] Received message UndoSync.UndoMinimalMessage, sending to 1 handlers
+[UndoSync pid=11590] MESSAGE_RECEIVED op=Release sender=1 session=b1ebbe3b418d4597ba310ebe062f29d8 atMs=16635 utc=2026-11-09T02:52:22.1147550Z
+[UndoSync pid=11590] RESUME session=b1ebbe3b418d4597ba310ebe062f29d8 peers=4 checksum=1705177514 atMs=16651 utc=2026-11-09T02:52:22.1311970Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK real multiplayer replay resumed
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK enemy HP and full native state restored
+[WARN] Asset not cached: res://scenes/ui/multiplayer/remote_mouse_cursor.tscn
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 native roster connected
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 avatar 2001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 avatar 1 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 avatar 1001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 avatar 3001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 cursor 1 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 cursor 1001 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-client3 cursor 3001 bound
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK restored-state-client3 all real peer native states match
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] PLAY card=CARD.STRIKE_SILENT owner=2001 events=0
+[DEBUG] [ActionQueueSynchronizer] Sending message to host requesting to enqueue action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 at 02:52:22
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK native manual card accepted
+[DEBUG] [NetMessageBus] Received message ActionEnqueuedMessage PlayerID: 2001 Action: NetPlayCardAction (NetCombatCard 24) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike), sending to 1 handlers
+[VERYDEBUG] [RunLocationTargetedMessageBuffer] Handling map-targeted message ActionEnqueuedMessage PlayerID: 2001 Action: NetPlayCardAction (NetCombatCard 24) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) from 1 for location act 0 coord (0, 1) room 0
+[DEBUG] [ActionQueueSynchronizer] Received handle action enqueued message ActionEnqueuedMessage PlayerID: 2001 Action: NetPlayCardAction (NetCombatCard 24) target: 4 Source Location: act 0 coord (0, 1) room 0 (card: Strike) at 02:52:22
+[DEBUG] [ActionQueueSynchronizer] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 from owner 2001
+[DEBUG] [ActionQueueSet] Enqueueing action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 to player queue owned by 2001
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 with id 0 belonging to 2001 becomes new ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] Got ready action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 (0)
+[DEBUG] [ActionExecutor] Executing action: PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 began executing
+[INFO] Player 2001 playing card STRIKE_SILENT (targeting Fuzzy Wurm Crawler (index 4))
+[VERYDEBUG] [GameAction] Action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 finished execution
+[DEBUG] [ChecksumTracker] Generating checksum for context: finished action execution PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 action: PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4 id: 0
+[DEBUG] [ActionExecutor] Completed execution of action PlayCardAction card: CARD.STRIKE_SILENT (45112406) index: 24 targetid: 4, attempting to find new action
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] Queue for player 1 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 1001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 2001 is empty
+[VERYDEBUG] [ActionQueueSet] Queue for player 3001 is empty
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[UndoSync pid=11590] BOUNDARY events=1 atMs=17001 utc=2026-11-09T02:52:22.4811870Z
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK idle native player phase
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] POST_REPLAY_ACTION native=true
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK post-action native state available
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK idle native player phase
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK post-replay-real-attack all real peer native states match
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final native roster connected
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final avatar 2001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final avatar 1 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final avatar 1001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final avatar 3001 online
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final cursor 1 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final cursor 1001 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK final cursor 3001 bound
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] CHECK zero native state divergences
+[MinimalHarness pid=11590 role=client2 stage=regression-client3] HARNESS_PASS peers=4 suite=regression cards=2 undos=4 selections=0 divergences=0
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[UndoSync pid=11590] UNBIND replay=False atMs=17443 utc=2026-11-09T02:52:22.9223020Z
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [ActionQueueSynchronizer] Combat state becomes NotInCombat. Cancelling deferred actions and cancelling all remaining combat actions
+[DEBUG] [ActionQueueSet] Combat ended. Cancelling all non-executing combat actions in all queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[DEBUG] [ActionQueueSet] Unpausing all player queues
+[DEBUG] [ActionExecutor] Action queue changed, beginning ExecuteActions
+[VERYDEBUG] [ActionQueueSet] Attempting to find ready action
+[VERYDEBUG] [ActionQueueSet] No action is ready
+[WARN] Warning: Packet writer is growing from 1024 bytes to 2048 bytes!
+[WARN] Warning: Packet writer is growing from 2048 bytes to 4096 bytes!
+[WARN] Warning: Packet writer is growing from 4096 bytes to 8192 bytes!
+FMOD Sound System: System released
+WARNING: 60 RIDs of type "CanvasItem" were leaked.
+     at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2678)
+ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit.
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+     at: cleanup (core/object/object.cpp:2514)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:795)

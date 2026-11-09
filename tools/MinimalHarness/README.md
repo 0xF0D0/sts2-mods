@@ -65,3 +65,36 @@ Steam worker/coordinator enrollment and real Steam execution remain the next
 milestone. One PC/account cannot establish three distinct authenticated Steam
 peers. ENet/singleplayer reports must never be called Steam verification. No
 release, commit or Workshop update is performed by these runners.
+
+Control delivery/lifetime regressions use the same real native ENet peers. Each
+test deliberately faults an actual native await or serialized send boundary;
+there are no substitute votes, participants, transports or state checksums.
+Build `tools/MinimalHarness/MinimalHarness.csproj -c Release`, then prepare the
+backup once and restore it after all owned game processes have exited:
+
+```sh
+python3 tools/MinimalHarness/runtime.py prepare
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label control-matrix --peers 3 --suite fault-send-matrix --speed instant
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label discarded-effect --peers 3 --suite fault-old-action --speed normal
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label peer-disconnect --peers 3 --suite fault-disconnect --speed instant
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label peer-error --peers 3 --suite fault-replay-error --speed instant
+python3 tools/MinimalHarness/runtime.py restore --root /absolute/backup-root
+```
+
+`fault-send-matrix` runs 14 undos in ONE three-peer session: drop Vote, Ready,
+StartReceived, Done, Resumed, Request, upload Plan, Propose, relay Plan, Prepare,
+Start, Resume, Release and an interval of ACKs. Require exact target states,
+all-peer final comparison, no repeated reconstruction, drained ACK queues,
+continued native input and a fault marker for every case. Zero-target matrix
+cases are complemented by nonempty replay in the other suites/regression.
+`fault-old-action` holds a genuine attack inside a native presentation await,
+not after the effect body. `fault-disconnect` uses graceful native disconnect so
+the host actually receives the disconnect callback. `now:true` on this native
+ENet version can lose the close notification; do not treat that as a test of
+callback handling. `fault-replay-error` reports a held executor to the host,
+then raises a native action exception and drops the first Cancel; all peers must
+terminate with the original cause. A fixture failure stops the CLI with exit 1.
+`--expect baseline` is for deliberate before-fix reproduction only: PASS then
+means the defect was witnessed and task-owned cleanup completed, not recovery.
+These transport faults reproduce the log-only send contract locally. They do
+not verify an actual Steam SDK rejection or authenticated remote Steam peers.

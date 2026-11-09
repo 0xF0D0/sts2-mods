@@ -82,6 +82,10 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    reconnect, or load-lobby network handshake. Pump heartbeats/control while the
    old scene is absent; rebind new UI/run owners before entering combat.
 5. Restore initial action/hook/choice/reward IDs and inject recorded events.
+   After normal fade-out, use native FastMode.Instant for reconstruction and
+   replay to skip presentation waits. The outer replay finally restores the
+   user's original speed on success, cancellation and failure, before native
+   fade-in/live play. Do not change engine time scale or enable TestMode.
    UI keeps a centered localized restoration message on a black CanvasLayer
    owned by NGame, so replacing the combat scene does not remove the message.
    Show it after fade-out; remove it before fade-in and in the operation's
@@ -102,6 +106,25 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    proves reference/lobby equality instead of replacing the transport.
 
 Only one operation exists. A request ID distinguishes late ordinary messages.
+Control delivery is connection-scoped inside Network: per-recipient sequences,
+cumulative processed ACKs, a 16-packet window and 500 ms retransmission. Buffer
+out-of-order arrivals until their gap is repaired; acknowledge duplicates without
+reapplying votes, history chunks or Start. Keep this state across reconstruction
+and operation completion so a lost final Release ACK can still recover. Same-build
+wire revision 2 adds these fields; older wire layouts are incompatible.
+Cancel bypasses the ordered stream and has its own receipt/retry so a missing
+earlier packet cannot hide failure. After a started failure, allow at most one
+second for cancellation delivery before the existing disconnect/menu cleanup;
+before Start, retained cancellation receipts retry for at most 30 seconds.
+The host relays a client's failure to remaining peers and observes native
+ClientDisconnected in addition to whole-service Disconnected. Preserve the first
+failure reason through subsequent cleanup callbacks.
+Every two seconds exchange progress independently of ordered delivery. PID logs
+include UTC/monotonic timestamps, pending message operations and attempts, ACKs,
+missing host receipts, peer stage/age, replay event and executor state. An ACK
+proves control handling, never replay success; all Done checksums remain required.
+Native connection loss without a callback is visible as stale peer progress and
+missing receipts; this adds no new liveness timeout or pre-undo eligibility gate.
 Before Start, rejection/timeout cancels and resumes the unchanged run. After
 Start, failure/timeout ends the reconstructed run and returns to the menu; it
 must not expose a partial replay as playable. No rollback/retry framework.
@@ -109,6 +132,13 @@ Native checksum generation and receive processing are isolated during
 reconstruction. Each new tracker stays at NextId zero; final comparison uses a
 pure hash. Ordinary tracking resumes only after all peers finish. The existing
 transport and its heartbeat/quality tracker remain alive.
+
+Native executor cancellation alone does not terminate an effect task. Guard live
+combat Cmd.Wait/CustomScaledWait awaits with an undo-discard token and cancel
+those awaits at teardown, before replacing run owners. This unwinds the caller's
+discarded effect rather than resuming it against the rebuilt run. It is bounded
+to verified presentation awaits, not arbitrary cancellation of all game tasks;
+other native suspension paths still need their own reproduction evidence.
 
 ## Hazards and gates
 
