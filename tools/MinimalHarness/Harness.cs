@@ -22,6 +22,8 @@ using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Acts;
+using MegaCrit.Sts2.Core.Models.Encounters;
 using MegaCrit.Sts2.Core.Models.Characters;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Connection;
@@ -71,9 +73,9 @@ public static class Harness
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
-    private static CharacterModel Character => CommandLineHelper.HasArg("minimal-mixed")
+    private static CharacterModel Character => ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
         ? (_role is "host" or "ui" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
-        ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>();
+        ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>());
     private static int _divergences, _cards, _undos;
     private static INetGameService? _pump;
     private static readonly CancellationTokenSource Lifetime = new();
@@ -248,7 +250,7 @@ public static class Harness
                 window.Title = $"UndoSync — {_role} — PID {System.Environment.ProcessId}";
                 int index = Array.IndexOf(Roles, _role);
                 window.Size = new Vector2I(1000, 700);
-                window.Position = new Vector2I(20 + index * 1020, 80);
+                window.Position = new Vector2I(20 + index * 120, 60 + index * 35);
             }
             await BootAsync();
             _observedTransport = Manager.NetService.Platform.ToString() == "Steam" ? "steam"
@@ -264,6 +266,7 @@ public static class Harness
                 LocManager.Instance.SetLanguage(_role == "host" ? "eng" : _role == "client" ? "zhs" : "zht");
             if (_suite == "preview")
             {
+                NGame.Instance.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(_directory, $"preview-{_role}.png"));
                 Log($"PREVIEW_READY players={State.Players.Count} automaticPlay=false automaticVote=false");
                 await Task.Delay(Timeout.Infinite, Lifetime.Token);
             }
@@ -400,12 +403,20 @@ public static class Harness
         NGame.Instance!.RootSceneContainer.SetCurrentScene(NRun.Create(state));
         lobby?.CleanUp(disconnectSession: false);
         _pump = null; // Native NRun now owns Update; replacement lobbies pump themselves.
-        await Manager.SetActInternal(0);
+        int actIndex = 0;
+        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss)
+        {
+            var hive = state.Acts.OfType<Hive>().Single();
+            actIndex = state.Acts.ToList().IndexOf(hive);
+            hive.SetBossEncounter(hive.AllBossEncounters.Single(encounter => encounter is TheInsatiableBoss));
+        }
+        await Manager.SetActInternal(actIndex);
         if (FuzzDriver.Active) await FuzzCases.Prepare();
         if (_suite == "replay-long") await LongReplayBenchmark.Prepare();
         if (_suite == "model-probe")
         {
-            if (CommandLineHelper.HasArg("minimal-probe-orbs"))
+            if (ModelReplayProbe.FixtureCharacter is not null) await ModelReplayProbe.PrepareFixture();
+            else if (CommandLineHelper.HasArg("minimal-probe-orbs"))
             {
                 foreach (var player in State.Players)
                     await CardPileCmd.RemoveFromDeck(player.Deck.Cards.Where(c => c.Id.Entry is not "ZAP" and not "DUALCAST").ToArray(), showPreview: false);
@@ -427,10 +438,17 @@ public static class Harness
             }
             else await LongReplayBenchmark.Prepare();
         }
-        // Use the real act's generated encounter sequence and a real Monster map point.
-        // No catalogue encounter/loadout injection; native CreateRoom pulls the encounter.
-        var point = state.Map.GetAllMapPoints().Where(p => p.PointType == MapPointType.Monster).OrderBy(p => p.coord.row).ThenBy(p => p.coord.col).First();
-        await Manager.EnterMapCoordDebug(point.coord, RoomType.Monster, MapPointType.Monster, showTransition: false);
+        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss)
+        {
+            var boss = state.Map.BossMapPoint;
+            await Manager.EnterMapCoordDebug(boss.coord, RoomType.Boss, MapPointType.Boss, showTransition: false);
+        }
+        else
+        {
+            // Use the native seeded encounter sequence and a real map point.
+            var point = state.Map.GetAllMapPoints().Where(p => p.PointType == MapPointType.Monster).OrderBy(p => p.coord.row).ThenBy(p => p.coord.col).First();
+            await Manager.EnterMapCoordDebug(point.coord, RoomType.Monster, MapPointType.Monster, showTransition: false);
+        }
         await NGame.Instance.Transition.FadeIn(0.05f);
     }
 
@@ -538,7 +556,9 @@ public static class Harness
 
     internal static async Task RequestViaViewport(int target)
     {
-        var targets = History.Targets.ToList();
+        var history = History.Targets.ToArray();
+        var targets = history.Where((t, i) => !History.DescribeRange(t.EventCount,
+            i == 0 ? History.Count : history[i - 1].EventCount).Contains("EndPlayerTurnAction", StringComparison.Ordinal)).ToList();
         int index = targets.FindIndex(t => t.EventCount == target);
         Require(index >= 0, "viewport target is selectable history");
         var viewport = NGame.Instance!.GetViewport();
@@ -548,6 +568,12 @@ public static class Harness
         Log("VIEWPORT_INPUT action=open-picker");
         await Wait(() => UI.CurrentPopup is not null);
         for (int i = 0; i < 5; i++) await NGame.Instance.AwaitProcessFrame();
+        if (CommandLineHelper.HasArg("minimal-picker-turn-end"))
+        {
+            RenderingServer.ForceDraw();
+            Require(viewport.GetTexture().GetImage().SavePng(Path.Combine(_directory, "picker-turn-end-" + _role + ".png")) == Error.Ok,
+                "captured native picker after end turn");
+        }
         while (true)
         {
             var popup = UI.CurrentPopup ?? throw new InvalidOperationException("Picker vanished before input.");
@@ -556,6 +582,8 @@ public static class Harness
             Require(tiles.Count > 0, "real history tiles exist");
             if (index < tiles.Count)
             {
+                Descendants(popup).OfType<ScrollContainer>().Single().EnsureControlVisible(tiles[index]);
+                await NGame.Instance.AwaitProcessFrame();
                 await ClickViaViewport(tiles[index], "propose");
                 return;
             }
@@ -833,6 +861,12 @@ public static class Harness
         string expected = Snapshot();
         int target = History.Count;
         await PlayOne(attack: true);
+        if (CommandLineHelper.HasArg("minimal-picker-turn-end"))
+        {
+            await EndTurnAll("picker-turn-end-fixture");
+            await PlayOne(attack: true);
+            Require(History.DescribeRange(target, History.Count).StartsWith("PlayCardAction"), "picker fixture retains the opening card target");
+        }
         await RequestViaViewport(target);
         await Wait(() => !Network.Busy, 120);
         Require(Network.Status == "Undo complete", "viewport request completed native undo");
@@ -1004,7 +1038,11 @@ public static class Harness
         _stage = label;
         await Barrier(label + "-ready");
         int selections = _selections;
-        if (_role == requester) Network.Request(target);
+        if (_role == requester)
+        {
+            if (CommandLineHelper.HasArg("minimal-picker-turn-end")) await RequestViaViewport(target);
+            else Network.Request(target);
+        }
         await Wait(() => Network.Busy && Network.Voting);
         Network.Vote(true);
         await Wait(() => !Network.Busy, 120);

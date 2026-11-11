@@ -10,8 +10,10 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Cards;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.GameActions;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Messages;
@@ -20,7 +22,9 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Replay;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -29,6 +33,7 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Settings;
+using MegaCrit.Sts2.Core.TestSupport;
 
 namespace UndoSync;
 
@@ -42,7 +47,11 @@ internal static class Replay
     private static bool _shouldSave;
     internal static bool NativeResumed { get; private set; }
     internal static bool ModelOnly { get; private set; }
+    internal static bool MountedReplay { get; private set; }
+    private static string? _mountedCustomMusic;
+    private static int _completedPileTweens, _skippedBanners;
     private static int _skippedPileVisuals, _skippedCardNodes, _skippedDamageNumbers, _skippedPreviews, _skippedTransformVisuals;
+    private static int _skippedPowerFlyVisuals, _skippedForgePreviews, _skippedCardSpecificVisuals, _skippedOneShots;
     internal static bool SuppressNative => Network.Executing && !NativeResumed;
     internal static int PreservedDisconnects { get; private set; }
     internal static int SuppressedChecksumCalls { get; private set; }
@@ -139,8 +148,10 @@ internal static class Replay
         }
         finally
         {
-            ModelOnly = false;
+            ModelOnly = MountedReplay = false;
+            _mountedCustomMusic = null;
             prefs.FastMode = speed;
+            UI.DiscardDetachedRunMusic();
             Hooks.Log($"REPLAY_SPEED_RESTORED mode={speed}");
         }
     }
@@ -150,6 +161,7 @@ internal static class Replay
         ulong restoreStarted = Time.GetTicksMsec();
         var manager = RunManager.Instance;
         var old = manager.NetService;
+        var oldEncounter = (manager.DebugOnlyGetState()?.CurrentRoom as CombatRoom)?.Encounter;
         var role = old.Type;
         _shouldSave = manager.ShouldSave;
         NativeResumed = false;
@@ -175,6 +187,7 @@ internal static class Replay
         Hooks.Log($"REPLAY_SPEED from={SaveManager.Instance.PrefsSave.FastMode} to={FastModeType.Instant}");
         SaveManager.Instance.PrefsSave.FastMode = FastModeType.Instant;
         UI.ShowRestoring();
+        UI.DetachRunMusic();
         // Exit native UI against its original run owners before disposing them.
         NGame.Instance.RootSceneContainer.SetCurrentScene(new Control());
         await Frame(token);
@@ -200,9 +213,12 @@ internal static class Replay
         await oldExecutor.FinishedExecutingActions().WaitAsync(token);
         token.ThrowIfCancellationRequested();
 
-        ModelOnly = true;
+        MountedReplay = !CommandLineHelper.HasArg("undosync-model-only-replay");
+        ModelOnly = !MountedReplay;
+        _completedPileTweens = _skippedBanners = 0;
         _skippedPileVisuals = _skippedCardNodes = _skippedDamageNumbers = _skippedPreviews = _skippedTransformVisuals = 0;
-        Hooks.Log("MODEL_REPLAY_BEGIN");
+        _skippedPowerFlyVisuals = _skippedForgePreviews = _skippedCardSpecificVisuals = _skippedOneShots = 0;
+        Hooks.Log(MountedReplay ? "MOUNTED_REPLAY_BEGIN" : "MODEL_REPLAY_BEGIN");
         var state = RunState.FromSerializable(replay.serializableRun);
         Network.ReportProgress("restore-owners");
         if (role == NetGameType.Singleplayer)
@@ -239,6 +255,8 @@ internal static class Replay
         await PreloadManager.LoadActAssets(state.Act);
         token.ThrowIfCancellationRequested();
         manager.Launch();
+        if (MountedReplay && UI.MountRestoredRun(state) && oldEncounter is { HasBgm: true })
+            _mountedCustomMusic = oldEncounter.CustomBgm;
         await manager.GenerateMap();
         Network.ReportProgress("restore-room");
         manager.ActionQueueSet.FastForwardNextActionId(replay.nextActionId);
@@ -297,13 +315,21 @@ internal static class Replay
         // Pure hash overload: no native packet, tracked checksum or NextId
         // advance. Native traffic stays suppressed until all Done values match.
         uint checksum = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
-        ModelOnly = false;
-        Network.ReportProgress("restore-ui");
-        await UI.AttachRestoredCombatAsync(state, token);
-        token.ThrowIfCancellationRequested();
-        uint attached = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
-        if (attached != checksum) throw new InvalidOperationException("Combat UI attachment changed the restored model.");
-        Hooks.Log($"MODEL_UI_ATTACHED checksum={checksum} pileVisuals={_skippedPileVisuals} cardNodes={_skippedCardNodes} damageNumbers={_skippedDamageNumbers} previews={_skippedPreviews} transforms={_skippedTransformVisuals}");
+        if (MountedReplay)
+        {
+            Hooks.Log($"MOUNTED_UI_READY checksum={checksum} pileTweens={_completedPileTweens} oneShots={_skippedOneShots} banners={_skippedBanners} previews={_skippedPreviews}");
+        }
+        else
+        {
+            ModelOnly = false;
+            Network.ReportProgress("restore-ui");
+            await UI.AttachRestoredCombatAsync(state, token);
+            token.ThrowIfCancellationRequested();
+            uint attached = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
+            if (attached != checksum) throw new InvalidOperationException("Combat UI attachment changed the restored model.");
+            Hooks.Log($"MODEL_UI_ATTACHED checksum={checksum} pileVisuals={_skippedPileVisuals} cardNodes={_skippedCardNodes} damageNumbers={_skippedDamageNumbers} previews={_skippedPreviews} transforms={_skippedTransformVisuals} powerFlyVisuals={_skippedPowerFlyVisuals}"
+                + $" forgePreviews={_skippedForgePreviews} cardSpecificVisuals={_skippedCardSpecificVisuals} oneShots={_skippedOneShots}");
+        }
         Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum} "
             + $"restoreMs={replayStarted - restoreStarted} replayMs={Time.GetTicksMsec() - replayStarted} totalMs={Time.GetTicksMsec() - restoreStarted}");
         return checksum;
@@ -348,6 +374,123 @@ internal static class Replay
             __result = (null, false); // No tween and no animation requiring pacing.
             return false;
         }
+
+        private static void Postfix(ref (Tween?, bool) __result)
+        {
+            if (!MountedReplay || __result.Item1 is not { } tween) return;
+            // Step the native sequence so final values and callbacks run before
+            // Add or Shuffle decides whether there is a tween left to await.
+            tween.FastForwardToCompletion();
+            if (tween.IsRunning()) return;
+            _completedPileTweens++;
+            __result = (null, __result.Item2);
+        }
+    }
+
+    [HarmonyPatch(typeof(CardModel), "PlayPowerCardFlyVfx")]
+    private static class PowerCardVisual
+    {
+        private static bool Prefix(ref Task __result)
+        {
+            if (!ModelOnly) return true;
+            // This helper reads the play container before the combat view is mounted.
+            _skippedPowerFlyVisuals++;
+            __result = Task.CompletedTask;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(ForgeCmd), "PreviewSovereignBlade")]
+    private static class ForgePreview
+    {
+        private static bool Prefix()
+        {
+            if (!ModelOnly) return true;
+            _skippedForgePreviews++;
+            return false;
+        }
+    }
+
+    private static bool ShowCardSpecificVisuals()
+    {
+        if (!ModelOnly) return TestMode.IsOff;
+        _skippedCardSpecificVisuals++;
+        return false;
+    }
+
+    [HarmonyPatch]
+    private static class CardSpecificVisuals
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            foreach (var card in new[] { typeof(BouncingFlask), typeof(HandOfGreed) })
+            {
+                var onPlay = AccessTools.DeclaredMethod(card, "OnPlay");
+                yield return onPlay.GetCustomAttribute<AsyncStateMachineAttribute>()!.StateMachineType
+                    .GetMethod(nameof(IAsyncStateMachine.MoveNext), BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!;
+            }
+        }
+
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var nativeGuard = AccessTools.PropertyGetter(typeof(TestMode), nameof(TestMode.IsOff));
+            int matches = 0;
+            foreach (var instruction in instructions)
+            {
+                // Each audited guard encloses only VFX and animation waits.
+                // Poison, RNG, attack and gold remain in the original methods.
+                if (instruction.Calls(nativeGuard))
+                {
+                    instruction.operand = AccessTools.Method(typeof(Replay), nameof(ShowCardSpecificVisuals));
+                    matches++;
+                }
+                yield return instruction;
+            }
+            if (matches != 1) throw new InvalidOperationException("Native card-specific visual guard changed.");
+        }
+    }
+
+    [HarmonyPatch(typeof(NRunMusicController), nameof(NRunMusicController.PlayCustomMusic))]
+    private static class RetainMountedCustomMusic
+    {
+        private static bool Prefix(string customMusic)
+        {
+            if (_mountedCustomMusic != customMusic) return true;
+            // Combat startup normally stops and restarts the event. The old
+            // controller already owns this encounter's playing event.
+            Hooks.Log("MOUNTED_CUSTOM_MUSIC_RETAINED");
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(NAudioManager), nameof(NAudioManager.PlayOneShot), new[] { typeof(string), typeof(Dictionary<string, float>), typeof(float) })]
+    private static class ReplayOneShot
+    {
+        private static bool Prefix()
+        {
+            if (!ModelOnly && !MountedReplay) return true;
+            _skippedOneShots++;
+            return false;
+        }
+    }
+
+    [HarmonyPatch]
+    private static class MountedReplayBanners
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.DeclaredMethod(typeof(NCombatStartBanner), nameof(NCombatStartBanner.Create));
+            yield return AccessTools.DeclaredMethod(typeof(NPlayerTurnBanner), nameof(NPlayerTurnBanner.Create));
+            yield return AccessTools.DeclaredMethod(typeof(NEnemyTurnBanner), nameof(NEnemyTurnBanner.Create));
+        }
+
+        private static bool Prefix()
+        {
+            if (!MountedReplay) return true;
+            // Native callers already accept a null banner.
+            _skippedBanners++;
+            return false;
+        }
     }
 
     [HarmonyPatch(typeof(NDamageNumVfx), nameof(NDamageNumVfx.Create), new[] { typeof(Vector2), typeof(int) })]
@@ -367,7 +510,7 @@ internal static class Replay
     {
         private static bool Prefix(ref TaskCompletionSource? __result)
         {
-            if (!ModelOnly) return true;
+            if (!ModelOnly && !MountedReplay) return true;
             _skippedPreviews++;
             __result = null; // The native no-preview return value.
             return false;
@@ -454,7 +597,8 @@ internal static class Replay
 
     internal static void Clear()
     {
-        ModelOnly = false;
+        ModelOnly = MountedReplay = false;
+        _mountedCustomMusic = null;
         foreach (var choice in Choices.Values) choice.TrySetCanceled();
         Choices.Clear(); Actions.Clear(); _transport = null; _nativeTransport = null; _lobbyId = null; NativeResumed = false;
     }

@@ -2,6 +2,7 @@ using System.Reflection;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Assets;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.GameActions;
@@ -11,6 +12,7 @@ using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Localization.Fonts;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
@@ -61,16 +63,65 @@ internal static class UI
 
     internal static NGenericPopup? CurrentPopup => _popup;
 
+    private static NRunMusicController? _detachedMusic;
     private static CombatRoom? _restoredRoom;
     private static bool _restoredUiReady;
     private static readonly MethodInfo EndTurnRefresh = AccessTools.Method(typeof(NEndTurnButton), "OnTurnStarted");
+
+    internal static void DetachRunMusic()
+    {
+        if (!CombatManager.Instance.IsInProgress || NRun.Instance?.RunMusicController is not { } music) return;
+        // The proxy owns the live FMOD event and bank. Preserve both while the
+        // old run scene exits, so the track can keep playing during replay.
+        _detachedMusic = music;
+        music.GetParent().RemoveChild(music);
+    }
+
+    internal static void DiscardDetachedRunMusic()
+    {
+        if (_detachedMusic is not { } music) return;
+        _detachedMusic = null;
+        try { music.StopMusic(); }
+        finally { music.QueueFree(); }
+    }
+
+    [HarmonyPatch(typeof(NRunMusicController), nameof(NRunMusicController._ExitTree))]
+    private static class PreserveRunMusic
+    {
+        private static bool Prefix(NRunMusicController __instance) => __instance != _detachedMusic;
+    }
+
+    internal static bool MountRestoredRun(RunState state)
+    {
+        var run = NRun.Create(state);
+        var music = _detachedMusic;
+        if (music is not null)
+        {
+            var replacement = run.GetNode<NRunMusicController>("%RunMusicController");
+            var parent = replacement.GetParent();
+            var owner = replacement.Owner;
+            replacement.Free();
+            parent.AddChild(music);
+            music.Owner = owner;
+            music.UniqueNameInOwner = true;
+            _detachedMusic = null;
+        }
+        NGame.Instance!.RootSceneContainer.SetCurrentScene(run);
+        return music is not null;
+    }
 
     internal static async Task AttachRestoredCombatAsync(RunState state, CancellationToken token)
     {
         var room = state.CurrentRoom as CombatRoom ?? throw new InvalidOperationException("Restored combat room missing.");
         await PreloadManager.LoadRoomCombatAssets(room.Encounter, state);
         token.ThrowIfCancellationRequested();
-        NGame.Instance!.RootSceneContainer.SetCurrentScene(NRun.Create(state));
+        if (!MountRestoredRun(state))
+        {
+            // A peer that already finished combat needs the combat track again.
+            if (CombatManager.Instance.IsInProgress && room.Encounter.HasBgm)
+                NRun.Instance!.RunMusicController.PlayCustomMusic(room.Encounter.CustomBgm);
+            NRun.Instance!.RunMusicController.UpdateTrack();
+        }
         // Mounting native UI must not release checksum isolation before Resume.
         RunManager.Instance.ChecksumTracker.IsEnabled = false;
         // GenerateMap ran while NMapScreen was absent. Initialize only the new
@@ -87,8 +138,8 @@ internal static class UI
         if (!_restoredUiReady) throw new InvalidOperationException("Restored combat UI was not initialized.");
         // Seed the new hand's normal deferred observer with the computed state.
         PileType.Hand.GetPile(LocalContext.GetMe(state)!).InvokeContentsChanged();
-        await NGame.Instance.AwaitProcessFrame(token);
-        await NGame.Instance.AwaitProcessFrame(token);
+        await NGame.Instance!.AwaitProcessFrame(token);
+        await NGame.Instance!.AwaitProcessFrame(token);
         foreach (var node in ui.CreatureNodes.Where(node => node.Entity.Monster is not null && node.Entity.IsAlive))
             await node.RefreshIntents();
     }
@@ -161,10 +212,17 @@ internal static class UI
     internal static void Open()
     {
         if (Network.Busy || !History.Available) return;
-        var points = new List<PickerPoint> { new(History.Count, "") };
-        points.AddRange(History.Targets.Select(t => new PickerPoint(t.EventCount, "")));
-        for (int i = 0; i + 1 < points.Count; i++)
-            points[i] = points[i] with { Context = History.DescribeRange(points[i + 1].EventCount, points[i].EventCount) };
+        int end = History.Count;
+        var points = new List<PickerPoint> { new(end, "") };
+        foreach (var target in History.Targets)
+        {
+            string context = History.DescribeRange(target.EventCount, end);
+            end = target.EventCount;
+            if (context.Contains("EndPlayerTurnAction", StringComparison.Ordinal)) continue;
+            // Keep each visible action paired with its original undo target.
+            points[^1] = points[^1] with { Context = context };
+            points.Add(new PickerPoint(target.EventCount, ""));
+        }
         if (points.Count < 2)
         {
             Hooks.Log($"[UndoPicker] nothing to undo (sync points={points.Count})");

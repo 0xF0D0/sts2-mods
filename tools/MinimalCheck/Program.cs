@@ -25,6 +25,28 @@ foreach (var type in mod.GetTypes())
     {
         if (attribute.ConstructorArguments.Count == 0)
         {
+            if (type.Name == "MountedReplayBanners")
+            {
+                foreach (string banner in new[] { "NCombatStartBanner", "NPlayerTurnBanner", "NEnemyTurnBanner" })
+                {
+                    var node = game.GetType($"MegaCrit.Sts2.Core.Nodes.Combat.{banner}", true)!;
+                    var create = node.GetMethods(all).Single(m => m.Name == "Create");
+                    Require(create.IsStatic && create.ReturnType.FullName == node.FullName, $"native {banner} factory target");
+                    patches++;
+                }
+                continue;
+            }
+            if (type.Name == "CardSpecificVisuals")
+            {
+                foreach (string card in new[] { "BouncingFlask", "HandOfGreed" })
+                {
+                    var onPlay = game.GetType($"MegaCrit.Sts2.Core.Models.Cards.{card}", true)!.GetMethod("OnPlay", all)!;
+                    var moveNext = (Type)onPlay.GetCustomAttributesData().Single(a => a.AttributeType.FullName == "System.Runtime.CompilerServices.AsyncStateMachineAttribute").ConstructorArguments[0].Value!;
+                    Require(moveNext.GetMethod("MoveNext", all)?.ReturnType.FullName == "System.Void", $"native {card} async visual patch target");
+                    patches++;
+                }
+                continue;
+            }
             Require(type.Name == "TransformedCardVisuals", "explicitly audited dynamic patch");
             var transform = game.GetType("MegaCrit.Sts2.Core.Commands.CardCmd", true)!.GetMethods(all)
                 .Single(m => m.Name == "Transform" && m.GetParameters().Length == 3
@@ -63,7 +85,7 @@ foreach (var type in mod.GetTypes())
         patches++;
     }
 }
-Require(patches == 26, $"all 26 Harmony targets checked (actual {patches})");
+Require(patches == 36, $"all 36 Harmony targets checked (actual {patches})");
 var reflectionMembers = new (string Type, string Name, bool Property)[]
 {
     ("MegaCrit.Sts2.Core.Multiplayer.Replay.CombatReplayWriter", "_replay", false),

@@ -584,3 +584,273 @@ tested DLL SHA256 above. Only the external manifest version changed; packaging
 did not change the DLL. Release notes retain the bounded ENet measurement and
 Steam gameplay exclusions. The existing Workshop item and approved image are
 preserved.
+
+## Replay presentation cases, 2026-11-09
+
+Game v0.111.0 / 41cef1ea. A Windows Steam client (PID 20248) began restoring
+67 events. The first event replayed `Rupture` and failed in
+`CardModel.PlayPowerCardFlyVfx → PileTypeExtensions.GetTargetPosition`.
+The host acknowledged the client's cancellation, and the run disconnected.
+The same log contains three successful single-player undos. Two replayed zero
+events and the third replayed 11 events without `Rupture`. The v0.1.15 DLL
+reproduced the same exception in a rendered single-player game (PID 19508).
+
+| Case | Missing view dependency | Scoped change and runtime evidence |
+| --- | --- | --- |
+| `Rupture` and other power cards | The common fly effect reads the play container. | Skip `PlayPowerCardFlyVfx` during model replay. `Rupture` applied once per restore. Two restores each in rendered single-player (PID 19946) and ENet 3-player (20304/20356/20376). |
+| `Spoils of Battle` / Forge | `PreviewSovereignBlade` accesses the local hand and the run's preview containers. `Spoils of Battle` was later in the reported Steam trace. | Skip the preview and keep native blade generation and damage updates. Rendered single-player reproduced the exception (24886), then restored a single 16-damage blade twice (26062). |
+| `Bouncing Flask` | Its throw effect reads creature positions before applying poison. | Suppress the visual branch and keep target RNG and poison application. Rendered single-player reproduced the exception (25330), then restored nine total poison twice (26454). |
+| `Hand of Greed` | Its gold effect looks up the enemy's position before the attack. | Suppress the position lookup. Rendered single-player reproduced the exception (25581), then restored damage against a surviving enemy twice (26785). The fatal gold reward branch still needs a runtime case. |
+| Background music | Leaving the old run stopped and reset the active track. | Keep the live controller during active combat reconstruction. FMOD reported the same event playing in two single-player and two three-peer ENet restores. A separate cancellation run stopped the detached event. |
+
+The broader candidate DLL has SHA-256
+`58fa3e7091351031b42943f82a82c9aa6c2e8675450fa68ffe6d7a169a46a769`.
+The first three-peer Forge fixture stopped before combat because the test
+accounts lacked the `Spoils of Battle` unlock. The second used the unlocked
+`Wrought in War`, which calls the same Forge helper. ENet peers
+27851/27893/27912 restored a 17-damage blade twice, with checksum 2553020705
+on all peers. Per peer and restore, `MODEL_UI_ATTACHED` recorded one skipped
+Forge preview and six skipped one-shot sounds. The same connection was retained,
+the peers continued into the next turn and all three exited 0. The installed
+mod and test account hashes were restored, and port 33771 was free.
+
+### Source findings pending runtime verification
+
+| Path | What still needs a replay fixture |
+| --- | --- |
+| `Nightmare.OnPlay` | The local branch attaches effects to the current run view after resolving the card selection. Exercise the recorded selection and verify the selected card is still copied. |
+| `Fabricator` bot summons and `ToughEgg` hatch positioning | Spawn callbacks read combat nodes to place the new creature. Verify spawn state and the restored room. |
+| `SoulNexus` death and `InfestedPower` phase transition | Death or phase callbacks access creature animation or the run music controller. Verify the model effects and the resulting phase. |
+| `SandpitPower` | Position and tween code is interleaved with power callbacks and removal-triggered kills. Verify the visual boundary, decrement and kill behavior. |
+| Potion use and recorded choices | The shared potion wrapper can instantiate a throw effect while the room is absent. Attack and Colorless Potion use the native recorded-choice path in source. Verify consumption, selection and generated card state. |
+
+The rendered regression harness uses `model-probe` and its
+`--minimal-probe-power` or `--minimal-probe-visual=<CARD_ID>` game argument
+through `tools/MinimalHarness/runtime.py`'s `run(..., extra_args=...)`.
+Require the expected presentation bypass in `MODEL_UI_ATTACHED`, the exact
+target state and a terminal verdict after continued play. The original Steam
+incident is available as a text log. Its full 67-event run, real Steam
+multiplayer on the candidate and persistent encounter visuals remain unverified.
+
+## Mounted combat replay prototype, 2026-11-09
+
+Game v0.111.0 / 41cef1ea. The prototype is selected with
+`--undosync-mounted-replay`; ordinary launches use the model-only path.
+Candidate SHA-256
+`88184410529c207333052340e04251b6595c1ebd07f655216c525d6c1ce5f72d`.
+Release build and MinimalCheck passed with 35 patch targets. The fixture
+root is `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-r90evv68`.
+
+| Run | PIDs | Observed result |
+| --- | --- | --- |
+| `mounted-forge` | 38270 | Rendered single-player PASS. Two restores rebuilt the 16-damage blade and attached the native orbit node behind the overlay. The restored screenshots show the blade and no Battle Start banner. Continued through a native enemy turn. |
+| `mounted-sandpit` | 38585 | Visual assertion FAIL. Replaying The Insatiable's first enemy turn and Frantic Escape completed with checksum 429179996 and the expected Sandpit amount. Player X after a 650 ms settle was 546.34 versus 541.67 before undo. An earlier build also differed at the same target. |
+| `mounted-500` | 38881 / 38921 / 38938 | Three headless ENet processes PASS with a retained room, checksum 172059493 and continued native play. Pile tweens completed 1001 / 502 / 502 times. Maximum time to input release was 5.580 s. |
+
+The default launch also passed two rendered Forge undos on the same DLL
+(PID 39357). Both used the existing model-only UI attachment path.
+
+The benchmark event bytes and target-state digest match both prior 500-action
+builds. Maximum input-ready times were 159.020 s in v0.1.14 with UI and
+ordinary tweens, 1.024 s in the v0.1.15 model-only path and 5.580 s in the
+mounted prototype. The three prototype times were 5.510 / 5.580 / 5.575 s.
+Optional fixture acceleration shortened live capture and was disabled on all
+peers before voting and measurement. The fixture recorded real actions.
+
+The mounted run reported more renderer resource allocations at exit than the
+archived model-only run. It also used accelerated fixture capture, so the
+shutdown logs alone do not separate preparation from replay allocations.
+Exact boss position, custom boss music continuity, the full original incident
+and real Steam multiplayer remain open. The fixture restored all installed
+mod and test account hashes after exit and left UDP 33771 free.
+
+### Mounted replay acceptance follow-up
+
+The acceptance check compares the boss power, its visible native icon, the
+native combat state and continued play. Exact screen coordinates are outside
+this check. In rendered single-player PID 41889, The Insatiable's Sandpit
+icon stayed bound to the restored power across two undos and the next enemy
+turn completed. The captures also showed replay-only card previews briefly
+covering the restored room.
+
+Both 500-action resource runs used the same accelerated capture procedure and
+a three-second settle on either side of the measured replay. Their input
+events and target hashes matched the original benchmark. Same core DLL as
+above. Source logs are in
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-myityoqu`.
+
+| Run | PIDs | Input ready max | Host mesh allocations reported at exit | Host orphans before capture / before replay / after settle |
+| --- | --- | --- | --- | --- |
+| `model-resource-500` | 42299 / 42346 / 42365 | 0.885 s | 522 | 1013 / 17061 / 17079 |
+| `mounted-resource-500` | 42616 / 42642 / 42672 | 5.596 s | 499 | 1013 / 17061 / 17061 |
+
+Most orphan nodes were already present before rewind. Both modes emitted
+similar headless renderer warnings at exit. After settling, node counts and
+resource counts were similar across modes. The mounted host still had more
+live objects (70232 versus 53930). These single-rewind runs leave long-session
+object accumulation unresolved.
+
+The follow-up preview guard uses the native no-preview result during mounted
+replay. Candidate SHA-256
+`326331193109e639cdbb337f9b2871d01b248c470f70391483cdee862092b147`.
+Rendered boss PID 43401 passed two restores with the visible Sandpit icon,
+six suppressed card previews per restore, and a subsequent native enemy turn.
+The restored capture shows the unobstructed combat room. Rendered mixed
+ENet PIDs 43815/43858/43863 then passed two 25-event restores with five recorded
+choices each, enemy turns and checksum 2212431815 on every peer. The real
+connection was retained. Build, metadata and fixture cleanup passed.
+PID-bound logs, screenshots and verdicts are in
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mpxlj8i6`.
+
+### Mounted replay as the default
+
+The default now mounts the native combat view. The diagnostic
+`--undosync-model-only-replay` flag selects the prior path.
+
+- In the previous mounted build, boss PID 47397 restarted The Insatiable's
+  custom track on both undos. FMOD reported a different event instance and
+  21/69 and 24/72 sampled frames with the original event inactive.
+- The default candidate skips the duplicate startup call only when it reuses
+  a controller from the same encounter track. Boss PID 48080 retained the
+  same active FMOD event on both undos, with zero inactive samples and
+  a moving playback timeline. The Sandpit icon and continued play passed.
+- Default mounted ENet PIDs 48500/48540/48559 and model-only control PIDs
+  49196/49233/49252 each completed five exact 500-action undos on one room.
+  Maximum times were 5.672 s and 0.904 s respectively. Settled mounted host
+  objects rose from 70303 to 72056 while resource, node and orphan counts
+  stayed constant. The model-only host count fell from 53881 to 53704.
+- A separate five-undo mounted test applied managed GC after attempts one
+  and five. Host PID 49804 still rose from 54040 to 55709 after collection.
+  Client increases were 42 and 41 objects. The initial trail-only mitigation
+  reduced the maximum timing to 4.124 s but increased the host's collected
+  count by 4042 across the same span. That build was held from release.
+
+- The trail mitigation with explicit pile completion notifications and a
+  frame yield every 32 events passed the rendered boss check (PID 52882)
+  and five exact ENet 500-action undos (53413/53451/53453). The maximum
+  input-ready time was 4.573 s. Host object count after managed GC still
+  rose from 54561 to 56915 (+2354) between attempts one and five.
+  Scene node and resource counts stayed flat. Client post-GC object
+  counts fell. This candidate also failed the repeated resource check.
+  Detailed logs and verdicts are under
+  `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-voywkxbo`.
+
+The two trail mitigation variants were discarded from source. The mounted
+default and same-track music guard remain in the working candidate. The
+staged v0.1.16 package was held, and no Workshop upload ran.
+
+The later v0.1.16 Workshop attempt staged the exact boss and five-undo PASS
+DLL `3f4ce8876375ff31efe0fd064ea84e2279fc19c8cabf5140e0dd26f4b84df4cf`.
+Steam reported `Logged In Elsewhere` at the first attempt, and both attempts
+failed during existing item lookup. The package and approved image hashes
+matched. The Workshop item received no upload.
+
+The authorized retry published v0.1.16 to Steam Workshop item 3802124329
+on 2026-11-10 at 00:02:42 KST. Steam reported new content manifest
+1457304975765740686 and an OK upload result. The uploaded DLL matched the
+verified build and used the existing approved preview. This confirms
+publication. A fresh subscriber download and live Steam multiplayer
+remain unverified.
+
+### v0.1.16 post-release timing fuzz
+
+The release package and every test process reported core SHA-256
+`3f4ce8876375ff31efe0fd064ea84e2279fc19c8cabf5140e0dd26f4b84df4cf`.
+Three headless ENet peers on STS2 v0.111.0 (41cef1ea) ran each
+`MODEL_CONTENT_0..2` / `MODEL_TIMING_0..2` pair with mixed characters and
+native viewport votes. Every peer proposed one undo per seed.
+
+| Run | Host / client / client2 PID | Checksum at resume | Verdict |
+| --- | --- | --- | --- |
+| `v016-timing-fuzz3-0` | 72794 / 72818 / 72839 | 91014394 | PASS |
+| `v016-timing-fuzz3-1` | 73437 / 73474 / 73498 | 1583777179 | PASS |
+| `v016-timing-fuzz3-2` | 73697 / 73722 / 73746 | 2937397972 | PASS |
+
+All nine undos exercised a busy last voter, host prepare before the held
+action finished, one slow replay peer, a peer without a local action record,
+and stale native checksum suppression. All peers logged `MOUNTED_UI_READY`,
+matched the target state and the resume checksum, and retained the original
+connection. Each seed completed a further native card play and ended with
+matching peer state digests and zero divergences.
+
+PID-bound logs and independent `summary.json` verdicts are under
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-p1h43jee`
+and
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-1qov2voj`.
+Both fixtures restored the local mod and test account files, exited every
+process, and left UDP 33771 free. This matrix covers local three-peer ENet.
+Four-peer timing fuzz and live Steam multiplayer remain unverified on this DLL.
+
+### v0.1.16 100-seed ENet timing sweep
+
+On 2026-11-10 the same release DLL completed 100 distinct resolved schedules
+(`V016_CAMPAIGN_TIMING_000` through `099`) across the three mixed-character
+fixtures above. Three native headless processes ran each case in Instant mode
+with TestMode off. Each peer proposed one undo. All 300 undos returned to the
+recorded target, matched the final native checksum on all three peers and
+preserved the original connection. The four phase counters each reached 300.
+All peers observed stale-checksum isolation on every undo, and each seed
+completed further native card play. The sweep played 20 distinct card models.
+The restored prefix was one card play in every case. Live card selections
+occurred, while none were in the replay prefix. Mean passing case wall time
+was 23.148 seconds, including process startup and fixture preparation.
+
+There were 103 attempts for 100 seeds. Two seeds accounted for three failed
+attempts. The original traces exactly matched the successful reruns up to
+the point where the old tests aborted.
+
+| Seed | Failed attempt PIDs (host / client / client2) | Cause and result |
+| --- | --- | --- |
+| `010` | 77949 / 77968 / 77989 | Before voting, the state barrier compared the acting peer after Survivor finished with remote peers still moving it from Play to Discard. Wait for the remote peers' native queues to settle while the acting peer remains held. The same seed then passed all three undos. |
+| `013` | 78587 / 78625 / 78642 and 80066 / 80111 / 80130 | The test observer threw inside the replay completion task after Dualcast. Native `NOrbManager.EvokeOrbAnim` leaves the outgoing scene node until its 0.25-second fade callback. Check the settled orb view after protocol release and before the next action. The same seed then passed all three undos with matching orb views. |
+
+The harness built with zero warnings or errors. The release DLL SHA-256
+remained `3f4ce8876375ff31efe0fd064ea84e2279fc19c8cabf5140e0dd26f4b84df4cf`.
+All three fixtures restored the original installed files, exited all test
+processes and freed UDP 33771. Per-attempt PIDs, traces and terminal logs are
+indexed by `campaign.json` in the `undosync-extended-acivg820`,
+`undosync-extended-5avihvid` and `undosync-extended-vn5hr0gc` directories under
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/`. The last directory also
+contains `audit.json`, the aggregate across all three fixtures. The sweep
+covered three-peer local ENet. Four-peer timing and live Steam multiplayer
+remain outside this run.
+
+### Hide individual End Turn entries in the picker
+
+The picker omits ranges described as EndPlayerTurnAction, including cancellation
+of that action. It computes each range before filtering so the remaining card
+tiles keep their original target event counts. Native history and replay events
+continue through the same code paths.
+
+On 2026-11-11, rendered single-player before/after runs on v0.111.0 / 41cef1ea
+played a card, advanced the enemy turn, played again, and selected the original
+card target through viewport input. Baseline PID 77472 showed targets 3, 1, 0,
+with target 1 labeled End Turn. Candidate PID 78892 showed only card targets 3
+and 0. Both restored the exact opening state and continued play. Screenshots
+were inspected. The first baseline attempt (PID 75751) clicked the oldest tile
+outside the scroll viewport and failed before restoration. The driver now
+scrolls the selected tile into view before clicking it.
+
+The candidate DLL SHA-256 is
+`e1ed7090680965385de6a5e33e63d748fcd506b05311e3b700d1b99224a782db`.
+A subsequent rendered ENet integration used PIDs 80001 / 80134 / 80191 and
+seed REPLAY_SPEED_A with mixed characters. The host and client2 each selected
+a visible picker target and restored the same 25-event prefix containing the
+enemy-turn transition and recorded choices. Both undos reached checksum
+668155198 on every peer, with zero divergences and subsequent native card
+play. Release builds, MinimalCheck (36 patch targets, 15 reflection surfaces)
+and whitespace checks passed. Each fixture restored installed mod/account
+hashes and left no game process or UDP 33771 listener.
+
+PID-bound logs, screenshots and terminal PASS summaries are in
+`undosync-extended-3wkp5owx`, `undosync-extended-br557t6t` and
+`undosync-extended-69ed3tx0` under
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/`.
+
+### v0.1.17 saved for a later release
+
+On 2026-11-12 the manifest was advanced to 0.1.17 and the local package
+`dist/UndoSync-v0.1.17.zip` was prepared. Its DLL SHA-256 matches the
+rendered picker and three-peer integration candidate above. Release builds,
+MinimalCheck and package-content/hash checks passed. The version is saved
+with local tag `UndoSync-v0.1.17` for the user's later publication.

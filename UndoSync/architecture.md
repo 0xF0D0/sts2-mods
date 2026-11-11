@@ -16,9 +16,9 @@ The validated minimal implementation replaces the former snapshot implementation
 | --- | --- | --- |
 | Hook | Mod initialization, native subscriptions/patches, idle detection, replay input suppression, PID log | Binds native events to History; binds Network at RunStarted; installs UI frame/input callbacks. |
 | History | Native replay header, serialized events, stable undo boundaries, proposer record | Begin/Record/MarkBoundary/Freeze/Export/Import/Commit; native packet serialization only. Commit adopts the proposer's header, prefix and boundaries. Never restores or sends messages. |
-| Replay | UI-free run-owner reconstruction over the retained connection, deterministic event playback, historical choices | ExecuteAsync(CombatReplay); reconstructs the model, then asks UI to bind one native view. Replay-scoped visual helpers preserve model notifications/hooks. |
+| Replay | Run-owner reconstruction over the retained connection, deterministic event playback, historical choices | ExecuteAsync(CombatReplay) mounts the native run behind the restore overlay before playback. Scoped presentation hooks preserve model notifications and native UI callbacks. |
 | Network | Proposer record relay, unanimous votes, preparation, operation lifetime, done/checksum/resume/rearmed/release barriers, wire message | Request/Vote/Attach/Tick; relays one proposer record, invokes Replay, commits History only after every peer finishes with the same checksum. |
-| UI | Left-arrow picker, vote buttons, progress/error display, binding the restored native view | Reads History targets and Network status; calls Request/Vote. Initializes the new combat/map/orb UI from the computed state without reconstructing or mutating the combat model. |
+| UI | Left-arrow picker, vote buttons, progress/error display and native run mounting | Reads History targets and Network status, calls Request/Vote and retains the music controller across scene replacement. |
 
 These are concrete owners, not five interface hierarchies. Bootstrap/logging live
 in Hook, wire types in Network, and lobby/choice helpers in Replay. Helpers inside
@@ -62,6 +62,8 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    Keep the picker open when remote actions arrive. Opening/selecting history
    does not require current input to be enabled or combat to be idle. Block new
    player actions while voting; discard the old timeline once everyone agrees.
+   Hide individual End Turn entries after computing their original event ranges.
+   Each visible tile keeps its original target event count through pagination.
    UI votes are recorded and sent immediately, independent of idle state or local
    history availability. The requester is already counted as agreeing. The UI
    proposal count also comes from the proposer, not each peer's local targets.
@@ -80,25 +82,17 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    Initialize a saved run using the current real roster and a local
    LoadRunLobby holder on the SAME service. There is no new Steam lobby, join,
    reconnect, or load-lobby network handshake. Pump heartbeats/control while the
-   old scene is absent; rebind model owners before entering combat. No NRun or
-   NCombatRoom is constructed during model playback.
+   old scene is absent and rebind model owners before entering combat. Mount
+   NRun behind the overlay and let native room loading create NCombatRoom.
 5. Restore initial action/hook/choice/reward IDs and inject recorded events.
    After normal fade-out, use native FastMode.Instant for reconstruction and
    replay to skip presentation waits. The outer replay finally restores the
    user's original speed on success, cancellation and failure, before native
    fade-in/live play. Do not change engine time scale or enable TestMode.
-   Replay.ModelOnly starts after discarded owners drain and ends before binding
-   the new view; finally and Clear reset it on failure. Skip ClearScreens only
-   while its screens are absent. Skip card-node and damage-number factories and
-   the verified pile-visual helper. For silent pile moves, preserve native
-   CardRemoved/CardRemoveFinished/ContentsChanged notifications; actual Add,
-   Shuffle, RNG, damage and gameplay hooks remain native. No tween is killed.
-   PreviewInternal returns its supported no-preview null result. Transform mixes
-   model work and UI in one async method: a bounded MoveNext transpiler replaces
-   its single IsMine(CardModel) visual-loop guard with a replay presentation
-   predicate. Transformation, ordering, RNG, hooks and original-card removal stay
-   native. The guard is unchanged during live play and its single call site is
-   verified when Harmony installs the patch. No global TestMode override is used.
+   MountedReplay scopes the common presentation changes to playback.
+   The replay finally block and Clear reset its state on failure.
+   See [the presentation boundary](#replay-presentation-boundary) for the
+   native callbacks and transient effects handled here.
    UI keeps a centered localized restoration message on a black CanvasLayer
    owned by NGame, so replacing the combat scene does not remove the message.
    Show it after fade-out; remove it before fade-in and in the operation's
@@ -114,14 +108,9 @@ Source audited from installed sts2.dll v0.111.0 / 41cef1ea, decompiled to
    sends Resumed. Host sends Release after every peer is rearmed; only then is
    player input unblocked. Live incoming actions after rearm must enter history
    even while the local Release continuation is pending.
-   Before Done, construct one NRun/NCombatRoom and bind the existing model to it.
-   Initialize Ui.Activate/background/hand in NCombatRoom._Ready's postfix before
-   SetCurrentRoom updates ActiveScreenContext. Seed normal hand observers, refresh
-   the new end-turn button via its verified UI-only OnTurnStarted callback and
-   refresh enemy intents. Bind current orb models into native slots and initialize
-   the already-generated map. Never raise global CombatSetUp/TurnStarted or call
-   SetUpCombat again. Keep checksum isolation until ResumeNative and reject an
-   attachment that changes the model's native checksum.
+   The native combat view remains attached when the overlay is removed.
+   The diagnostic model-only mode attaches its view before Done and compares
+   its checksum against the one taken before attachment.
 7. Normal cleanup unbinds subscriptions and disconnects. Failed reconstruction
    closes the partial run/session and returns to menu; successful reconstruction
    proves reference/lobby equality instead of replacing the transport.
@@ -160,6 +149,34 @@ those awaits at teardown, before replacing run owners. This unwinds the caller's
 discarded effect rather than resuming it against the rebuilt run. It is bounded
 to verified presentation awaits, not arbitrary cancellation of all game tasks;
 other native suspension paths still need their own reproduction evidence.
+
+## Replay presentation boundary
+
+The default mounts the native run and combat scene behind the restore
+overlay. Native actions can read the scene and create persistent visuals.
+The same scene stays mounted after release.
+
+- FastMode.Instant reduces native waits. The pile-tween hook also advances
+  the native tween to completion so final positions and callbacks apply
+  before Add or Shuffle waits. One-shot sounds, start/turn banners and
+  temporary card previews are suppressed during replay.
+- Historical choices use their recorded responses. `SuppressNative` spans
+  execution until native rearm and separately blocks live choice UI,
+  native traffic and tracked checksums.
+- In active combat, detach the music controller before removing the old
+  scene and reattach it to the new run. When that controller already owns
+  the same encounter's custom track, skip the startup call that restarts it.
+  Discard detached music if reconstruction fails before reattachment.
+- The diagnostic `--undosync-model-only-replay` flag keeps the alternate
+  path for comparison. That path skips the audited view calls while replay
+  runs without NRun/NCombatRoom. For mixed native methods such as Transform,
+  Bouncing Flask and Hand of Greed, only the visual branch is skipped.
+  It preserves pile notifications and rebinds the map, background, hand,
+  orb slots, intents and End Turn UI afterward.
+
+See the [case register](evidence.md#replay-presentation-cases-2026-11-09)
+for confirmed failures and the [mounted replay measurements](evidence.md#mounted-combat-replay-prototype-2026-11-09)
+for visual and performance evidence.
 
 ## Hazards and gates
 

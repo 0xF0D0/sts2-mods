@@ -167,7 +167,9 @@ internal static class FuzzDriver
         }
         await Harness.Wait(() => Harness.TestControl.Read("fuzz-finished-" + label) is not null);
         await Harness.Wait(() => History.Count >= int.Parse(Harness.TestControl.Read("fuzz-finished-" + label)!));
-        if (!held) await Harness.Idle();
+        // Only the acting peer is held after executing the card. Remote peers
+        // may still be finishing a choice or moving the card out of play.
+        if (!held || Harness.Role != actor) await Harness.Idle();
         await Harness.StateBarrier("fuzz-action-" + label);
     }
 
@@ -281,6 +283,14 @@ internal static class FuzzDriver
             await Harness.Wait(() => !Network.Busy, 120);
             Harness.Require(Network.Status == "Undo complete", "fuzz terminal native resume");
             await Harness.Idle();
+            // The native evoke animation briefly keeps the outgoing orb node in
+            // the scene. Check the settled view after the protocol has released it.
+            if (!ModelReplayProbe.OrbViewsMatch())
+            {
+                Harness.Log("FUZZ_ORB_VIEW_SETTLING round=" + proposer);
+                await Harness.Wait(ModelReplayProbe.OrbViewsMatch, 3);
+            }
+            Harness.Require(ModelReplayProbe.OrbViewsMatch(), "fuzz restored orb view matches native queue");
             Harness.Require(History.Count == target && Harness.Snapshot() == expected, "fuzz complete native target restored");
             Harness.RecordUndo();
             Record(new Step("target", proposer, proposer, target, expected, -1));
