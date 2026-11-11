@@ -114,6 +114,11 @@ internal static class Replay
         if (SuppressNative || !CombatManager.Instance.IsInProgress || task.IsCompleted) return task;
         return Guard(task, _liveWaits.Token);
     }
+    internal static Task<T> GuardLiveWait<T>(Task<T> task)
+    {
+        if (SuppressNative || !CombatManager.Instance.IsInProgress || task.IsCompleted) return task;
+        return Guard(task, _liveWaits.Token);
+    }
     internal static string DescribeProgress()
     {
         var manager = RunManager.Instance;
@@ -127,6 +132,12 @@ internal static class Replay
     {
         _liveWaitCount++;
         try { await task.WaitAsync(token); }
+        finally { _liveWaitCount--; }
+    }
+    private static async Task<T> Guard<T>(Task<T> task, CancellationToken token)
+    {
+        _liveWaitCount++;
+        try { return await task.WaitAsync(token); }
         finally { _liveWaitCount--; }
     }
     private static void CancelDiscardedWaits()
@@ -196,7 +207,6 @@ internal static class Replay
         // to become playable/idle. Drain its callbacks before creating owners.
         var oldExecutor = manager.ActionExecutor;
         oldExecutor.Cancel();
-        CancelDiscardedWaits();
         OwnsCleanup = true;
         try
         {
@@ -208,7 +218,13 @@ internal static class Replay
             manager.InputSynchronizer.Dispose();
             manager.CleanUp(graceful: true);
         }
-        finally { OwnsCleanup = false; }
+        finally
+        {
+            OwnsCleanup = false;
+            // Native reset must invalidate the old turn before its suspended
+            // choices unwind, so cancellation cannot resume a live old turn.
+            CancelDiscardedWaits();
+        }
         oldExecutor.Unpause();
         await oldExecutor.FinishedExecutingActions().WaitAsync(token);
         token.ThrowIfCancellationRequested();

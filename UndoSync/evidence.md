@@ -854,3 +854,122 @@ On 2026-11-12 the manifest was advanced to 0.1.17 and the local package
 rendered picker and three-peer integration candidate above. Release builds,
 MinimalCheck and package-content/hash checks passed. The version is saved
 with local tag `UndoSync-v0.1.17` for the user's later publication.
+
+### Knowledge Demon enemy-turn choice teardown
+
+The user supplied PID 16464 logs from a two-peer Steam run on Windows,
+v0.111.0. During Curse of Knowledge the host sent its local choice 57 and
+remained awaiting peer choice 31. Both players accepted undo. The peer
+completed replay while the host stayed at `restore-room` for about nine
+seconds. `NGame.Quit` then cancelled the operation and produced the logged
+`OperationCanceledException`. No replay event executed on the host during
+that final restore. Source logs are in
+`/Users/kimbeomsu/Downloads/STS2-crash-2026-11-12-011907/`.
+
+Freshly decompiled installed source is in
+`/tmp/undosync-knowledge-audit.6I1mi1`. KnowledgeDemon awaits all player curse
+choices together in its enemy-turn task. PlayerChoiceSynchronizer.Dispose
+unregisters message handling without completing pending choice tasks. The
+existing replay receive gate prevents further old choice delivery, leaving
+that enemy turn suspended across teardown. The new combat waits for the
+previous turn loop to finish. The local native assembly also has a ten-second
+watchdog for that wait. The baseline test checks the pending old task before
+this watchdog can mask the lifetime failure.
+
+The fix guards live remote choice tasks with the same discard token as live
+presentation waits. It cancels that token after native combat reset, before
+creating the replacement owners. Replay choices retain their recorded-result
+path. Ordinary completed remote choices retain their returned value.
+
+| Run | Host / client / client2 PID | Observed result |
+| --- | --- | --- |
+| `knowledge-choice-before2` | 41859 / 41997 | Expected baseline failure reproduced. Host selected its curse through viewport input, client left its real choice screen open, and the host's old turn task remained pending after undo began. Test-owned cancellation ended the run. |
+| `knowledge-choice-after2` | 43102 / 43235 | Exact target restored, old turn completed, checksum 9934947 on both peers, continued native card play. Host replay completed in 596 ms. |
+| `knowledge-choice-focused2` | 44674 / 44777 | Separate rendered focus run passed the same checks and captured the native Knowledge Demon selection screen. |
+| `knowledge-choice-integration3` | 46085 / 46176 / 46222 | Two other choice screens remained open. Teardown cancelled 2 / 1 / 1 guarded waits, all old turn tasks completed, checksum 2388238066 matched on all peers, continued play passed. Maximum replay completion 666 ms. |
+| `discarded-effect-regression3` | 46721 / 46813 / 46859 | Existing genuine mid-effect cancellation test passed with the new cancellation order. Exact target, checksum 2908990680 and continued play passed. |
+
+The first fixture attempt (40419 / 40608) selected a boundary whose display
+entry was hidden as End Turn and failed before proposing undo. The fixture
+was corrected to retain an earlier card target. Native teardown can also log
+a cancelled local choice while removing its screen before combat reset. This
+was observed on the two-peer client and did not prevent terminal success.
+
+The focused candidate SHA-256 was
+`6c5e653e19f6c54ef6c843e76cfcd4b3ea9e4465d3a9f76e7f7bc77c8c9eb096`.
+After adding the explanatory source comment, the integration DLL SHA-256 is
+`9a943c18f4abbda0529622bf925487d7463c8eb68117c512e2fcec18233dd012`.
+Release builds and MinimalCheck passed. Independent verification checked
+native picker/vote callbacks, exact state, retained connection and all-peer
+checksum equality. These runs used local ENet on macOS v0.111.0 / 41cef1ea.
+The original Windows Steam run has not been replayed directly.
+
+Per-process logs, run metadata, screenshots and verdicts are under
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/` in
+`undosync-extended-yo7o0x9t`, `undosync-extended-d3uoenkm`,
+`undosync-extended-1a323wgu` and `undosync-extended-oszu6_24`.
+All fixtures restored original installed mod/account file hashes and left
+no game process or UDP 33771 listener. The saved v0.1.17 tag and release
+package remain the previously frozen snapshot. This fix is in the worktree.
+
+### v0.1.18 selection lifetime audit and release validation
+
+The source audit covered 121 monster, 268 power and 300 relic model files in
+the installed v0.111.0 source. KnowledgeDemon was the only monster directly
+opening a player selection. The five powers with direct card-selection calls
+were ToolsOfTheTrade, ForegoneConclusion, Tyranny, Entropy and Stratagem.
+Their native card acquisition and trigger paths were read before testing.
+Thirty relic files also contained card-selection calls, including acquisition
+and combat hooks. Immediate automatic selectors return completed tasks. Local
+card/relic selection screens cancel their selection tasks on exit, while the
+hand selector returns an empty result on exit. The hand and pile teardown
+paths were exercised by the power fixtures below.
+
+All eleven CardSelectCmd remote-choice call sites and the RelicSelectCmd
+remote-choice call site await PlayerChoiceSynchronizer.WaitForRemoteChoice.
+The guard at that common API therefore covers these result encodings during
+live combat. Rest-site and card-reward waits use the same API outside combat
+and keep their ordinary lifetime. Monster calls using ThrowingPlayerChoiceContext
+or BlockingPlayerChoiceContext solely for damage/power application were also
+checked. The context name alone does not create a pending selection. Any nested
+combat selection still reaches the shared selection API.
+
+The root cause is missing cancellation of a discarded combat's remote choice
+await. Disposing its synchronizer removes message handling while leaving that
+await pending. A new native combat can then wait on the unfinished old turn.
+The shared discard-token guard now also wraps typed remote-choice tasks and
+cancels them after native combat reset. The native executor and turn teardown
+paths remain active. Production changes are confined to Hook and Replay.
+
+The final DLL SHA-256 is
+`9a943c18f4abbda0529622bf925487d7463c8eb68117c512e2fcec18233dd012`.
+The following separate three-peer ENet cases all reached terminal PASS, exact
+target states, matching resume checksums, retained connections and continued
+native card play. The five power fixtures use native merchant acquisition
+and deck removals, then play the actual card and trigger its effect normally.
+
+| Case | Host / client / client2 PID | Completed undos |
+| --- | --- | --- |
+| Tools of the Trade pending hand discard | 56631 / 56718 / 56762 | 1 |
+| Foregone Conclusion pending draw-pile selection | 57070 / 57117 / 57162 | 1 |
+| Tyranny pending hand exhaust | 57509 / 57595 / 57639 | 1 |
+| Entropy pending hand transformation | 61056 / 61154 / 61158 | 1 |
+| Stratagem pending shuffle selection | 61472 / 61559 / 61603 | 1 |
+| Knowledge Demon, every curse screen open | 63191 / 63291 / 63337 | 1 |
+| Knowledge Demon, only client finished choosing | 63602 / 63697 / 63700 | 1 |
+| Normal choices, enemy turns and repeated replay | 64023 / 64070 / 64116 | 2 |
+| Busy vote, slow replay, missing recorder and stale checksum probes | 64773 / 64861 / 64863 | 3 |
+
+An earlier Entropy fixture (57914 / 58007 / 58014) failed before combat because
+the clients' Colorless1 epoch was locked. The corrected fixture uses the same
+public unlock API as the native console before joining and still selects from
+the player's unlocked multiplayer card pool. That original failed attempt is
+retained. It is excluded from the passing matrix.
+
+The matrix comprises nine cases and twelve distinct undo operations. It does
+not enumerate every relic combination or add a new Steam multiplayer claim.
+Each fixture restored installed mod and test-account hashes and left no game
+process or UDP 33771 listener. Artifacts are in `undosync-extended-bgvuhrfy`,
+`undosync-extended-zfs84j6l` and `undosync-extended-87byb3ij` under
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/`.
+Release build, harness build, MinimalCheck and whitespace checks passed.

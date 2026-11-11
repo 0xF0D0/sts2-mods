@@ -209,11 +209,13 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=Path)
     parser.add_argument('--label', default='extended')
     parser.add_argument('--peers', type=int, default=4, choices=[1,2,3,4])
-    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','replay-long','model-probe','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error'])
+    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','replay-long','model-probe','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error','fault-knowledge-choice','fault-turn-choice'])
     parser.add_argument('--expect', choices=['baseline','fixed'], default='fixed')
     parser.add_argument('--fault-op', default='Done')
     parser.add_argument('--drop-side', choices=['client','host'], default='client')
     parser.add_argument('--drop-count', type=int, default=1)
+    parser.add_argument('--choice-card', choices=['TOOLS_OF_THE_TRADE','FOREGONE_CONCLUSION','TYRANNY','ENTROPY','STRATAGEM'])
+    parser.add_argument('--knowledge-chooser', choices=['host','client','client2','client3','none'], default='host')
     parser.add_argument('--visible', action='store_true')
     parser.add_argument('--speed', choices=['normal', 'instant'])
     parser.add_argument('--schedule-seed')
@@ -223,9 +225,12 @@ if __name__ == '__main__':
     if args.command == 'prepare': prepare()
     elif args.command == 'deploy': no_game(); deploy()
     elif args.command == 'run':
+        extra_args = ['--minimal-expect='+args.expect, '--minimal-fault-op='+args.fault_op,
+                      '--minimal-drop-side='+args.drop_side, '--minimal-drop-count='+str(args.drop_count),
+                      '--minimal-knowledge-chooser='+args.knowledge_chooser]
+        if args.choice_card: extra_args.append('--minimal-choice-card='+args.choice_card)
         run(args.root, args.label, args.peers, args.suite, not args.visible, args.seed, args.schedule_seed, args.repro, args.speed,
-            extra_args=['--minimal-expect='+args.expect, '--minimal-fault-op='+args.fault_op,
-                        '--minimal-drop-side='+args.drop_side, '--minimal-drop-count='+str(args.drop_count)])
+            extra_args=extra_args)
         result = json.loads((args.root/args.label/'run.json').read_text())
         if result['verdict'] == 'FAIL': raise SystemExit(1)
     else: restore(args.root)

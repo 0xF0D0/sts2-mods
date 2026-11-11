@@ -251,6 +251,11 @@ public static class Hooks
             __result = Replay.RecordedChoiceAsync(player, choiceId);
             return false;
         }
+        private static void Postfix(ref Task<PlayerChoiceResult> __result)
+        {
+            // Enemy turns can await a remote choice outside the action executor.
+            if (!Replay.SuppressNative) __result = Replay.GuardLiveWait(__result);
+        }
     }
     [HarmonyPatch(typeof(NetHostGameService), nameof(NetHostGameService.Disconnect))]
     private static class PreserveHost

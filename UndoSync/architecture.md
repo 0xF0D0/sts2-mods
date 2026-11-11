@@ -144,11 +144,13 @@ pure hash. Ordinary tracking resumes only after all peers finish. The existing
 transport and its heartbeat/quality tracker remain alive.
 
 Native executor cancellation alone does not terminate an effect task. Guard live
-combat Cmd.Wait/CustomScaledWait awaits with an undo-discard token and cancel
-those awaits at teardown, before replacing run owners. This unwinds the caller's
-discarded effect rather than resuming it against the rebuilt run. It is bounded
-to verified presentation awaits, not arbitrary cancellation of all game tasks;
-other native suspension paths still need their own reproduction evidence.
+combat Cmd.Wait/CustomScaledWait awaits and remote player-choice awaits with
+an undo-discard token. Cancel those awaits after native combat reset and before
+creating replacement run owners. Enemy-turn choices can suspend the native
+turn loop outside the action executor, and disposal of their synchronizer only
+unregisters its handler. Cancelling the discarded await lets that turn loop
+finish before the new combat starts. Other native suspension paths still need
+their own reproduction evidence.
 
 ## Replay presentation boundary
 

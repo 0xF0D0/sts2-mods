@@ -78,6 +78,8 @@ python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label
 python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label discarded-effect --peers 3 --suite fault-old-action --speed normal
 python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label peer-disconnect --peers 3 --suite fault-disconnect --speed instant
 python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label peer-error --peers 3 --suite fault-replay-error --speed instant
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label knowledge-choice --peers 3 --suite fault-knowledge-choice --speed instant --visible
+python3 tools/MinimalHarness/verify_run.py /absolute/backup-root/knowledge-choice --require-input viewport
 python3 tools/MinimalHarness/runtime.py restore --root /absolute/backup-root
 ```
 
@@ -98,3 +100,23 @@ terminate with the original cause. A fixture failure stops the CLI with exit 1.
 means the defect was witnessed and task-owned cleanup completed, not recovery.
 These transport faults reproduce the log-only send contract locally. They do
 not verify an actual Steam SDK rejection or authenticated remote Steam peers.
+
+`fault-knowledge-choice` enters the native Hive Knowledge Demon boss encounter,
+ends the player turn, selects the host's curse with viewport input, and leaves
+the other native selection screens open. Undo must finish the discarded enemy
+turn, restore the exact earlier state, reach checksum agreement and allow a
+continued card play. The baseline reproduction uses `--minimal-expect=baseline`
+through `runtime.run(extra_args=...)` and records the old turn still waiting
+before task-owned cancellation. Fixed runs record rendered choice screenshots.
+The `verify_run.py` command checks target state, native input and peer checksums.
+To also audit connection lifetime, use `runtime.run(retained=True)`.
+`--knowledge-chooser none` leaves every curse screen open. `--knowledge-chooser
+client` completes only the client's choice before the host requests undo.
+
+`fault-turn-choice --choice-card TOOLS_OF_THE_TRADE` acquires the card through
+the native merchant factory, plays it and ends the turn to reach a real pending
+selection. Other fixtures are `FOREGONE_CONCLUSION`, `TYRANNY`, `ENTROPY` and
+`STRATAGEM`. They exercise hand, draw-pile and shuffle choices. The Entropy
+fixture reveals Colorless1 through the game's unlock API before joining so
+every temporary test account can legally acquire it. The runtime restores the
+original test account progress afterward.

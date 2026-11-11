@@ -73,7 +73,7 @@ public static class Harness
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
-    private static CharacterModel Character => ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
+    private static CharacterModel Character => FaultScenarios.ChoiceCharacter ?? ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
         ? (_role is "host" or "ui" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
         ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>());
     private static int _divergences, _cards, _undos;
@@ -330,6 +330,7 @@ public static class Harness
     private static async Task BootAsync()
     {
         _stage = "boot";
+        if (_suite == "fault-turn-choice") FaultScenarios.PrepareChoiceUnlocks();
         var listener = new Listener();
         StartRunLobby? lobby = null;
         RunState state;
@@ -404,13 +405,15 @@ public static class Harness
         lobby?.CleanUp(disconnectSession: false);
         _pump = null; // Native NRun now owns Update; replacement lobbies pump themselves.
         int actIndex = 0;
-        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss)
+        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss || _suite == "fault-knowledge-choice")
         {
             var hive = state.Acts.OfType<Hive>().Single();
             actIndex = state.Acts.ToList().IndexOf(hive);
-            hive.SetBossEncounter(hive.AllBossEncounters.Single(encounter => encounter is TheInsatiableBoss));
+            hive.SetBossEncounter(hive.AllBossEncounters.Single(encounter => _suite == "fault-knowledge-choice"
+                ? encounter is KnowledgeDemonBoss : encounter is TheInsatiableBoss));
         }
         await Manager.SetActInternal(actIndex);
+        if (_suite == "fault-turn-choice") await FaultScenarios.PrepareTurnChoice();
         if (FuzzDriver.Active) await FuzzCases.Prepare();
         if (_suite == "replay-long") await LongReplayBenchmark.Prepare();
         if (_suite == "model-probe")
@@ -438,7 +441,7 @@ public static class Harness
             }
             else await LongReplayBenchmark.Prepare();
         }
-        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss)
+        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss || _suite == "fault-knowledge-choice")
         {
             var boss = state.Map.BossMapPoint;
             await Manager.EnterMapCoordDebug(boss.coord, RoomType.Boss, MapPointType.Boss, showTransition: false);
