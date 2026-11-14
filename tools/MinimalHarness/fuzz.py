@@ -19,6 +19,10 @@ def main():
     run.add_argument('--schedule-seed', required=True)
     run.add_argument('--phases', action='store_true')
     run.add_argument('--speed', choices=['instant', 'normal'], default='instant')
+    run.add_argument('--character', choices=['FOOL'])
+    run.add_argument('--mode', choices=['standard', 'blitz'], default='standard')
+    run.add_argument('--vary-content', action='store_true', help='Vary content as well as timing when using --phases.')
+    run.add_argument('--prefer-content', action='store_true', help='Randomly prefer playable non-basic cards in the native hand.')
     run.add_argument('--repeat', type=int, default=1, help='Repeat each exact seed pair, retaining separate runs.')
     repro = sub.add_parser('repro')
     repro.add_argument('--trace', type=Path, required=True, help='Captured case directory or trace.host.jsonl.')
@@ -31,6 +35,8 @@ def main():
         if saved['suite'] != 'fuzz' or saved['transport'] not in ('enet', 'singleplayer'):
             p.error('This runner reproduces captured native singleplayer/ENet fuzz cases only.')
         jobs = [(saved['seed'], saved['schedule_seed'], saved['peers'], 'repro')]
+        original_args = next(iter(saved['processes'].values()))['args']
+        extra_args = [a for a in original_args if a.startswith(('--minimal-character=', '--minimal-mode=')) or a == '--minimal-prefer-content']
     else:
         transport = args.transport or ('singleplayer' if args.peers == 1 else 'enet')
         if (transport == 'singleplayer') != (args.peers == 1):
@@ -39,7 +45,10 @@ def main():
             p.error('--phases requires real multiplayer peers.')
         if not 1 <= args.cases <= 1000 or not 1 <= args.repeat <= 10:
             p.error('cases must be 1..1000; repeat must be 1..10.')
-        jobs = [(args.content_seed + (f'-{i}' if args.cases > 1 and not args.phases else ''),
+        extra_args = ['--minimal-mode='+args.mode]
+        if args.character: extra_args.append('--minimal-character='+args.character)
+        if args.prefer_content: extra_args.append('--minimal-prefer-content')
+        jobs = [(args.content_seed + (f'-{i}' if args.cases > 1 and (not args.phases or args.vary_content) else ''),
                  args.schedule_seed + (f'-{i}' if args.cases > 1 else ''), args.peers, f'case-{i:04}-repeat-{r}')
                 for i in range(args.cases) for r in range(args.repeat)]
     runtime.no_game()
@@ -52,7 +61,7 @@ def main():
                 speed = saved.get('speed', 'instant') if source else args.speed
                 phases = saved.get('phases', False) if source else args.phases
                 runtime.run(root, label, peers, 'fuzz', seed=content, schedule_seed=schedule,
-                            repro=source, speed=speed, phases=phases)
+                            repro=source, speed=speed, phases=phases, retained=True, extra_args=extra_args)
                 if not source and args.repeat > 1:
                     previous = root/(label.rsplit('-repeat-', 1)[0]+'-repeat-0')
                     if previous != root/label:

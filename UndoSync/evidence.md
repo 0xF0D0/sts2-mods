@@ -973,3 +973,220 @@ process or UDP 33771 listener. Artifacts are in `undosync-extended-bgvuhrfy`,
 `undosync-extended-zfs84j6l` and `undosync-extended-87byb3ij` under
 `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/`.
 Release build, harness build, MinimalCheck and whitespace checks passed.
+
+### v0.113.0 Fool map observer lifetime
+
+On 2026-11-15, the local user run (PID 56006) failed while undoing 44 recorded
+events as Fool. The installed game was v0.113.0 / 16ac0fe3, native assembly
+hash -1193471172. Startup logs confirm that Workshop UndoSync v0.1.18 was
+loaded and the older local v0.1.14 installation was disabled. The exception
+was ObjectDisposedException in NMapScreen.RemoveAllMapPointsAndPaths, called
+by RunManager.GenerateMap before replay events began. Original logs are in
+`/Users/kimbeomsu/Library/Application Support/SlayTheSpire2/logs/`.
+
+Fresh native source is in `/tmp/undosync-v113-source.6YcdAV`. NMapScreen.Initialize
+subscribes OnMapChanged to the persistent RunManager.MapChanged event. Its
+public CleanUp method unsubscribes it. Removing the outgoing run scene before
+RunManager.CleanUp makes the current map singleton unavailable, so normal
+cleanup skips this unsubscribe. GenerateMap later invokes the stale subscriber
+against the disposed outgoing map controls.
+
+Production now calls the outgoing map's public CleanUp before removing the run
+scene. This is one call in Replay. The harness was updated to the v0.113.0
+lobby, selector-stack and merchant-factory APIs so native entry points could
+be exercised. Those compatibility changes are confined to verification tools.
+
+| Run | PIDs | Result |
+| --- | --- | --- |
+| `fool-map-before` | 57789 | Published v0.1.18 DLL 9a943c18... reproduced the same disposed map stack. Expected baseline FAIL retained. |
+| `fool-map-after` | 59882 | Same Fool picker/undo fixture passed with exact target state and continued play. |
+| `fool-shot-repeat-map` | 60365 | Native Foolish Shot dealt 21 arrow damage. Two undos restored checksum 878371747 and the full native state. Native map input, points, screenshots, continued play and the next enemy turn passed. |
+| `ironclad-map-regression` | 61021 | Native picker restored the exact target state and continued play passed. |
+| `fool-integration3` | 61106 / 61138 / 61156 | Three real Fool peers each proposed an undo through the picker. All three undos restored the exact state and checksum 2934972768, retained the original transport and allowed continued play. |
+
+The initial controlled Foolish Shot fixture (PID 60021) selected Defend with
+an inappropriate uniqueness assertion and failed before undo. The corrected
+driver selects the first matching native hand card. That fixture failure is
+preserved separately from the passing runtime matrix. The five-card fixture
+uses native deck removals and the character's genuine starting shot and relic.
+
+Candidate DLL SHA-256 is
+`e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754`.
+Release build, harness build and MinimalCheck passed (36 native patch targets,
+15 reflection surfaces). The passing matrix covers seven distinct undos and
+uses independent PID/hash/input/state verification. The rendered Fool combat
+capture was inspected. All fixtures restored installed mod/account hashes,
+exited their game processes and freed UDP 33771. The user authorized ending
+PID 56006, which had already exited before the test preflight.
+
+Run metadata, native logs, screenshots and verdicts are under
+`/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/` in
+`undosync-extended-09r81xw8`, `undosync-extended-un7kz10q`,
+`undosync-extended-kcwxmafb` and `undosync-extended-9b_8llq4`.
+This is local v0.113.0 validation. The candidate is saved in the worktree.
+
+## 2026-11-15: native v0.113.0 Fool and Blitz compatibility
+
+Validation only. No additional production change beyond the outgoing-map cleanup documented above. The installed game is v0.113.0 / `16ac0fe3` (`main_assembly_hash=-1193471172`). Every selected run used candidate core SHA-256 `e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754`.
+
+**Result: PASS for 16 selected terminal runs, 34 native game processes and 41 distinct nonempty Undo sessions.** These are bounded fixtures, not 16 random content seeds or exhaustive Fool fuzzing. Failed fixture/development attempts are excluded and classified below. Full PID/log paths, each harness hash, final-state hashes, resumed checksums and cleanup receipts are in `tools/MinimalHarness/results/2026-11-15/fool-blitz-compatibility/summary.json`.
+
+| Run | Mode | Peers | Profile | Speed | PIDs | Distinct undos |
+| --- | --- | ---: | --- | --- | --- | ---: |
+| fool-destroy-focused | standard | 1 | destroy | instant | 67217 | 2 |
+| fool-symbols-focused | standard | 1 | symbols | instant | 67385 | 2 |
+| blitz-arrows-focused | blitz | 1 | arrows | instant | 67551 | 2 |
+| blitz-symbols-focused | blitz | 1 | symbols | instant | 67712 | 2 |
+| fool-arrows-focused-v2 | standard | 1 | arrows | instant | 71551 | 2 |
+| blitz-destroy-focused | blitz | 1 | destroy | instant | 71703 | 2 |
+| fool-arrows-integration3 | standard | 3 | arrows | instant | 71855, 71884, 71902 | 3 |
+| fool-destroy-integration3 | standard | 3 | destroy | instant | 72174, 72216, 72230 | 3 |
+| fool-symbols-integration3 | standard | 3 | symbols | instant | 72511, 72543, 72559 | 3 |
+| blitz-arrows-integration3 | blitz | 3 | arrows | instant | 72795, 72853, 72890 | 3 |
+| blitz-destroy-integration3 | blitz | 3 | destroy | instant | 73185, 73225, 73244 | 3 |
+| blitz-symbols-integration3 | blitz | 3 | symbols | instant | 73530, 73581, 73598 | 3 |
+| fool-arrow-death-focused3 | standard | 3 | death | instant | 74634, 74663, 74681 | 3 |
+| fool-arrow-death-integration3 | standard | 3 | death | normal | 74988, 75031, 75046 | 3 |
+| blitz-progression-focused-v3 | blitz | 1 | symbols | instant | 76952 | 2 |
+| blitz-progression-integration3 | blitz | 3 | symbols | normal | 78756, 78822, 78840 | 3 |
+
+### Mechanisms and native UI evidence
+
+- Quiver creates a second native arrow slot. Two Quick Shots impale the same enemy. Recall returns both arrows and performs its real discard-pile choice; repeated Undo restores both away slots, flags, impaled powers/counters and persistent arrow visuals.
+- Quietus sets destruction-after-impale and actually destroys an arrow. Undo retains its exact status/flag, hidden destroyed-slot UI and absence of an impaled arrow visual.
+- Wah Cho Ki produces all three native melody history tags and rendered symbols. Restored native symbol nodes match the replacement player model/history.
+- In the native three-peer Slimes encounter, two Quick Shots leave a 36-HP slime at 10 HP. Two starting Strikes kill it while other monsters keep combat active. Both arrows return. Three rotating proposers Undo that death, restoring the living slime at 10 HP with both attached arrow effects. Separate focused and ordinary-speed integration sessions each pass three restores.
+- Every three-peer fixture uses genuine ENet game processes and viewport picker/Accept input. All peers reach terminal verdicts, agree on native target states/final checksums, preserve original connections and continue native input. Additional state checks include arrow destruction flags, per-player impaled data, UI slot references to replacement model owners and visible native arrow/symbol nodes.
+- Blitz retains `GameMode.Blitz`, native `BlitzActMap` and the exact map coordinate through every Undo. The separate ordinary-speed full integration uses PIDs 78756/78822/78840. All three players continue actual card plays and native end-turn input, win two combats, acquire one native card reward each per combat, compare complete deck model IDs/upgrades, advance exactly once from (3,1) to (3,2), then from (3,2) to the native Blitz merchant at (3,3). No forced victory or progression room jump is used. The fixture initially enters the first native seeded monster point with the existing native debug entry helper; Blitz opening Neow is not exercised.
+- Parent inspected rendered Fool arrow, all-three-symbol, restored-dead-enemy and multiplayer Blitz merchant screenshots. Artifacts include `compat-death-host-restored2.png` under the selected death integration and `blitz-merchant-{role}.png` under the final progression integration.
+
+### Source audit and checks
+
+The installed DLL was decompiled for the native Fool character/card pool, Quiver, Recall, Quick Shot, Quietus, Ki Chant, Wah Cho Ki, Tune, Rapid Shot, Nock, ArrowCmd/ArrowSlot/ImpaledPower, melody history and Fool UI event ownership. Blitz source reads covered serialized mode/run reconstruction, BlitzRunModel reward branches, BlitzActMap, GenerateMap and automatic next-node voting, native combat rewards and merchant room UI. The production restore uses native saved-run reconstruction, which preserves serialized game mode and selects the native Blitz map branch. No forced-Standard production path was found in that reconstruction. This is a bounded audit, not all 90 Fool cards.
+
+`dotnet build tools/MinimalHarness/MinimalHarness.csproj -c Release` built both projects with zero warnings/errors. `tools/MinimalCheck` passed five modules, 36 patch targets and 15 reflection surfaces against the installed game. Python syntax/CLI checks and `git diff --check` passed. Metadata checks are not substituted for the native runtime verdicts.
+
+### Classified development attempts (not production-bug fixes)
+
+- A fixture initially tried to buy a starting Basic Defend through the merchant factory. The native factory rejected that setup before combat. Fixtures now retain starting basics via native removals and buy only legal pool cards.
+- Remote test accounts initially lacked Fool epochs, so a native unlocked-pool lookup failed before combat and the host exited. Native epoch overrides are now applied before joining, including Blitz unlock. Original progress is restored afterward.
+- Reusing the legacy automatic selector sent an index for Recall instead of native mutable combat-card identities. The first native divergence occurred before Undo. The compatibility-only selector now uses the source-verified wire encoding. Separate successful reruns replace this failed attempt.
+- Reward/Proceed buttons were clicked while their native entry animation was moving. PID-bound screenshots/logs showed missed viewport input. The driver waits for stable, on-screen native control geometry before reward/card/Proceed clicks.
+- One peer entered the test idle wait immediately before native victory completed, then waited for a player phase after combat ended. The test-only settle predicate now accepts completed combat. The final separate ordinary-speed integration reaches terminal PASS and the merchant on every peer.
+
+All selected backup roots have hash-verified restoration receipts for original local mods and default test accounts 1/1001/2001/3001. No game processes or UDP 33771 listener remained after cleanup. No commit, release, Workshop upload or persistent local mod update was performed.
+
+### Remaining untested surfaces
+
+- Every Fool card and every new relic/potion combination, including nested autoplay/selection combinations.
+- Simultaneous arrows from different Fool owners into the same enemy.
+- Blitz opening Neow selection, later acts, elites/bosses, merchant purchases and progression beyond the reached merchant.
+- Interactions with other enabled mods and separate-computer authenticated Steam/P2P multiplayer.
+
+## 2026-11-15: randomized Fool / Blitz content and three-peer timing fuzzing
+
+**Overall: FAIL_NATIVE_TEARDOWN_DIAGNOSTICS.** Native target-state/protocol checks completed successfully, but the full log audit found native teardown exceptions. Earlier `HARNESS_PASS` and saved first-pass summaries certify functional assertions only. Rechecking those same artifacts with the strengthened fuzz verifier now returns FAIL. Do not use this batch, or the earlier windowed terminal verdicts, as a clean-runtime/release approval.
+
+The candidate core was unchanged throughout: SHA-256 `e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754`. Native game v0.113.0 / `16ac0fe3`, TestMode off, headless native scene tree, Instant animation setting. No production modification, commit or release was performed for this fuzz request.
+
+### Randomized workload and functional evidence
+
+| Batch | Distinct content/schedule pairs | Peers | Distinct Undo sessions | Artifact root |
+| --- | ---: | ---: | ---: | --- |
+| standard-content | 10 | 1 | 10 | `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc` |
+| blitz-content | 10 | 1 | 10 | `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru` |
+| standard-timing | 5 | 3 | 15 | `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai` |
+| blitz-timing | 5 | 3 | 15 | `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv` |
+
+30 distinct seed pairs used 50 actual native game processes and completed 50 distinct nonempty Undo sessions. Content and action/schedule seeds are independently recorded. Native factories supply legal character-pool reward cards, relics and potions, and native seeded map encounter pools supply enemies. The optional sampling strategy randomly prefers playable non-basic cards already in the hand; it never injects a combat card or changes its cost/effect.
+
+The ten three-peer cases vary both content and timing. Each rotates host/client/client2 as proposer and observes three busy last-voter Accepts, three host Preparing-before-action-drain transitions, three held replay completions, and three missing-recorder recoveries. Across those cases every condition was observed 30 times. Native stale-checksum generation/receive isolation and retained original connections are also checked. Exact target hashes, final peer checksums, native viewport callbacks, continued input and Fool arrow/symbol UI assertions passed.
+
+Actual card execution covered 33 model IDs: `ANGUISH`, `ARROW_STAB`, `BLOSSOM_SHOT`, `BLOT_OUT_THE_SKY`, `BOW_SMACK`, `CHO_BARBS`, `CHO_FIRM`, `CHO_KI`, `CHO_READY`, `DEEP_STRETCH`, `DEFEND_FOOL`, `DISLIKE_YOU`, `FOOLISH_SHOT`, `HARMONIC_SHIELD`, `HEAVY_SHOT`, `JEST`, `KI_CHANT`, `KI_WHIP`, `MOURNING_BLOW`, `NOCK`, `QUICK_SHOT`, `RAIN_SHOT`, `RECALL`, `SORROWFUL_STRIKE`, `STRIKE_FOOL`, `UPROOT`, `VIOLENT_CHORD`, `VITRIOL`, `WAH_HAMMER`, `WAH_SWEEP`, `WAH_TOUCH`, `WHISTLING_ARROWS`, `WREST`.
+
+Native live card selections: 2. The singleplayer Standard Ki Chant case records the choice inside the retained prefix, replays it and restores the exact target. 48 distinct extra relic models and 31 potion models were acquired; acquisition is not proof of every relic trigger. Potion use count is zero. Starter SongBow is also present.
+
+Three exact-trace reruns (Standard singleplayer with Ki Chant choice, Blitz singleplayer, Standard three-peer timing with a choice) reproduced byte-identical content specifications, factory resolutions and every per-role action/choice/timing trace. They retained the same teardown exception; their functional success does not override the strict diagnostic failure.
+
+Full per-case PIDs/log paths, DLL hashes, seeds, checksums, counters, trace reproduction comparisons and restoration receipts are in `tools/MinimalHarness/results/2026-11-15/fool-blitz-fuzz/summary.json`. The first-pass raw artifact summaries are preserved as historical evidence; the current verifier rejects their native exceptions.
+
+### Finding: notifications during partially detached combat
+
+All 30 main cases contain `System.InvalidOperationException: Local player not found in combat.` In total the main-case logs contain 508 occurrences, before their terminal PASS markers. There were no target-hash or peer-state mismatches and no failed Undo completion in these cases. Windowed baseline logs from the previous structured run contain the same exception, for example PID 71855 in `undosync-extended-tg6lv4uf/fool-arrows-integration3/host-terminal.log`. This is not specific to the headless runner. The earlier result checker missed this diagnostic class.
+
+Source and observed stack agree:
+
+1. `Replay.ExecuteCoreAsync` removes the outgoing NRun before `RunManager.CleanUp`, so native UI exits while its original owners still exist.
+2. Native `CombatStateTracker.CallCombatStateChangedDeferred` waits one process frame only if `NRun.Instance` exists. With that scene removed it runs synchronously.
+3. Native `CombatManager.DetachCreatures` resets/removes creatures one at a time. Resetting powers and other values sends aggregate state-change notifications while the old combat is only partly detached.
+4. Once the local player has been removed but other creatures remain, the tracker calls `LocalContext.GetMe(oldCombatState)`. That native accessor throws when the local player is missing.
+5. Native `TaskHelper.RunSafely` catches/logs this task exception. Reconstructed combat later has new owners and reaches matching target state, so a terminal-only/target-only checker reports PASS despite the teardown error.
+
+The inspected installed source types are `CombatStateTracker`, `CombatManager`, `LocalContext`, `RunManager` and their call sites. The trigger is a common discarded-run lifecycle interval, not evidence of a specific Fool card being invalid.
+
+### Proposed correction (not implemented)
+
+Suppress only the native aggregate `CombatStateTracker.NotifyCombatStateChanged` callback while `Replay.OwnsCleanup` is deleting the discarded combat. Its public event is a UI aggregate notification; native source explicitly prohibits backend subscribers in TestMode. The old scene has already exited, and reconstructed-combat notifications must stay enabled. This avoids looking up a partly removed player without masking exceptions globally or disabling UI during replay. Validate against the retained before-case and separate rendered/integration runs before declaring it fixed.
+
+Blindly moving run cleanup before UI exit would undo the established owner-lifetime ordering. Globally swallowing LocalContext failures or enabling TestMode would hide unrelated invalid states/change replay behavior. Neither was applied.
+
+### Harness changes and verification
+
+`fuzz.py` now supports Fool/mode selection, varying content during phase sweeps, native non-basic-card sampling preference and preservation of these flags on repro. Native test-account Fool/Blitz epochs are revealed before joining and restored afterward. Fuzz checks additionally compare arrow flags/impaled data/melody history and rendered-node owners, plus explicit native mode/map/coordinate preservation in the instrumented three-peer/repro runs.
+
+`verify_run.py` now rejects native `[ERROR] System.*` exception lines for the fuzz suite. Rechecking the already captured Ki Chant case changed its result from the preserved first-pass PASS to strict FAIL with the exact cleanup exception. Intentional recorder/checksum timing conditions do not emit that exception and are not exceptions to the new check. Existing deliberate exception suites are outside this fuzz-only policy.
+
+Release harness/core builds passed with warnings as errors. MinimalCheck passed 36 patch targets / 15 reflection surfaces. Python syntax/CLI checks, repro comparisons and whitespace checks passed. These static checks do not clear the native diagnostic failure.
+
+All batch and repro backup roots have hash-verified local-mod and test-account restoration receipts. Main fuzzing, smoke tests and three repro runs are all finished. No persistent mod update or Steam upload was performed.
+
+Untested: all 90 Fool cards/all combinations, potion use, every acquired relic trigger, campaign/later-act/elite/boss progression, and authenticated multi-computer Steam/P2P timing/packet loss.
+
+## 2026-11-15: fixed discarded-combat state notifications
+
+**Result: PASS on the verified v0.113.0 candidate.** This supersedes the unresolved teardown finding in the previous section for this candidate only. Baseline core SHA-256 was `e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754`; corrected core is `efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8`.
+
+### Change and scope
+
+The new Harmony prefix targets the source-verified native `CombatStateTracker.NotifyCombatStateChanged(string caller)`. It returns false only while existing `Replay.OwnsCleanup` is true. That interval contains synchronous disposal/reset of the discarded run after its old UI has exited; the flag is reset in `finally` before replacement owners are constructed. Native creature resets, power removal, run disposal and choice cancellation still run normally. Ordinary gameplay and reconstructed-combat notifications continue through the native method.
+
+Two per-restore counters prove both sides of that boundary: `DISCARDED_STATE_NOTIFICATIONS skipped=N` after old-run cleanup, and `ACTIVE_STATE_NOTIFICATIONS allowed=N` after reconstructed combat/replay. No global exception handler, GetMe fallback, card whitelist, TestMode change, voting rule or transport change was added. The preceding outgoing-map cleanup correction remains in place.
+
+### Staged native UI validation
+
+- Focused rendered before/after: PID 95221, `undosync-extended-52aigia1/state-notification-focused`. Replays the retained Standard Fool Ki Chant seed with an actual native discard/draw selection. Strict verdict PASS. Old cleanup notifications skipped: 8; active reconstructed-combat notifications allowed: 46. No native C# exception. Content specification, factory outputs and `trace.ui.jsonl` are byte-identical to the failing-diagnostic baseline. Parent inspected `fuzz-restored-ui-ui.png`: living Fool, correct hand/energy/block, Ki symbol and native arrow slot.
+- Separate rendered three-peer integration: PIDs 95881/95922/95940, `undosync-extended-sl5xmc3y/state-notification-integration3`. All three proposers, busy Accept, delayed completion, missing-recorder recovery, stale-checksum isolation, retained connections and continued play passed. Every role's action/choice/timing trace is byte-identical to the baseline. Each restored combat continued native state notifications (85 in this fixture). Parent inspected the restored rendered party UI.
+
+### Complete retained-seed comparison
+
+All 30 earlier random content/schedule pairs were re-executed through their exact captured traces, without resampling. Native factories and actions execute again; saved IDs/choices are comparison inputs, not replacements for native effects. Every content fixture, resolved factory output and per-role trace matches byte-for-byte. Strict verifier PASS for every run.
+
+| Workload | Seeds | Distinct Undo sessions | Before native exceptions | After native exceptions |
+| --- | ---: | ---: | ---: | ---: |
+| Standard Fool content | 10 | 10 | 17 | 0 |
+| Blitz Fool content | 10 | 10 | 14 | 0 |
+| Standard three-peer timing | 5 | 15 | 226 | 0 |
+| Blitz three-peer timing | 5 | 15 | 251 | 0 |
+| Total | 30 | 50 | 508 | 0 |
+
+Main comparison artifacts: `/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-27bl25l4`. All 110 peer-local restore executions observed positive discarded/active counters: 1,449 discarded notifications skipped, 8,792 active notifications allowed, minimum 35 active notifications per restored combat. The 33 previously played card models, target hashes, choice results and final native checksums remain unchanged. All four declared multiplayer phase conditions were still observed 30 times each.
+
+### Existing-character regressions and cleanup
+
+Silent singleplayer (PID 522) and a native Defect/Silent/Silent three-peer session (PIDs 661/695/714) also pass strict fuzz verification, including existing orb-view checks and retained-session phase probes. Artifacts: `undosync-extended-p8hu84w3/silent-regression` and `defect-silent-integration3`.
+
+Including focused/integration and existing-character checks: 34 terminal runs, 58 native processes, 58 distinct Undo sessions, zero native C# exception lines. These counts exclude the prior baseline failures. Per-run process IDs, original log paths, build hashes, state digests, before/after comparisons, counter arrays and restoration receipts are recorded in `tools/MinimalHarness/results/2026-11-15/state-notification-fix/summary.json`.
+
+Release core/harness build passed with warnings as errors. Metadata check audited the newly added native notification target and passed 37 patch targets / 15 reflection surfaces after updating the expected target count from 36 to 37. Whitespace checks passed. The focused and separate integration runs provide runtime evidence beyond the metadata check.
+
+All four new backup roots have hash-verified restoration receipts for prior local mods and test accounts. Final live check found no game processes or UDP33771 listener. No commit, version bump, persistent installation change, GitHub release or Workshop upload was performed.
+
+Remaining limits: not every Fool card/relic trigger/potion use, not later-act/elite/boss campaign coverage, not other-mod interaction coverage, and not authenticated multi-computer Steam/P2P coverage. Godot shutdown resource warnings were not claimed fixed; the rejected diagnostic is the native C# runtime exception class recorded in the preceding before-case.
+
+## 2026-11-15: v0.1.19 package identity check
+
+User authorized release after reviewing the fix and its verification. Manifest version was advanced to 0.1.19. The packaged DLL remains byte-identical to the verified candidate, SHA-256 `efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8`; only the external version manifest changed. ZIP SHA-256: `3d2c9e78139e1588e44f90eeacafc9a1614e593189d8274f52a3b37035a5785a`.
+
+The final DLL/0.1.19 manifest pair passed an additional exact-trace native three-peer phase run with PIDs 25300/25332/25347, three distinct restores, no native C# exceptions and byte-identical before/after action/choice/timing traces. Artifacts: `undosync-extended-18m_7l3t/v019-package-smoke3`. Backup restoration and process/port cleanup passed.
+
+Release notes and multilingual Workshop text describe the v0.113.0 map/teardown fixes and local Fool/Blitz validation without claiming separate-PC Steam coverage. Workshop staging reuses the previous published image unchanged (SHA-256 `2f01accfc29c5de3f6dd9e141461267533590115e6df45e00df325ea362659e0`); the unapproved draft cover is excluded. Publication receipts are recorded separately after remote confirmation.

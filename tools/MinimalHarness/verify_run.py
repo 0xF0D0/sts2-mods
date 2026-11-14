@@ -51,6 +51,11 @@ def verify(folder, require_input=None, require_transport=None):
             issue('INFRA_ERROR', f'{role}: observed transport {value.get("transport")} != {expected_transport}')
         if value.get('divergences', -1) != 0:
             issue('FAIL', f'{role}: native divergence counter not zero')
+        if run['suite'] == 'fuzz':
+            native_exceptions = re.findall(r'^\[ERROR\] (System\.[^\r\n]+)', log, re.MULTILINE)
+            if native_exceptions:
+                issue('FAIL', f'{role}: native runtime exceptions ({len(native_exceptions)}): '
+                      + '; '.join(sorted(set(native_exceptions))))
         if value.get('undos', 0) < 1 or value.get('target_checks', 0) < 1:
             issue('UNCOVERED', f'{role}: no completed target-state-checked undo')
         for marker in ('RESTORE_BEGIN', 'REPLAY_DONE', 'HISTORY_COMMIT', 'RESUME session='):

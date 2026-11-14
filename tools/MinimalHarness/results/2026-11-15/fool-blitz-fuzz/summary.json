@@ -1,0 +1,3739 @@
+{
+  "date": "2026-11-15",
+  "overall_verdict": "FAIL_NATIVE_TEARDOWN_DIAGNOSTICS",
+  "functional_verdict": "PASS",
+  "distinct_seed_pairs": 30,
+  "singleplayer_content_cases": 20,
+  "three_peer_timing_cases": 10,
+  "distinct_undos": 50,
+  "native_processes": 50,
+  "played_card_models": [
+    "CARD.ANGUISH",
+    "CARD.ARROW_STAB",
+    "CARD.BLOSSOM_SHOT",
+    "CARD.BLOT_OUT_THE_SKY",
+    "CARD.BOW_SMACK",
+    "CARD.CHO_BARBS",
+    "CARD.CHO_FIRM",
+    "CARD.CHO_KI",
+    "CARD.CHO_READY",
+    "CARD.DEEP_STRETCH",
+    "CARD.DEFEND_FOOL",
+    "CARD.DISLIKE_YOU",
+    "CARD.FOOLISH_SHOT",
+    "CARD.HARMONIC_SHIELD",
+    "CARD.HEAVY_SHOT",
+    "CARD.JEST",
+    "CARD.KI_CHANT",
+    "CARD.KI_WHIP",
+    "CARD.MOURNING_BLOW",
+    "CARD.NOCK",
+    "CARD.QUICK_SHOT",
+    "CARD.RAIN_SHOT",
+    "CARD.RECALL",
+    "CARD.SORROWFUL_STRIKE",
+    "CARD.STRIKE_FOOL",
+    "CARD.UPROOT",
+    "CARD.VIOLENT_CHORD",
+    "CARD.VITRIOL",
+    "CARD.WAH_HAMMER",
+    "CARD.WAH_SWEEP",
+    "CARD.WAH_TOUCH",
+    "CARD.WHISTLING_ARROWS",
+    "CARD.WREST"
+  ],
+  "played_card_count": 33,
+  "relic_models_acquired": [
+    "RELIC.ANCHOR",
+    "RELIC.BAG_OF_MARBLES",
+    "RELIC.BAG_OF_PREPARATION",
+    "RELIC.BOOK_OF_FIVE_RINGS",
+    "RELIC.BOWLER_HAT",
+    "RELIC.BRONZE_SCALES",
+    "RELIC.CANDELABRA",
+    "RELIC.CENTENNIAL_PUZZLE",
+    "RELIC.CLOAK_CLASP",
+    "RELIC.EXERCISE_MAT",
+    "RELIC.FESTIVE_POPPER",
+    "RELIC.FROZEN_EGG",
+    "RELIC.GAME_PIECE",
+    "RELIC.GORGET",
+    "RELIC.GREMLIN_HORN",
+    "RELIC.HAPPY_FLOWER",
+    "RELIC.HORN_CLEAT",
+    "RELIC.JUZU_BRACELET",
+    "RELIC.LASTING_CANDY",
+    "RELIC.LETTER_OPENER",
+    "RELIC.MANGO",
+    "RELIC.MINIATURE_CANNON",
+    "RELIC.MUMMIFIED_HAND",
+    "RELIC.NUNCHAKU",
+    "RELIC.ODDLY_SMOOTH_STONE",
+    "RELIC.ORNAMENTAL_FAN",
+    "RELIC.PANTOGRAPH",
+    "RELIC.PEN_NIB",
+    "RELIC.PLANISPHERE",
+    "RELIC.POTION_BELT",
+    "RELIC.RAINBOW_RING",
+    "RELIC.RAZOR_TOOTH",
+    "RELIC.RED_MASK",
+    "RELIC.REGAL_PILLOW",
+    "RELIC.REPTILE_TRINKET",
+    "RELIC.SHOVEL",
+    "RELIC.SHURIKEN",
+    "RELIC.SPARKLING_ROUGE",
+    "RELIC.STONE_CALENDAR",
+    "RELIC.STONE_CRACKER",
+    "RELIC.STRAWBERRY",
+    "RELIC.STRIKE_DUMMY",
+    "RELIC.STURDY_CLAMP",
+    "RELIC.TUNING_FORK",
+    "RELIC.VAJRA",
+    "RELIC.VAMBRACE",
+    "RELIC.WAR_PAINT",
+    "RELIC.WHETSTONE"
+  ],
+  "potion_models_acquired": [
+    "POTION.ATTACK_POTION",
+    "POTION.BLESSING_OF_THE_FORGE",
+    "POTION.BLOCK_POTION",
+    "POTION.CLARITY",
+    "POTION.COLORLESS_POTION",
+    "POTION.DEXTERITY_POTION",
+    "POTION.DROPLET_OF_PRECOGNITION",
+    "POTION.DUPLICATOR",
+    "POTION.ENERGY_POTION",
+    "POTION.ENTROPIC_BREW",
+    "POTION.FAIRY_IN_A_BOTTLE",
+    "POTION.FIRE_POTION",
+    "POTION.FLEX_POTION",
+    "POTION.FORTIFIER",
+    "POTION.FRUIT_JUICE",
+    "POTION.FYSH_OIL",
+    "POTION.HEART_OF_IRON",
+    "POTION.LIQUID_BRONZE",
+    "POTION.LUCKY_TONIC",
+    "POTION.POWER_POTION",
+    "POTION.PRECISION_POTION",
+    "POTION.RADIANT_TINCTURE",
+    "POTION.REGEN_POTION",
+    "POTION.SKILL_POTION",
+    "POTION.SNECKO_OIL",
+    "POTION.SPEED_POTION",
+    "POTION.STABLE_SERUM",
+    "POTION.STRENGTH_POTION",
+    "POTION.SWIFT_POTION",
+    "POTION.VULNERABLE_POTION",
+    "POTION.WEAK_POTION"
+  ],
+  "potion_uses": 0,
+  "native_live_choices": 2,
+  "phase_conditions_observed": {
+    "busy_votes": 30,
+    "preparing_before_release": 30,
+    "skew_holds": 30,
+    "recorder_faults": 30
+  },
+  "diagnostic_exception_counts": {
+    "System.InvalidOperationException: Local player not found in combat.": 508
+  },
+  "affected_cases": 30,
+  "median_case_seconds": {
+    "standard-content": 11.9375,
+    "blitz-content": 11.799,
+    "standard-timing": 24.919,
+    "blitz-timing": 24.153
+  },
+  "cases": [
+    {
+      "group": "standard-content",
+      "case": "case-0000-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0000-repeat-0",
+      "content_seed": "FOOL-STD-20261115-0",
+      "schedule_seed": "ACTION-STD-0",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 12.561,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "068c481ccd0942168fd6c35ea6b7c6fa": {
+          "ui": "3250339754"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-0",
+        "schedule_seed": "ACTION-STD-0",
+        "resolved_factory_steps": 13,
+        "models": [
+          "0:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.BOW_SMACK upgrade=0",
+          "CARD.SONG_PATH upgrade=0",
+          "CARD.WAH_KI upgrade=0",
+          "CARD.WHISTLING_ARROWS upgrade=0",
+          "ENCOUNTER.NIBBITS_WEAK",
+          "POTION.BLESSING_OF_THE_FORGE",
+          "POTION.WEAK_POTION",
+          "RELIC.REPTILE_TRINKET"
+        ],
+        "played_card_models": [
+          "CARD.BOW_SMACK",
+          "CARD.WHISTLING_ARROWS"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 86756,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0000-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "010D1FE8F8EE6E0EE8C8C90E8ADD5F64CBD724A205E20689F2B4F395415043F8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0001-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0001-repeat-0",
+      "content_seed": "FOOL-STD-20261115-1",
+      "schedule_seed": "ACTION-STD-1",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.817,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "621d1a3c2a2f4cb5b6bbd03c25119be0": {
+          "ui": "391624275"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-1",
+        "schedule_seed": "ACTION-STD-1",
+        "resolved_factory_steps": 9,
+        "models": [
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.MOURNING_BLOW upgrade=0",
+          "CARD.SORROWFUL_STRIKE upgrade=0",
+          "CARD.WAH_SWEEP upgrade=0",
+          "ENCOUNTER.SHRINKER_BEETLE_WEAK",
+          "POTION.FORTIFIER",
+          "RELIC.CENTENNIAL_PUZZLE",
+          "RELIC.FESTIVE_POPPER"
+        ],
+        "played_card_models": [
+          "CARD.KI_WHIP",
+          "CARD.WAH_SWEEP"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 86841,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0001-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "E414B7A8DBE5F92D4FB4F63506994AB68E1AE2B53C8ADA799F87814E9E8529B7",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0002-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0002-repeat-0",
+      "content_seed": "FOOL-STD-20261115-2",
+      "schedule_seed": "ACTION-STD-2",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.82,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "469e8f4b236d4c3f9c9ed5e4ef34d343": {
+          "ui": "2911805541"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-2",
+        "schedule_seed": "ACTION-STD-2",
+        "resolved_factory_steps": 10,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.CHO_FIRM upgrade=0",
+          "CARD.KI_CHANT upgrade=0",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.TUNE upgrade=0",
+          "ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK",
+          "POTION.LUCKY_TONIC",
+          "RELIC.BRONZE_SCALES",
+          "RELIC.REGAL_PILLOW"
+        ],
+        "played_card_models": [
+          "CARD.CHO_FIRM",
+          "CARD.DEFEND_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 86932,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0002-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "2174366F0043572E228318E0EBF295EBDA6899D362EEA87E3159BED414913599",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0003-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0003-repeat-0",
+      "content_seed": "FOOL-STD-20261115-3",
+      "schedule_seed": "ACTION-STD-3",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.807,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (2): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "2bbe4d8ef5cb4a12b698cf5248f3a5e4": {
+          "ui": "3728249622"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-3",
+        "schedule_seed": "ACTION-STD-3",
+        "resolved_factory_steps": 6,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "CARD.BOW_SMACK upgrade=0",
+          "CARD.HEAVY_SHOT upgrade=0",
+          "ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK",
+          "POTION.SKILL_POTION",
+          "RELIC.GAME_PIECE"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.HEAVY_SHOT",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87003,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0003-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 2,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "AA158A1088AFB8CF24AE7D40C3875AC4AFD03302E7885F7BC4B095D346A13AF5",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0004-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0004-repeat-0",
+      "content_seed": "FOOL-STD-20261115-4",
+      "schedule_seed": "ACTION-STD-4",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.816,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "a047ae2f1ea84810b5ecfd94f44f0b39": {
+          "ui": "3700343675"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-4",
+        "schedule_seed": "ACTION-STD-4",
+        "resolved_factory_steps": 10,
+        "models": [
+          "2:CARD.STRIKE_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "CARD.CHO_KI upgrade=0",
+          "CARD.KI_HOP upgrade=0",
+          "CARD.RHYTHM_STRIKE upgrade=0",
+          "CARD.WAH_HAMMER upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.BLOCK_POTION",
+          "POTION.SWIFT_POTION",
+          "RELIC.SHOVEL"
+        ],
+        "played_card_models": [
+          "CARD.CHO_KI",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87089,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0004-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 3,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "6E1A0DEB8E35C672D001D7E79F1EA4BB0E79FA38008E70030F1BD96A465C87F8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0005-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0005-repeat-0",
+      "content_seed": "FOOL-STD-20261115-5",
+      "schedule_seed": "ACTION-STD-5",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 12.055,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "f5cdda83624d4aa4b4fc08a01fa7c4b2": {
+          "ui": "929758525"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-5",
+        "schedule_seed": "ACTION-STD-5",
+        "resolved_factory_steps": 9,
+        "models": [
+          "6:CARD.DEFEND_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.CHO_FIRM upgrade=0",
+          "CARD.CHO_READY upgrade=0",
+          "CARD.VITRIOL upgrade=0",
+          "ENCOUNTER.SHRINKER_BEETLE_WEAK",
+          "POTION.FLEX_POTION",
+          "RELIC.CANDELABRA",
+          "RELIC.CENTENNIAL_PUZZLE"
+        ],
+        "played_card_models": [
+          "CARD.CHO_FIRM",
+          "CARD.CHO_READY"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87172,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0005-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "40DF089CBF4BC7BE63E35D7B24C6658254E5B0068772E1EDDBBAA25DDDF4DF71",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0006-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0006-repeat-0",
+      "content_seed": "FOOL-STD-20261115-6",
+      "schedule_seed": "ACTION-STD-6",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 13.33,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "f344a68e1f0e4f1284693e444877d367": {
+          "ui": "3760693470"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-6",
+        "schedule_seed": "ACTION-STD-6",
+        "resolved_factory_steps": 6,
+        "models": [
+          "CARD.ANGUISH upgrade=0",
+          "CARD.UPROOT upgrade=0",
+          "ENCOUNTER.SHRINKER_BEETLE_WEAK",
+          "POTION.ENERGY_POTION",
+          "RELIC.BOOK_OF_FIVE_RINGS",
+          "RELIC.VAJRA"
+        ],
+        "played_card_models": [
+          "CARD.ANGUISH",
+          "CARD.UPROOT"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87261,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0006-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "644809BEA326DEC13D32A7EA27D87F75709A03032C937BA873777053E013074B",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0007-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0007-repeat-0",
+      "content_seed": "FOOL-STD-20261115-7",
+      "schedule_seed": "ACTION-STD-7",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.815,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "2e4ebc7b0a53464d9a9b3ffaeeb219ef": {
+          "ui": "3752679537"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-7",
+        "schedule_seed": "ACTION-STD-7",
+        "resolved_factory_steps": 10,
+        "models": [
+          "2:CARD.STRIKE_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "CARD.BLOSSOM_SHOT upgrade=0",
+          "CARD.BLOT_OUT_THE_SKY upgrade=0",
+          "CARD.DEEP_STRETCH upgrade=0",
+          "CARD.KI_CHANT upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.BLESSING_OF_THE_FORGE",
+          "RELIC.ANCHOR",
+          "RELIC.JUZU_BRACELET"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.KI_CHANT",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 1,
+        "replayed_event_counts": [
+          3
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87352,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0007-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 3,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "207E2B8D00C68412955CC984BA2F2B1D6726233853E9E23E64DF4A0750FB4FE9",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0008-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0008-repeat-0",
+      "content_seed": "FOOL-STD-20261115-8",
+      "schedule_seed": "ACTION-STD-8",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 12.562,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "423a5b4c9c7b481d853ecc17a3489ab9": {
+          "ui": "3164232780"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-8",
+        "schedule_seed": "ACTION-STD-8",
+        "resolved_factory_steps": 7,
+        "models": [
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.SORROWFUL_STRIKE upgrade=0",
+          "CARD.WAH_SWEEP upgrade=0",
+          "CARD.WAH_TOUCH upgrade=0",
+          "ENCOUNTER.NIBBITS_WEAK",
+          "POTION.PRECISION_POTION",
+          "RELIC.POTION_BELT"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.SORROWFUL_STRIKE",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87439,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0008-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "B20DD7FF580F17EEB5554F98825FAC4D5AB03B31ECE57F0B31EDD831DB5101F6",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-content",
+      "case": "case-0009-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0009-repeat-0",
+      "content_seed": "FOOL-STD-20261115-9",
+      "schedule_seed": "ACTION-STD-9",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 12.556,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "ca72c9e9bc49421ca691c647ce6853a4": {
+          "ui": "1172474266"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-STD-20261115-9",
+        "schedule_seed": "ACTION-STD-9",
+        "resolved_factory_steps": 10,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "3:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "CARD.BOW_SMACK upgrade=0",
+          "CARD.CHO_BARBS upgrade=0",
+          "CARD.WAH_KI upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.ATTACK_POTION",
+          "RELIC.HORN_CLEAT",
+          "RELIC.SHURIKEN"
+        ],
+        "played_card_models": [
+          "CARD.CHO_BARBS",
+          "CARD.DEFEND_FOOL",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87525,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0009-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 3,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "67085AE44E579F5AB97C87424B642C93408E926D17BC18DB2D646E0C38BEB039",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0000-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0000-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-0",
+      "schedule_seed": "ACTION-BLITZ-0",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.564,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "e204eda92ab54cb1ba7352cd1492dfcc": {
+          "ui": "2493952958"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-0",
+        "schedule_seed": "ACTION-BLITZ-0",
+        "resolved_factory_steps": 9,
+        "models": [
+          "0:CARD.STRIKE_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "CARD.DEEP_STRETCH upgrade=0",
+          "CARD.KI_REST upgrade=0",
+          "ENCOUNTER.NIBBITS_WEAK",
+          "POTION.ATTACK_POTION",
+          "POTION.ENERGY_POTION",
+          "RELIC.GORGET"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87823,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0000-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "55A6238AE380739109160C53AAA0FAF60B2F4335510190517C6AE8605CC71323",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0001-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0001-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-1",
+      "schedule_seed": "ACTION-BLITZ-1",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.801,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (2): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "fc417011d39b4530a284fb40050ef015": {
+          "ui": "3574023772"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-1",
+        "schedule_seed": "ACTION-BLITZ-1",
+        "resolved_factory_steps": 8,
+        "models": [
+          "7:CARD.DEFEND_FOOL",
+          "CARD.BOW_SMACK upgrade=0",
+          "CARD.HIDDEN_ROOTS upgrade=0",
+          "CARD.WAH_TOUCH upgrade=0",
+          "ENCOUNTER.NIBBITS_WEAK",
+          "POTION.FYSH_OIL",
+          "RELIC.CENTENNIAL_PUZZLE",
+          "RELIC.PANTOGRAPH"
+        ],
+        "played_card_models": [
+          "CARD.BOW_SMACK",
+          "CARD.WAH_TOUCH"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87908,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0001-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 2,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "EAEEA8A3293773B1B97789D70CF234F9EE015C7ED03FF796B86250BEEEEEA985",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0002-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0002-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-2",
+      "schedule_seed": "ACTION-BLITZ-2",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 12.066,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "55806cbc89b34b0381083b22dbe2e26b": {
+          "ui": "2965758311"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-2",
+        "schedule_seed": "ACTION-BLITZ-2",
+        "resolved_factory_steps": 11,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "CARD.KI_HOP upgrade=0",
+          "CARD.LOCKED_IN upgrade=0",
+          "CARD.MOTIF upgrade=0",
+          "CARD.NOCK upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.BLESSING_OF_THE_FORGE",
+          "POTION.FYSH_OIL",
+          "RELIC.FESTIVE_POPPER",
+          "RELIC.LETTER_OPENER"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.NOCK",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 87982,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0002-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "6B3AC15B5A3767668CA3B15E9D01AD225A0E0F7860E0A36D45B30C36EE3248D1",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0003-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0003-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-3",
+      "schedule_seed": "ACTION-BLITZ-3",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.813,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "ad4207b19cc6496c9c23abc5e4fe79a0": {
+          "ui": "3584012648"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-3",
+        "schedule_seed": "ACTION-BLITZ-3",
+        "resolved_factory_steps": 7,
+        "models": [
+          "0:CARD.STRIKE_FOOL",
+          "CARD.JEST upgrade=0",
+          "CARD.LOCKED_IN upgrade=0",
+          "ENCOUNTER.SHRINKER_BEETLE_WEAK",
+          "POTION.STRENGTH_POTION",
+          "POTION.SWIFT_POTION",
+          "RELIC.MINIATURE_CANNON"
+        ],
+        "played_card_models": [
+          "CARD.JEST",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 88069,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0003-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "F594B0A5AF989FDC9325BF6E2F7CBD0669B728C05E37CBDB50F6C2A5F70F0574",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0004-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0004-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-4",
+      "schedule_seed": "ACTION-BLITZ-4",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.545,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (2): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "a747e9b7a68a4bd6b4729c2f1ae03aae": {
+          "ui": "4082851634"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-4",
+        "schedule_seed": "ACTION-BLITZ-4",
+        "resolved_factory_steps": 11,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "3:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.QUICK_SHOT upgrade=0",
+          "CARD.VITRIOL upgrade=0",
+          "CARD.WAH_TOUCH upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.SWIFT_POTION",
+          "RELIC.STRAWBERRY"
+        ],
+        "played_card_models": [
+          "CARD.QUICK_SHOT",
+          "CARD.VITRIOL",
+          "CARD.WAH_TOUCH"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 88153,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0004-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 2,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "90005712C49E0AB09D5D83F9D7EDF6A357BD98F078D0DC0880A4CF9A2DB6491F",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0005-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0005-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-5",
+      "schedule_seed": "ACTION-BLITZ-5",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.815,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (2): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "57e9b07317cf4b3cac896ab6ed658134": {
+          "ui": "2032063483"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-5",
+        "schedule_seed": "ACTION-BLITZ-5",
+        "resolved_factory_steps": 9,
+        "models": [
+          "6:CARD.DEFEND_FOOL",
+          "CARD.DEEP_STRETCH upgrade=0",
+          "CARD.HEAVY_SHOT upgrade=0",
+          "CARD.KI_REST upgrade=0",
+          "CARD.QUICK_SHOT upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.ENERGY_POTION",
+          "POTION.STABLE_SERUM",
+          "RELIC.PEN_NIB"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.QUICK_SHOT",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 88247,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0005-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 2,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "4A06A525F10AC47F387ED9CB804327C7C15B212EF35173B28833CF1A672DB873",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0006-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0006-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-6",
+      "schedule_seed": "ACTION-BLITZ-6",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.537,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "8962d4e952bd4e30b6a0d922b60a82b6": {
+          "ui": "442035055"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-6",
+        "schedule_seed": "ACTION-BLITZ-6",
+        "resolved_factory_steps": 11,
+        "models": [
+          "4:CARD.STRIKE_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "CARD.CHO_BARBS upgrade=0",
+          "CARD.DEEP_STRETCH upgrade=0",
+          "CARD.HEAVY_SHOT upgrade=0",
+          "CARD.RECALL upgrade=0",
+          "ENCOUNTER.SHRINKER_BEETLE_WEAK",
+          "POTION.STRENGTH_POTION",
+          "POTION.VULNERABLE_POTION",
+          "RELIC.FROZEN_EGG",
+          "RELIC.ORNAMENTAL_FAN"
+        ],
+        "played_card_models": [
+          "CARD.CHO_BARBS",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 88331,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0006-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "D4EE90EAB851ACAC0E3CB8F69D0275CC1E57B002AA01CC2AF9DE2937540F52D7",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0007-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0007-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-7",
+      "schedule_seed": "ACTION-BLITZ-7",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.569,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "f9d4d33b303f4c25b8e3c8f1d9268cbe": {
+          "ui": "789778746"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-7",
+        "schedule_seed": "ACTION-BLITZ-7",
+        "resolved_factory_steps": 13,
+        "models": [
+          "2:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "CARD.KI_HOP upgrade=0",
+          "CARD.TIMBER upgrade=0",
+          "CARD.WAH_TOUCH upgrade=0",
+          "ENCOUNTER.NIBBITS_WEAK",
+          "POTION.FIRE_POTION",
+          "POTION.POWER_POTION",
+          "RELIC.EXERCISE_MAT",
+          "RELIC.POTION_BELT"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 88417,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0007-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "5467D3A303A5BB008B3ACD81EFBD742BE107BA886BE5B910082B5B31D2A5CA63",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0008-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0008-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-8",
+      "schedule_seed": "ACTION-BLITZ-8",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.797,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (2): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "8d6342a2385a4c638b551465afbe7bc9": {
+          "ui": "74759486"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-8",
+        "schedule_seed": "ACTION-BLITZ-8",
+        "resolved_factory_steps": 8,
+        "models": [
+          "5:CARD.DEFEND_FOOL",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.VIOLENT_CHORD upgrade=0",
+          "ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK",
+          "POTION.ENTROPIC_BREW",
+          "POTION.SKILL_POTION",
+          "RELIC.BAG_OF_MARBLES",
+          "RELIC.MANGO"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.STRIKE_FOOL",
+          "CARD.VIOLENT_CHORD"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 88502,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0008-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 2,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "E8C0D00653C5412AF4D87B596C98A8F8E42A94F937C0987150EB4DFECE529A69",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "blitz-content",
+      "case": "case-0009-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0009-repeat-0",
+      "content_seed": "FOOL-BLITZ-20261115-9",
+      "schedule_seed": "ACTION-BLITZ-9",
+      "peers": 1,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b7fe4a26a134387bdef6fe3d83682992ce59e63776d769ff4787562d1ad3253c",
+      "elapsed_seconds": 11.81,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 1,
+      "sessions": {
+        "00d45ba73d824be5b5a169262f18481e": {
+          "ui": "2249105307"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-BLITZ-20261115-9",
+        "schedule_seed": "ACTION-BLITZ-9",
+        "resolved_factory_steps": 12,
+        "models": [
+          "3:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "CARD.BLOT_OUT_THE_SKY upgrade=0",
+          "CARD.CHO_KI upgrade=0",
+          "CARD.KI_HOP upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.FIRE_POTION",
+          "POTION.SWIFT_POTION",
+          "RELIC.EXERCISE_MAT",
+          "RELIC.WAR_PAINT"
+        ],
+        "played_card_models": [
+          "CARD.BLOT_OUT_THE_SKY",
+          "CARD.RAIN_SHOT"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1
+        ]
+      },
+      "roles": {
+        "ui": {
+          "pid": 88587,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0009-repeat-0/ui-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 1,
+          "undos": 1,
+          "divergences": 0,
+          "target_checks": 1,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "98556EE9C928EABBE400C043B92F1F7A0167A274180B8FFC8A7419B3EA760EFB",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": []
+        }
+      }
+    },
+    {
+      "group": "standard-timing",
+      "case": "case-0000-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0000-repeat-0",
+      "content_seed": "FOOL-MP-STD-20261115-0",
+      "schedule_seed": "TIMING-STD-0",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 24.397,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (18): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (13): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (7): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "d027fdead6344d299a37082ecd19d2a6": {
+          "host": "3014904570",
+          "client": "3014904570",
+          "client2": "3014904570"
+        },
+        "46a636e3315c4669b660cf14af823d40": {
+          "host": "3014904570",
+          "client": "3014904570",
+          "client2": "3014904570"
+        },
+        "8d5de3e76f154bd887b286d492d3f74a": {
+          "host": "3014904570",
+          "client": "3014904570",
+          "client2": "3014904570"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-STD-20261115-0",
+        "schedule_seed": "TIMING-STD-0",
+        "resolved_factory_steps": 23,
+        "models": [
+          "2:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "CARD.BOW_SMACK upgrade=0",
+          "CARD.HOBBLING_SHOT upgrade=0",
+          "CARD.LOCKED_IN upgrade=0",
+          "CARD.QUICK_SHOT upgrade=0",
+          "CARD.RAIN_SHOT upgrade=0",
+          "CARD.STEADY_CADENCE upgrade=0",
+          "CARD.WAH_HAMMER upgrade=0",
+          "CARD.WAH_TOUCH upgrade=0",
+          "ENCOUNTER.TOADPOLES_WEAK",
+          "POTION.SNECKO_OIL",
+          "POTION.SPEED_POTION",
+          "RELIC.JUZU_BRACELET",
+          "RELIC.MUMMIFIED_HAND",
+          "RELIC.RAZOR_TOOTH",
+          "RELIC.STONE_CALENDAR",
+          "RELIC.STRAWBERRY",
+          "RELIC.WHETSTONE"
+        ],
+        "played_card_models": [
+          "CARD.BOW_SMACK",
+          "CARD.DEFEND_FOOL",
+          "CARD.QUICK_SHOT"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 88696,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0000-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 18,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 2,
+            "preparing_before_release": 3,
+            "skew_holds": 1,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "58DE774A37AFD009B3304B9BFF81E5F1885F21838841132C134AC6CF3F192668",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client": {
+          "pid": 88730,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0000-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 13,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 2,
+            "recorder_faults": 2
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "58DE774A37AFD009B3304B9BFF81E5F1885F21838841132C134AC6CF3F192668",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client2": {
+          "pid": 88745,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0000-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 7,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "58DE774A37AFD009B3304B9BFF81E5F1885F21838841132C134AC6CF3F192668",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "standard-timing",
+      "case": "case-0001-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0001-repeat-0",
+      "content_seed": "FOOL-MP-STD-20261115-1",
+      "schedule_seed": "TIMING-STD-1",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 23.886,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (19): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (10): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "742db2c722364fcfb13f3f6dbc94c038": {
+          "host": "651893025",
+          "client": "651893025",
+          "client2": "651893025"
+        },
+        "bf782c9578fb4060a0540862d8912a30": {
+          "host": "651893025",
+          "client": "651893025",
+          "client2": "651893025"
+        },
+        "d6b58a506b0e4c068d141539a8c3903c": {
+          "host": "651893025",
+          "client": "651893025",
+          "client2": "651893025"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-STD-20261115-1",
+        "schedule_seed": "TIMING-STD-1",
+        "resolved_factory_steps": 30,
+        "models": [
+          "0:CARD.STRIKE_FOOL",
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "3:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "CARD.BLOSSOM_SHOT upgrade=0",
+          "CARD.BOW_SMACK upgrade=0",
+          "CARD.CHO_BARBS upgrade=0",
+          "CARD.HEAVY_SHOT upgrade=0",
+          "CARD.JEST upgrade=0",
+          "CARD.KI_CHANT upgrade=0",
+          "CARD.KI_WHIP upgrade=0",
+          "ENCOUNTER.SLUDGE_SPINNER_WEAK",
+          "POTION.FIRE_POTION",
+          "POTION.HEART_OF_IRON",
+          "POTION.STRENGTH_POTION",
+          "POTION.SWIFT_POTION",
+          "RELIC.GREMLIN_HORN",
+          "RELIC.HORN_CLEAT",
+          "RELIC.NUNCHAKU",
+          "RELIC.ODDLY_SMOOTH_STONE",
+          "RELIC.POTION_BELT"
+        ],
+        "played_card_models": [
+          "CARD.CHO_BARBS",
+          "CARD.DEFEND_FOOL",
+          "CARD.KI_CHANT",
+          "CARD.KI_WHIP",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 1,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 88871,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0001-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 19,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 2,
+            "preparing_before_release": 3,
+            "skew_holds": 1,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "C6EC043656BE4B276374B1CADCCF6D4A5004078990913FA2C5891E12D05FA3E4",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client": {
+          "pid": 88899,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0001-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 10,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 2,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "C6EC043656BE4B276374B1CADCCF6D4A5004078990913FA2C5891E12D05FA3E4",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client2": {
+          "pid": 88902,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0001-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 3,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 2
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "C6EC043656BE4B276374B1CADCCF6D4A5004078990913FA2C5891E12D05FA3E4",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "standard-timing",
+      "case": "case-0002-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0002-repeat-0",
+      "content_seed": "FOOL-MP-STD-20261115-2",
+      "schedule_seed": "TIMING-STD-2",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 24.919,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (20): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (14): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (8): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "ee6c2153b2b64d1a99f7df5f260fd994": {
+          "host": "4091347304",
+          "client": "4091347304",
+          "client2": "4091347304"
+        },
+        "8dd8b5c5c76f4febb51f4303b93e9809": {
+          "host": "4091347304",
+          "client": "4091347304",
+          "client2": "4091347304"
+        },
+        "ba772bb9f411452d851cb36b1d49da04": {
+          "host": "4091347304",
+          "client": "4091347304",
+          "client2": "4091347304"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-STD-20261115-2",
+        "schedule_seed": "TIMING-STD-2",
+        "resolved_factory_steps": 22,
+        "models": [
+          "3:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "CARD.BLOSSOM_SHOT upgrade=0",
+          "CARD.EPIC_RETRIEVAL upgrade=0",
+          "CARD.HARMONIC_SHIELD upgrade=0",
+          "CARD.HEAVY_SHOT upgrade=0",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.QUICK_SHOT upgrade=0",
+          "CARD.SERRATED_ARROWS upgrade=0",
+          "CARD.SORROWFUL_STRIKE upgrade=0",
+          "CARD.WREST upgrade=0",
+          "ENCOUNTER.SLUDGE_SPINNER_WEAK",
+          "POTION.STRENGTH_POTION",
+          "POTION.SWIFT_POTION",
+          "POTION.WEAK_POTION",
+          "RELIC.BRONZE_SCALES",
+          "RELIC.LASTING_CANDY",
+          "RELIC.RED_MASK",
+          "RELIC.STRAWBERRY",
+          "RELIC.VAJRA"
+        ],
+        "played_card_models": [
+          "CARD.BLOSSOM_SHOT",
+          "CARD.HARMONIC_SHIELD",
+          "CARD.STRIKE_FOOL",
+          "CARD.WREST"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 89048,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0002-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 20,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 3,
+            "skew_holds": 2,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "739269B855825AFF6F87314C052745E4BB8DC1ECF12E9C4D2A866CA1F271363F",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client": {
+          "pid": 89065,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0002-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 14,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "739269B855825AFF6F87314C052745E4BB8DC1ECF12E9C4D2A866CA1F271363F",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client2": {
+          "pid": 89079,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0002-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 8,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 3,
+          "final_state_sha256": "739269B855825AFF6F87314C052745E4BB8DC1ECF12E9C4D2A866CA1F271363F",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "standard-timing",
+      "case": "case-0003-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0003-repeat-0",
+      "content_seed": "FOOL-MP-STD-20261115-3",
+      "schedule_seed": "TIMING-STD-3",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 25.139,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (37): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (29): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (21): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "ea6f05e1b9c0440a8570a7209ab32065": {
+          "host": "3392645218",
+          "client": "3392645218",
+          "client2": "3392645218"
+        },
+        "2d837cc73dd5428b8c225ae5cc2e79e9": {
+          "host": "3392645218",
+          "client": "3392645218",
+          "client2": "3392645218"
+        },
+        "b9668be9b1804bd7a3e233606bae833c": {
+          "host": "3392645218",
+          "client": "3392645218",
+          "client2": "3392645218"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-STD-20261115-3",
+        "schedule_seed": "TIMING-STD-3",
+        "resolved_factory_steps": 24,
+        "models": [
+          "0:CARD.STRIKE_FOOL",
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "CARD.ANGUISH upgrade=0",
+          "CARD.BLOSSOM_SHOT upgrade=0",
+          "CARD.DEEP_STRETCH upgrade=0",
+          "CARD.HARMONIC_SHIELD upgrade=0",
+          "CARD.HOBBLING_SHOT upgrade=0",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.NOCK upgrade=0",
+          "CARD.PUNCH_OF_JOY upgrade=0",
+          "CARD.RAIN_SHOT upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.DEXTERITY_POTION",
+          "POTION.REGEN_POTION",
+          "POTION.SKILL_POTION",
+          "POTION.SPEED_POTION",
+          "RELIC.GORGET",
+          "RELIC.GREMLIN_HORN",
+          "RELIC.RAINBOW_RING",
+          "RELIC.RED_MASK"
+        ],
+        "played_card_models": [
+          "CARD.BLOSSOM_SHOT",
+          "CARD.DEEP_STRETCH",
+          "CARD.HARMONIC_SHIELD",
+          "CARD.NOCK",
+          "CARD.RAIN_SHOT"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 89227,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0003-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 37,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 3,
+            "skew_holds": 1,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "913F9671E0F0BDB0B09705E7D7A420A25CD468B9B6E93AA43013026605C714E8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client": {
+          "pid": 89253,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0003-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 29,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 2,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "913F9671E0F0BDB0B09705E7D7A420A25CD468B9B6E93AA43013026605C714E8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client2": {
+          "pid": 89257,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0003-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 21,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 2
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "913F9671E0F0BDB0B09705E7D7A420A25CD468B9B6E93AA43013026605C714E8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "standard-timing",
+      "case": "case-0004-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0004-repeat-0",
+      "content_seed": "FOOL-MP-STD-20261115-4",
+      "schedule_seed": "TIMING-STD-4",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 26.156,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (15): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (9): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "06f01de834be4c149dd4a7ca88928f67": {
+          "host": "1114256725",
+          "client": "1114256725",
+          "client2": "1114256725"
+        },
+        "6dc64c01d35441088c7f1e65d3e1beab": {
+          "host": "1114256725",
+          "client": "1114256725",
+          "client2": "1114256725"
+        },
+        "2a720a78ad6d4902afe20fd69cc4112e": {
+          "host": "1114256725",
+          "client": "1114256725",
+          "client2": "1114256725"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-STD-20261115-4",
+        "schedule_seed": "TIMING-STD-4",
+        "resolved_factory_steps": 31,
+        "models": [
+          "0:CARD.STRIKE_FOOL",
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "3:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.ANGUISH upgrade=0",
+          "CARD.ARROW_STAB upgrade=0",
+          "CARD.CHO_FIRM upgrade=0",
+          "CARD.MOURNING_BLOW upgrade=0",
+          "CARD.QUICK_SHOT upgrade=0",
+          "CARD.RAIN_SHOT upgrade=0",
+          "CARD.TRICK_SHOT upgrade=0",
+          "CARD.WAH_SWEEP upgrade=0",
+          "ENCOUNTER.SEAPUNK_WEAK",
+          "POTION.CLARITY",
+          "POTION.COLORLESS_POTION",
+          "POTION.DEXTERITY_POTION",
+          "POTION.DUPLICATOR",
+          "POTION.LIQUID_BRONZE",
+          "POTION.SWIFT_POTION",
+          "RELIC.BAG_OF_PREPARATION",
+          "RELIC.BOWLER_HAT",
+          "RELIC.PLANISPHERE",
+          "RELIC.POTION_BELT"
+        ],
+        "played_card_models": [
+          "CARD.ANGUISH",
+          "CARD.ARROW_STAB",
+          "CARD.DEFEND_FOOL",
+          "CARD.MOURNING_BLOW",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 89395,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0004-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 15,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 3,
+            "skew_holds": 0,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "C033CE42E2139CED7412067A451B94D83B3B42351457F0C28EEFB9E83AFE9F81",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client": {
+          "pid": 89433,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0004-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 9,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 3,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "C033CE42E2139CED7412067A451B94D83B3B42351457F0C28EEFB9E83AFE9F81",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        },
+        "client2": {
+          "pid": 89447,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0004-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 3,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "C033CE42E2139CED7412067A451B94D83B3B42351457F0C28EEFB9E83AFE9F81",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Standard map=StandardActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "blitz-timing",
+      "case": "case-0000-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0000-repeat-0",
+      "content_seed": "FOOL-MP-BLITZ-20261115-0",
+      "schedule_seed": "TIMING-BLITZ-0",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 24.414,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (24): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (18): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (12): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "d7fe5b467bab4f25b98c9f6767a0c270": {
+          "host": "219200943",
+          "client": "219200943",
+          "client2": "219200943"
+        },
+        "82c2dfac07594efab96216d5da3a8ffe": {
+          "host": "219200943",
+          "client": "219200943",
+          "client2": "219200943"
+        },
+        "3f759e9bad6c4599827a107aa8e20a59": {
+          "host": "219200943",
+          "client": "219200943",
+          "client2": "219200943"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-BLITZ-20261115-0",
+        "schedule_seed": "TIMING-BLITZ-0",
+        "resolved_factory_steps": 30,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "3:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.ANGUISH upgrade=0",
+          "CARD.ARROW_STAB upgrade=0",
+          "CARD.EPIC_RETRIEVAL upgrade=0",
+          "CARD.KI_HOP upgrade=0",
+          "CARD.MOURNING_BLOW upgrade=0",
+          "CARD.RECALL upgrade=0",
+          "CARD.UPROOT upgrade=0",
+          "CARD.WAH_SWEEP upgrade=0",
+          "ENCOUNTER.CORPSE_SLUGS_WEAK",
+          "POTION.DEXTERITY_POTION",
+          "POTION.DROPLET_OF_PRECOGNITION",
+          "POTION.FLEX_POTION",
+          "POTION.POWER_POTION",
+          "POTION.REGEN_POTION",
+          "RELIC.CANDELABRA",
+          "RELIC.GREMLIN_HORN",
+          "RELIC.STRIKE_DUMMY",
+          "RELIC.VAMBRACE"
+        ],
+        "played_card_models": [
+          "CARD.ANGUISH",
+          "CARD.ARROW_STAB",
+          "CARD.RECALL",
+          "CARD.STRIKE_FOOL",
+          "CARD.UPROOT"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 89621,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0000-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 24,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 3,
+            "skew_holds": 1,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "D33594E9FD4AC6EED20892E5F031ECD8A0507F33D4FC0A521BFAFE78EFBBC900",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client": {
+          "pid": 89651,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0000-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 18,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "D33594E9FD4AC6EED20892E5F031ECD8A0507F33D4FC0A521BFAFE78EFBBC900",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client2": {
+          "pid": 89655,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0000-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 12,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 3,
+          "final_state_sha256": "D33594E9FD4AC6EED20892E5F031ECD8A0507F33D4FC0A521BFAFE78EFBBC900",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "blitz-timing",
+      "case": "case-0001-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0001-repeat-0",
+      "content_seed": "FOOL-MP-BLITZ-20261115-1",
+      "schedule_seed": "TIMING-BLITZ-1",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 23.659,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (41): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (26): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (19): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "477b48c3e33043c0a6857de75dd6e567": {
+          "host": "3602403975",
+          "client": "3602403975",
+          "client2": "3602403975"
+        },
+        "8c7ed8630c22471e8505eec6ee3027a2": {
+          "host": "3602403975",
+          "client": "3602403975",
+          "client2": "3602403975"
+        },
+        "6e5623ca29cd42e587f82987d17da907": {
+          "host": "3602403975",
+          "client": "3602403975",
+          "client2": "3602403975"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-BLITZ-20261115-1",
+        "schedule_seed": "TIMING-BLITZ-1",
+        "resolved_factory_steps": 30,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.ARROW_STAB upgrade=0",
+          "CARD.CHO_BARBS upgrade=0",
+          "CARD.DISLIKE_YOU upgrade=0",
+          "CARD.RAIN_SHOT upgrade=0",
+          "CARD.TUNE upgrade=0",
+          "CARD.UPROOT upgrade=0",
+          "CARD.WAH_HAMMER upgrade=0",
+          "ENCOUNTER.SLIMES_WEAK",
+          "POTION.DEXTERITY_POTION",
+          "POTION.FIRE_POTION",
+          "POTION.LIQUID_BRONZE",
+          "RELIC.BAG_OF_PREPARATION",
+          "RELIC.HORN_CLEAT",
+          "RELIC.RED_MASK",
+          "RELIC.STONE_CRACKER",
+          "RELIC.TUNING_FORK",
+          "RELIC.WHETSTONE"
+        ],
+        "played_card_models": [
+          "CARD.ARROW_STAB",
+          "CARD.CHO_BARBS",
+          "CARD.DEFEND_FOOL",
+          "CARD.DISLIKE_YOU",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 89792,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0001-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 41,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 3,
+            "skew_holds": 1,
+            "recorder_faults": 2
+          },
+          "post_replay_actions": 0,
+          "final_state_sha256": "EE5F6B5154AFD70657E74E140D814D7174DDE1CE727C342901F24E36EE0E35D8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client": {
+          "pid": 89808,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0001-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 26,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 2,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "EE5F6B5154AFD70657E74E140D814D7174DDE1CE727C342901F24E36EE0E35D8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client2": {
+          "pid": 89823,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0001-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 19,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 2,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 3,
+          "final_state_sha256": "EE5F6B5154AFD70657E74E140D814D7174DDE1CE727C342901F24E36EE0E35D8",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "blitz-timing",
+      "case": "case-0002-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0002-repeat-0",
+      "content_seed": "FOOL-MP-BLITZ-20261115-2",
+      "schedule_seed": "TIMING-BLITZ-2",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 24.153,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (17): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (11): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (4): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "90fd451e79f8486e809e8ce2674b9000": {
+          "host": "31712817",
+          "client": "31712817",
+          "client2": "31712817"
+        },
+        "fa515b4c1edb445baaf217fbcfb012c9": {
+          "host": "31712817",
+          "client": "31712817",
+          "client2": "31712817"
+        },
+        "ded689610c2c491281a534aeb427732e": {
+          "host": "31712817",
+          "client": "31712817",
+          "client2": "31712817"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-BLITZ-20261115-2",
+        "schedule_seed": "TIMING-BLITZ-2",
+        "resolved_factory_steps": 27,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.ARROW_STAB upgrade=0",
+          "CARD.CHO_KI upgrade=0",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.NOCK upgrade=0",
+          "CARD.QUICK_SHOT upgrade=0",
+          "CARD.SONG_PATH upgrade=0",
+          "CARD.WAH_SWEEP upgrade=0",
+          "CARD.YOGA upgrade=0",
+          "ENCOUNTER.SEAPUNK_WEAK",
+          "POTION.ATTACK_POTION",
+          "POTION.COLORLESS_POTION",
+          "POTION.FRUIT_JUICE",
+          "POTION.RADIANT_TINCTURE",
+          "POTION.SKILL_POTION",
+          "RELIC.PANTOGRAPH",
+          "RELIC.STRAWBERRY",
+          "RELIC.STURDY_CLAMP",
+          "RELIC.VAJRA"
+        ],
+        "played_card_models": [
+          "CARD.CHO_KI",
+          "CARD.DEFEND_FOOL",
+          "CARD.FOOLISH_SHOT",
+          "CARD.KI_WHIP",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 89948,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0002-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 17,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 2,
+            "preparing_before_release": 3,
+            "skew_holds": 3,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "BF6A594AE710FF29DA6D8C788988DCCF2EE5C993EB3726BB36B1F491B6AE5E21",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client": {
+          "pid": 89978,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0002-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 11,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "BF6A594AE710FF29DA6D8C788988DCCF2EE5C993EB3726BB36B1F491B6AE5E21",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client2": {
+          "pid": 89994,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0002-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 4,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 2
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "BF6A594AE710FF29DA6D8C788988DCCF2EE5C993EB3726BB36B1F491B6AE5E21",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "blitz-timing",
+      "case": "case-0003-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0003-repeat-0",
+      "content_seed": "FOOL-MP-BLITZ-20261115-3",
+      "schedule_seed": "TIMING-BLITZ-3",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 23.892,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (18): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (12): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "259691c311b94b4faf922609993f98c4": {
+          "host": "2967672744",
+          "client": "2967672744",
+          "client2": "2967672744"
+        },
+        "98941ee0aea4473f98d260f79a6b0c75": {
+          "host": "2967672744",
+          "client": "2967672744",
+          "client2": "2967672744"
+        },
+        "8238e444eade4e3581c76ab069363839": {
+          "host": "2967672744",
+          "client": "2967672744",
+          "client2": "2967672744"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-BLITZ-20261115-3",
+        "schedule_seed": "TIMING-BLITZ-3",
+        "resolved_factory_steps": 24,
+        "models": [
+          "3:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "CARD.BLOT_OUT_THE_SKY upgrade=0",
+          "CARD.CHO_FIRM upgrade=0",
+          "CARD.CHO_READY upgrade=0",
+          "CARD.COMPOST upgrade=0",
+          "CARD.JEST upgrade=0",
+          "CARD.KI_WHIP upgrade=0",
+          "CARD.QUICK_SHOT upgrade=0",
+          "CARD.RAIN_SHOT upgrade=0",
+          "CARD.RECALL upgrade=0",
+          "CARD.WHISTLING_ARROWS upgrade=0",
+          "ENCOUNTER.SEAPUNK_WEAK",
+          "POTION.DEXTERITY_POTION",
+          "POTION.ENERGY_POTION",
+          "POTION.SKILL_POTION",
+          "RELIC.CLOAK_CLASP",
+          "RELIC.LETTER_OPENER",
+          "RELIC.RAINBOW_RING",
+          "RELIC.SPARKLING_ROUGE",
+          "RELIC.STRAWBERRY"
+        ],
+        "played_card_models": [
+          "CARD.CHO_FIRM",
+          "CARD.JEST",
+          "CARD.STRIKE_FOOL"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 90125,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0003-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 18,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 3,
+            "skew_holds": 1,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "A394D4585CBC0B50DD2DCC32DA2CEDD92C82EF90B48A13A691491130CDE1423E",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client": {
+          "pid": 90153,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0003-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 12,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 2
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "A394D4585CBC0B50DD2DCC32DA2CEDD92C82EF90B48A13A691491130CDE1423E",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client2": {
+          "pid": 90166,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0003-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 3,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 2,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 0
+          },
+          "post_replay_actions": 3,
+          "final_state_sha256": "A394D4585CBC0B50DD2DCC32DA2CEDD92C82EF90B48A13A691491130CDE1423E",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        }
+      }
+    },
+    {
+      "group": "blitz-timing",
+      "case": "case-0004-repeat-0",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0004-repeat-0",
+      "content_seed": "FOOL-MP-BLITZ-20261115-4",
+      "schedule_seed": "TIMING-BLITZ-4",
+      "peers": 3,
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "484744d4f4f9e79f8dae19b78fbc79de1a7c0347e3ddc87eb94beacfb3170b80",
+      "elapsed_seconds": 24.417,
+      "functional_verdict": "PASS",
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (25): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (15): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (6): System.InvalidOperationException: Local player not found in combat."
+        }
+      ],
+      "distinct_undos": 3,
+      "sessions": {
+        "1297b6586ee449d1948f3889c26581a9": {
+          "host": "1446028458",
+          "client": "1446028458",
+          "client2": "1446028458"
+        },
+        "75ce2120a49b43e788415dbc02733310": {
+          "host": "1446028458",
+          "client": "1446028458",
+          "client2": "1446028458"
+        },
+        "b2d5d72ef7cc4ea89dfab95b166d019b": {
+          "host": "1446028458",
+          "client": "1446028458",
+          "client2": "1446028458"
+        }
+      },
+      "content_coverage": {
+        "content_seed": "FOOL-MP-BLITZ-20261115-4",
+        "schedule_seed": "TIMING-BLITZ-4",
+        "resolved_factory_steps": 29,
+        "models": [
+          "1:CARD.STRIKE_FOOL",
+          "2:CARD.STRIKE_FOOL",
+          "3:CARD.STRIKE_FOOL",
+          "4:CARD.STRIKE_FOOL",
+          "5:CARD.DEFEND_FOOL",
+          "6:CARD.DEFEND_FOOL",
+          "7:CARD.DEFEND_FOOL",
+          "8:CARD.DEFEND_FOOL",
+          "9:CARD.FOOLISH_SHOT",
+          "CARD.CHO_BARBS upgrade=0",
+          "CARD.CHO_FIRM upgrade=0",
+          "CARD.JEST upgrade=0",
+          "CARD.MOURNING_BLOW upgrade=0",
+          "CARD.SORROWFUL_STRIKE upgrade=0",
+          "CARD.UPROOT upgrade=0",
+          "CARD.WAH_HAMMER upgrade=0",
+          "ENCOUNTER.SEAPUNK_WEAK",
+          "POTION.ENERGY_POTION",
+          "POTION.FAIRY_IN_A_BOTTLE",
+          "POTION.VULNERABLE_POTION",
+          "RELIC.BAG_OF_MARBLES",
+          "RELIC.BRONZE_SCALES",
+          "RELIC.HAPPY_FLOWER"
+        ],
+        "played_card_models": [
+          "CARD.DEFEND_FOOL",
+          "CARD.SORROWFUL_STRIKE",
+          "CARD.STRIKE_FOOL",
+          "CARD.WAH_HAMMER"
+        ],
+        "live_choices": 0,
+        "replayed_event_counts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "roles": {
+        "host": {
+          "pid": 90310,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0004-repeat-0/host-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 25,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 3,
+            "skew_holds": 0,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 1,
+          "final_state_sha256": "05B0472026148A07912EF4A5271434FFB04D4B305F1501999BCE82886C073072",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client": {
+          "pid": 90329,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0004-repeat-0/client-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 15,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 2,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "05B0472026148A07912EF4A5271434FFB04D4B305F1501999BCE82886C073072",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        },
+        "client2": {
+          "pid": 90343,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-_2brcjyv/case-0004-repeat-0/client2-terminal.log",
+          "functional_verdict": "PASS",
+          "diagnostic_exceptions": 6,
+          "undos": 3,
+          "divergences": 0,
+          "target_checks": 3,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "phase_coverage": {
+            "busy_votes": 1,
+            "preparing_before_release": 0,
+            "skew_holds": 1,
+            "recorder_faults": 1
+          },
+          "post_replay_actions": 2,
+          "final_state_sha256": "05B0472026148A07912EF4A5271434FFB04D4B305F1501999BCE82886C073072",
+          "session_replacements": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "mode_markers": [
+            "FUZZ_MODE mode=Blitz map=BlitzActMap"
+          ]
+        }
+      }
+    }
+  ],
+  "reproductions": [
+    {
+      "source": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cma_1fgc/case-0007-repeat-0",
+      "exit": 0,
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-5q_8kfg2",
+      "byte_identical_files": {
+        "content-fixture.json": true,
+        "fixture-resolved.json": true,
+        "trace.ui.jsonl": true
+      },
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ]
+    },
+    {
+      "source": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ds9bh2ru/case-0000-repeat-0",
+      "exit": 0,
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ntr929u3",
+      "byte_identical_files": {
+        "content-fixture.json": true,
+        "fixture-resolved.json": true,
+        "trace.ui.jsonl": true
+      },
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "ui: native runtime exceptions (1): System.InvalidOperationException: Local player not found in combat."
+        }
+      ]
+    },
+    {
+      "source": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-l_m8itai/case-0001-repeat-0",
+      "exit": 0,
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-vr8jmmh8",
+      "byte_identical_files": {
+        "content-fixture.json": true,
+        "fixture-resolved.json": true,
+        "trace.host.jsonl": true,
+        "trace.client.jsonl": true,
+        "trace.client2.jsonl": true
+      },
+      "strict_verdict": "FAIL",
+      "strict_issues": [
+        {
+          "kind": "FAIL",
+          "message": "host: native runtime exceptions (19): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client: native runtime exceptions (10): System.InvalidOperationException: Local player not found in combat."
+        },
+        {
+          "kind": "FAIL",
+          "message": "client2: native runtime exceptions (3): System.InvalidOperationException: Local player not found in combat."
+        }
+      ]
+    }
+  ],
+  "cleanup": {
+    "undosync-extended-cma_1fgc": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-ds9bh2ru": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-l_m8itai": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-_2brcjyv": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-5q_8kfg2": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-ntr929u3": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-vr8jmmh8": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-1l0k4c0e": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-66ot9ed9": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    }
+  },
+  "finding": {
+    "exception": "System.InvalidOperationException: Local player not found in combat.",
+    "root_cause": "Replay removes NRun before graceful RunManager cleanup. CombatStateTracker then skips its one-frame defer because NRun.Instance is null. Creature detach/reset notifications synchronously look up a local player already removed while other creatures remain. TaskHelper logs/catches these exceptions, so target-state checks and completion still pass.",
+    "observed_windowed_baseline": "undosync-extended-tg6lv4uf/fool-arrows-integration3/host-terminal.log PID 71855 has identical cleanup stacks.",
+    "production_changed_this_turn": false,
+    "proposed_fix_not_implemented": "Skip only CombatStateTracker aggregate notification while Replay.OwnsCleanup tears down the discarded run; keep notifications active for the reconstructed combat.",
+    "strict_verifier_change": "Fuzz acceptance now fails on native [ERROR] System.* exceptions even when HARNESS_PASS was written."
+  },
+  "untested": [
+    "All 90 Fool cards and all combinations",
+    "Potion use (inventory/acquisition only)",
+    "All acquired relic triggers",
+    "Campaign progression, later-act encounters, elites/bosses",
+    "Actual Steam multi-computer/P2P timing and packet loss"
+  ]
+}

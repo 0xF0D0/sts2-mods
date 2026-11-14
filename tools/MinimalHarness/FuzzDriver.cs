@@ -10,7 +10,10 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Map;
+using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -129,6 +132,8 @@ internal static class FuzzDriver
             {
                 var options = PileType.Hand.GetPile(player).Cards.Select((c, index) => (c, index))
                     .Where(pair => pair.c.CanPlayTargeting(Target(pair.c))).ToList();
+                if (CommandLineHelper.HasArg("minimal-prefer-content") && options.Any(pair => pair.c.Rarity != CardRarity.Basic))
+                    options = options.Where(pair => pair.c.Rarity != CardRarity.Basic).ToList();
                 Harness.Require(options.Count > 0, "UNCOVERED no legal action for " + actor);
                 var selected = options[_random.Next(options.Count)];
                 step = new Step("play", label, actor, selected.index, selected.c.Id.ToString(),
@@ -199,6 +204,9 @@ internal static class FuzzDriver
 
     internal static async Task Run()
     {
+        Harness.Require(Harness.State.GameMode == CompatibilityProbe.Mode
+            && (CompatibilityProbe.Mode != GameMode.Blitz || Harness.State.Map is BlitzActMap), "fuzz native requested mode and map initialized");
+        Harness.Log($"FUZZ_MODE mode={Harness.State.GameMode} map={Harness.State.Map.GetType().Name}");
         await FuzzCases.Encounter(CombatManager.Instance.DebugOnlyGetState()!.Encounter!);
         await Harness.StateBarrier("fuzz-opening");
         // Retain a non-empty prefix to exercise event replay, then remove one real
@@ -210,6 +218,10 @@ internal static class FuzzDriver
             _schedule = Phases ? await ResolveSchedule(proposer) : null;
             NetChecksumData stale = Harness.LastNativeChecksum;
             string expected = Harness.Snapshot();
+            var expectedCoord = Harness.State.CurrentMapCoord;
+            bool fool = CommandLineHelper.GetValue("minimal-character") == "FOOL";
+            string? expectedFool = fool ? CompatibilityProbe.SpecialState() : null;
+            if (fool) File.WriteAllText(Path.Combine(Harness.DirectoryPath, $"fool-target.{Harness.Role}.{proposer}.json"), expectedFool);
             int target = History.Count;
             await Play("discard-" + proposer, proposer);
             if (_schedule is { } schedule)
@@ -292,6 +304,16 @@ internal static class FuzzDriver
             }
             Harness.Require(ModelReplayProbe.OrbViewsMatch(), "fuzz restored orb view matches native queue");
             Harness.Require(History.Count == target && Harness.Snapshot() == expected, "fuzz complete native target restored");
+            Harness.Require(Harness.State.GameMode == CompatibilityProbe.Mode && Harness.State.CurrentMapCoord == expectedCoord
+                && (CompatibilityProbe.Mode != GameMode.Blitz || Harness.State.Map is BlitzActMap), "fuzz mode, map type and room preserved");
+            if (fool)
+            {
+                Harness.Require(CompatibilityProbe.SpecialState() == expectedFool, "fuzz exact native arrow flags, impaled ownership and melody history restored");
+                for (int frame = 0; frame < 20; frame++) await NGame.Instance!.AwaitProcessFrame();
+                CompatibilityProbe.CheckUi();
+                if (!DisplayServer.GetName().Equals("headless", StringComparison.OrdinalIgnoreCase))
+                    NGame.Instance!.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(Harness.DirectoryPath, $"fuzz-restored-{Harness.Role}-{proposer}.png"));
+            }
             Harness.RecordUndo();
             Record(new Step("target", proposer, proposer, target, expected, -1));
             if (FuzzCases.Repro is not null)

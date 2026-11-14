@@ -73,7 +73,8 @@ public static class Harness
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
-    private static CharacterModel Character => FaultScenarios.ChoiceCharacter ?? ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
+    private static CharacterModel Character => CommandLineHelper.GetValue("minimal-character") == "FOOL" ? ModelDb.Character<Fool>()
+        : FaultScenarios.ChoiceCharacter ?? ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
         ? (_role is "host" or "ui" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
         ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>());
     private static int _divergences, _cards, _undos;
@@ -170,10 +171,12 @@ public static class Harness
                     }
                 };
             Manager.ChecksumTracker.StateDiverged += (_, _) => _divergences++;
-            if (FuzzDriver.Active && CardSelectCmd.LocalSelector is null)
-                _ = CardSelectCmd.UseSelector(new FuzzDriver.Selector(), localOnly: true);
-            if (AutoChoices && CardSelectCmd.LocalSelector is null)
-                _ = CardSelectCmd.UseSelector(new NativeSelector(), localOnly: true);
+            if (FuzzDriver.Active && Manager.CardSelectorStack.LocalSelector is null)
+                _ = Manager.CardSelectorStack.UseLocalSelector(new FuzzDriver.Selector());
+            if (AutoChoices && Manager.CardSelectorStack.LocalSelector is null)
+                _ = Manager.CardSelectorStack.UseLocalSelector(new NativeSelector());
+            if (CompatibilityProbe.WantsSelector && Manager.CardSelectorStack.LocalSelector is null)
+                CompatibilityProbe.ChoiceScope = Manager.CardSelectorStack.UseLocalSelector(new CompatibilityProbe.Selector());
         };
         NGame.Instance!.GetTree().ProcessFrame += Pump;
         _ = RunAsync();
@@ -279,6 +282,7 @@ public static class Harness
             else if (_suite == "replay-speed-cancel") await ReplaySpeedCancelAsync();
             else if (_suite == "replay-long") await LongReplayBenchmark.Run();
             else if (_suite == "model-probe") await ModelReplayProbe.Run();
+            else if (CompatibilityProbe.Active) await CompatibilityProbe.Run();
             else if (_suite.StartsWith("fault-")) await FaultScenarios.Run(_suite);
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
@@ -331,13 +335,15 @@ public static class Harness
     {
         _stage = "boot";
         if (_suite == "fault-turn-choice") FaultScenarios.PrepareChoiceUnlocks();
+        if (CompatibilityProbe.Active || FuzzDriver.Active && (CommandLineHelper.GetValue("minimal-character") == "FOOL"
+            || CompatibilityProbe.Mode == GameMode.Blitz)) CompatibilityProbe.PrepareUnlocks();
         var listener = new Listener();
         StartRunLobby? lobby = null;
         RunState state;
         if (_role == "ui")
         {
             state = RunState.CreateForNewRun(new[] { Player.CreateForNewRun(Character, UnlockState.all, 1UL) },
-                ActModel.GetDefaultList().Select(a => a.ToMutable()).ToList(), Array.Empty<ModifierModel>(), GameMode.Standard, 0, (CommandLineHelper.GetValue("minimal-seed") ?? "MINIMAL_UI_A"));
+                ActModel.GetDefaultList().Select(a => a.ToMutable()).ToList(), Array.Empty<ModifierModel>(), CompatibilityProbe.Mode, false, 0, (CommandLineHelper.GetValue("minimal-seed") ?? "MINIMAL_UI_A"));
             Manager.SetUpNewSingleplayer(state, shouldSave: false);
         }
         else
@@ -349,18 +355,18 @@ public static class Harness
                 var hostError = steam ? await service.StartSteamHost(4) : service.StartENetHost(33771, 4);
                 Require(!hostError.HasValue, steam ? "real Steam host started" : "real ENet host started");
                 _pump = service;
-                lobby = new StartRunLobby(GameMode.Standard, service, listener, _peers);
-                lobby.AddLocalHostPlayer(UnlockState.all, 0);
+                lobby = new StartRunLobby(CompatibilityProbe.Mode, false, service, listener, _peers);
+                lobby.AddLocalHostPlayer(UnlockState.all, 0, 0);
                 lobby.SetSeed(CommandLineHelper.GetValue("minimal-seed") ?? "MINIMAL_MP_A");
                 Log(steam ? "HOST_LISTENING platform=Steam lobby=" + service.GetRawLobbyIdentifier() : "HOST_LISTENING port=33771");
             }
             else
             {
                 var service = new NetClientGameService(PeerVersionInfo.LocalDefault());
-                var flow = new JoinFlow(service);
-                var result = await flow.Begin(new ENetClientConnectionInitializer(ulong.Parse(CommandLineHelper.GetValue("clientId") ?? "1001"), "127.0.0.1", 33771), NGame.Instance!.GetTree());
+                var flow = new JoinFlow(service, new ENetClientConnectionInitializer(ulong.Parse(CommandLineHelper.GetValue("clientId") ?? "1001"), "127.0.0.1", 33771));
+                var result = await flow.Begin(NGame.Instance!.GetTree());
                 Require(result.sessionState == RunSessionState.InLobby, "real client joined native lobby");
-                lobby = new StartRunLobby(GameMode.Standard, service, listener, -1);
+                lobby = new StartRunLobby(CompatibilityProbe.Mode, false, service, listener, -1);
                 lobby.InitializeFromMessage(result.joinResponse!.Value);
                 _pump = service;
             }
@@ -381,7 +387,7 @@ public static class Harness
             }
             state = RunState.CreateForNewRun(lobby.Players.Select(p => Player.CreateForNewRun(p.character,
                     UnlockState.FromSerializable(p.unlockState), p.id)).ToList(),
-                listener.Acts!.Select(a => a.ToMutable()).ToList(), Array.Empty<ModifierModel>(), GameMode.Standard, 0, listener.Seed!);
+                listener.Acts!.Select(a => a.ToMutable()).ToList(), Array.Empty<ModifierModel>(), CompatibilityProbe.Mode, false, 0, listener.Seed!);
             Manager.SetUpNewMultiplayer(state, lobby, shouldSave: false);
         }
         if (lobby is not null)
@@ -416,9 +422,13 @@ public static class Harness
         if (_suite == "fault-turn-choice") await FaultScenarios.PrepareTurnChoice();
         if (FuzzDriver.Active) await FuzzCases.Prepare();
         if (_suite == "replay-long") await LongReplayBenchmark.Prepare();
+        if (CompatibilityProbe.Active) await CompatibilityProbe.Prepare();
         if (_suite == "model-probe")
         {
-            if (ModelReplayProbe.FixtureCharacter is not null) await ModelReplayProbe.PrepareFixture();
+            if (CommandLineHelper.GetValue("minimal-character") == "FOOL")
+                foreach (var player in State.Players)
+                    await CardPileCmd.RemoveFromDeck(player.Deck.Cards.Where(card => card.Id.Entry is not "FOOLISH_SHOT" and not "DEFEND_FOOL").ToArray(), showPreview: false);
+            else if (ModelReplayProbe.FixtureCharacter is not null) await ModelReplayProbe.PrepareFixture();
             else if (CommandLineHelper.HasArg("minimal-probe-orbs"))
             {
                 foreach (var player in State.Players)
@@ -435,7 +445,7 @@ public static class Harness
                     string entry = transform ? "PRIMAL_FORCE" : "ANGER";
                     var pool = player.Character.CardPool.GetUnlockedCards(player.UnlockState, player.RunState.CardMultiplayerConstraint).Where(c => c.Id.Entry == entry).ToArray();
                     Require(pool.Length == 1, entry + " is in the native unlocked character pool");
-                    var card = CardFactory.CreateForMerchant(player, pool, transform ? CardRarity.Rare : CardRarity.Common).Card;
+                    var card = CardFactory.CreateForMerchant(player, pool, Array.Empty<CardModel>(), transform ? CardRarity.Rare : CardRarity.Common).Card;
                     Require((await CardPileCmd.Add(card, PileType.Deck)).success, "native merchant card acquired: " + entry);
                 }
             }
@@ -1550,7 +1560,8 @@ public static class Harness
         internal List<ActModel>? Acts;
         public void BeginRun(string seed, List<ActModel> acts, IReadOnlyList<ModifierModel> modifiers) { Seed = seed; Acts = acts; }
         public void PlayerConnected(StartRunLobbyPlayer player) { }
-        public void PlayerChanged(StartRunLobbyPlayer player, bool isRandomCharacterResolution) { }
+        public void PlayerChanged(StartRunLobbyPlayer player) { }
+        public void GameModeChanged() { }
         public void AscensionChanged() { }
         public void SeedChanged() { }
         public void ModifiersChanged() { }

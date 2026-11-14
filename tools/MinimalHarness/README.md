@@ -66,6 +66,25 @@ milestone. One PC/account cannot establish three distinct authenticated Steam
 peers. ENet/singleplayer reports must never be called Steam verification. No
 release, commit or Workshop update is performed by these runners.
 
+Fool content and multiplayer timing fuzzing can select the native game mode:
+
+```sh
+python3 tools/MinimalHarness/fuzz.py run --character FOOL --mode standard --prefer-content --content-seed FOOL-CONTENT-A --schedule-seed ACTION-A --cases 10
+python3 tools/MinimalHarness/fuzz.py run --character FOOL --mode blitz --peers 3 --phases --vary-content --prefer-content --content-seed FOOL-BLITZ-A --schedule-seed TIMING-A --cases 5
+```
+
+`--prefer-content` samples playable non-basic cards when the native hand has any,
+otherwise playable basics. It never inserts a card into combat or changes its
+cost/effect. `--vary-content` varies content seeds along with schedule seeds;
+without it, a phase sweep holds content fixed to isolate timing. Repro preserves
+character, mode and this sampling strategy from the captured launch arguments.
+Fool traces additionally compare arrow flags/impaled data/melody history and
+native arrow/symbol UI after restore. Three-peer phase runs also check retained
+connections, busy Accept, all-votes-before-action-drain, skewed replay completion,
+missing local recorder recovery and stale native-checksum isolation. Supplied
+potions are acquired/retained; this driver does not use them. A sampled card or
+relic only counts as exercised when the artifacts show its actual execution.
+
 Control delivery/lifetime regressions use the same real native ENet peers. Each
 test deliberately faults an actual native await or serialized send boundary;
 there are no substitute votes, participants, transports or state checksums.
@@ -120,3 +139,42 @@ selection. Other fixtures are `FOREGONE_CONCLUSION`, `TYRANNY`, `ENTROPY` and
 fixture reveals Colorless1 through the game's unlock API before joining so
 every temporary test account can legally acquire it. The runtime restores the
 original test account progress afterward.
+
+The harness now targets the installed v0.113.0 APIs. For the Fool map-lifetime
+regression, use `--suite model-probe --peers 1 --character FOOL --visible` with
+`runtime.py run` after preparing a backup root. The fixture uses native deck
+removals to retain Foolish Shot and Defends, checks real arrow damage, restores
+the same target twice, opens the map after each undo and continues the enemy
+turn. `--suite viewport-regression --peers 3 --character FOOL` exercises all
+three proposers with actual native picker/vote input. Run the independent
+verifier and restore the backup root after each batch.
+
+Fool/Blitz compatibility fixtures use the native merchant factory for Quiver,
+Quick Shot, Recall, Quietus and Wah Cho Ki, retaining starting basic cards through
+native deck removals. The temporary test accounts reveal the required native
+Fool/Blitz epochs before joining; the runner restores their previous progress.
+No combat model, arrow, power or melody state is injected. For example:
+
+```sh
+python3 tools/MinimalHarness/runtime.py prepare
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label fool-arrows --suite compatibility --character FOOL --profile arrows --peers 1 --visible --speed instant
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label blitz-symbols --suite compatibility --character FOOL --mode blitz --profile symbols --peers 3 --progression --visible --speed normal
+python3 tools/MinimalHarness/verify_run.py /absolute/backup-root/blitz-symbols --require-input viewport
+python3 tools/MinimalHarness/runtime.py restore --root /absolute/backup-root
+```
+
+Profiles `arrows`, `destroy` and `symbols` cover two impaled arrows plus Recall,
+Quietus arrow destruction, and all three melody symbols. `death` uses the seeded
+three-peer Slimes encounter: two Quick Shots leave an impaled slime at 10 HP,
+then two starting Strikes kill it and return the arrows. Undo revives that
+enemy with both arrows attached again, while other enemies keep combat active.
+Each runs two undos
+in singleplayer, or three rotating proposers with native picker/Accept input
+in a three-peer session. Additional checks cover arrow slots/flags, impaled
+power references, melody history, current native UI owners and persistent arrow
+visuals. Blitz checks native mode, map class and room coordinates after every
+restore. `--progression` requires Blitz + symbols and continues two real combats,
+takes each player's card reward through native UI, compares deck contents and
+upgrades across peers, and reaches the native Blitz merchant without a forced
+victory or debug room jump. This is bounded encounter coverage, not all Fool
+cards, every act or authenticated Steam multiplayer coverage.

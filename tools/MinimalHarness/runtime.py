@@ -89,7 +89,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
     if transport == 'steam' and peers != 1: raise ValueError('Only the single-host Steam lifetime smoke is configured here.')
     folder = root/label
     folder.mkdir()
-    roles = ['host'] if transport == 'steam' else ['ui'] if suite in ('fuzz', 'model-probe') and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['host'] if transport == 'steam' else ['ui'] if suite in ('fuzz', 'model-probe', 'compatibility') and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
     record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else transport, 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
     record['mixed_characters'] = mixed
@@ -209,13 +209,17 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=Path)
     parser.add_argument('--label', default='extended')
     parser.add_argument('--peers', type=int, default=4, choices=[1,2,3,4])
-    parser.add_argument('--suite', default='extended', choices=['fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','replay-long','model-probe','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error','fault-knowledge-choice','fault-turn-choice'])
+    parser.add_argument('--suite', default='extended', choices=['compatibility','fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','replay-long','model-probe','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error','fault-knowledge-choice','fault-turn-choice'])
     parser.add_argument('--expect', choices=['baseline','fixed'], default='fixed')
     parser.add_argument('--fault-op', default='Done')
     parser.add_argument('--drop-side', choices=['client','host'], default='client')
     parser.add_argument('--drop-count', type=int, default=1)
     parser.add_argument('--choice-card', choices=['TOOLS_OF_THE_TRADE','FOREGONE_CONCLUSION','TYRANNY','ENTROPY','STRATAGEM'])
     parser.add_argument('--knowledge-chooser', choices=['host','client','client2','client3','none'], default='host')
+    parser.add_argument('--character', choices=['FOOL'])
+    parser.add_argument('--mode', choices=['standard', 'blitz'], default='standard')
+    parser.add_argument('--profile', choices=['arrows', 'destroy', 'symbols', 'death'], default='arrows')
+    parser.add_argument('--progression', action='store_true')
     parser.add_argument('--visible', action='store_true')
     parser.add_argument('--speed', choices=['normal', 'instant'])
     parser.add_argument('--schedule-seed')
@@ -229,6 +233,13 @@ if __name__ == '__main__':
                       '--minimal-drop-side='+args.drop_side, '--minimal-drop-count='+str(args.drop_count),
                       '--minimal-knowledge-chooser='+args.knowledge_chooser]
         if args.choice_card: extra_args.append('--minimal-choice-card='+args.choice_card)
+        if args.character: extra_args.append('--minimal-character='+args.character)
+        if args.suite == 'compatibility':
+            if args.character != 'FOOL': parser.error('compatibility requires --character FOOL')
+            extra_args += ['--minimal-mode='+args.mode, '--minimal-profile='+args.profile]
+            if args.progression:
+                if args.mode != 'blitz' or args.profile != 'symbols': parser.error('progression requires --mode blitz --profile symbols')
+                extra_args.append('--minimal-progression')
         run(args.root, args.label, args.peers, args.suite, not args.visible, args.seed, args.schedule_seed, args.repro, args.speed,
             extra_args=extra_args)
         result = json.loads((args.root/args.label/'run.json').read_text())

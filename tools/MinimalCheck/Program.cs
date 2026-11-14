@@ -85,7 +85,7 @@ foreach (var type in mod.GetTypes())
         patches++;
     }
 }
-Require(patches == 36, $"all 36 Harmony targets checked (actual {patches})");
+Require(patches == 37, $"all 37 Harmony targets checked (actual {patches})");
 var reflectionMembers = new (string Type, string Name, bool Property)[]
 {
     ("MegaCrit.Sts2.Core.Multiplayer.Replay.CombatReplayWriter", "_replay", false),

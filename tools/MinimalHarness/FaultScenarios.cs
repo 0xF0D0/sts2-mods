@@ -65,7 +65,7 @@ internal static class FaultScenarios
             var pool = ChoiceCard is "ENTROPY" or "STRATAGEM" ? ModelDb.CardPool<ColorlessCardPool>() : player.Character.CardPool;
             var option = pool.GetUnlockedCards(player.UnlockState, player.RunState.CardMultiplayerConstraint)
                 .Single(card => card.Id.Entry == ChoiceCard);
-            var card = CardFactory.CreateForMerchant(player, new[] { option }, option.Rarity).Card;
+            var card = CardFactory.CreateForMerchant(player, new[] { option }, Array.Empty<CardModel>(), option.Rarity).Card;
             Harness.Require((await CardPileCmd.Add(card, PileType.Deck)).success, "native shop choice card acquired: " + ChoiceCard);
         }
     }

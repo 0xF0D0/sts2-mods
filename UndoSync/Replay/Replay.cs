@@ -50,6 +50,7 @@ internal static class Replay
     internal static bool MountedReplay { get; private set; }
     private static string? _mountedCustomMusic;
     private static int _completedPileTweens, _skippedBanners;
+    private static int _discardedStateNotifications, _activeStateNotifications;
     private static int _skippedPileVisuals, _skippedCardNodes, _skippedDamageNumbers, _skippedPreviews, _skippedTransformVisuals;
     private static int _skippedPowerFlyVisuals, _skippedForgePreviews, _skippedCardSpecificVisuals, _skippedOneShots;
     internal static bool SuppressNative => Network.Executing && !NativeResumed;
@@ -199,6 +200,8 @@ internal static class Replay
         SaveManager.Instance.PrefsSave.FastMode = FastModeType.Instant;
         UI.ShowRestoring();
         UI.DetachRunMusic();
+        // Unsubscribe the outgoing map while its native scene is still available.
+        NRun.Instance?.GlobalUi.MapScreen.CleanUp();
         // Exit native UI against its original run owners before disposing them.
         NGame.Instance.RootSceneContainer.SetCurrentScene(new Control());
         await Frame(token);
@@ -207,6 +210,7 @@ internal static class Replay
         // to become playable/idle. Drain its callbacks before creating owners.
         var oldExecutor = manager.ActionExecutor;
         oldExecutor.Cancel();
+        _discardedStateNotifications = _activeStateNotifications = 0;
         OwnsCleanup = true;
         try
         {
@@ -221,6 +225,7 @@ internal static class Replay
         finally
         {
             OwnsCleanup = false;
+            Hooks.Log($"DISCARDED_STATE_NOTIFICATIONS skipped={_discardedStateNotifications}");
             // Native reset must invalidate the old turn before its suspended
             // choices unwind, so cancellation cannot resume a live old turn.
             CancelDiscardedWaits();
@@ -348,7 +353,26 @@ internal static class Replay
         }
         Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum} "
             + $"restoreMs={replayStarted - restoreStarted} replayMs={Time.GetTicksMsec() - replayStarted} totalMs={Time.GetTicksMsec() - restoreStarted}");
+        Hooks.Log($"ACTIVE_STATE_NOTIFICATIONS allowed={_activeStateNotifications}");
         return checksum;
+    }
+
+    // Verified in native v0.113.0: without NRun this UI notification runs
+    // synchronously and looks up a local player during partial creature detach.
+    [HarmonyPatch(typeof(CombatStateTracker), "NotifyCombatStateChanged")]
+    private static class DiscardedCombatStateNotifications
+    {
+        private static bool Prefix()
+        {
+            if (OwnsCleanup)
+            {
+                _discardedStateNotifications++;
+                return false;
+            }
+            if (MountedReplay && SuppressNative && CombatManager.Instance.IsInProgress)
+                _activeStateNotifications++;
+            return true;
+        }
     }
 
     // These verified native helpers only present model changes. Do not skip

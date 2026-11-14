@@ -42,7 +42,7 @@ internal static class LongReplayBenchmark
             Harness.Require(pool.Length == 1, "Finesse is an unlocked native multiplayer colorless shop option");
             for (int i = 0; i < 2; i++)
             {
-                var card = CardFactory.CreateForMerchant(player, pool, CardRarity.Uncommon).Card;
+                var card = CardFactory.CreateForMerchant(player, pool, Array.Empty<CardModel>(), CardRarity.Uncommon).Card;
                 Harness.Require(card is Finesse && (await CardPileCmd.Add(card, PileType.Deck)).success,
                     "native merchant factory and deck acquisition produce Finesse");
             }

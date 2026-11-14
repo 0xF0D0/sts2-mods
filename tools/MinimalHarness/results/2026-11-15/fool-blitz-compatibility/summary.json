@@ -1,0 +1,1110 @@
+{
+  "date": "2026-11-15",
+  "scope": "Native v0.113.0 Fool/Blitz bounded compatibility regressions; not Steam P2P or exhaustive content fuzzing",
+  "verdict": "PASS",
+  "cases": [
+    {
+      "label": "fool-destroy-focused",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/fool-destroy-focused",
+      "peers": 1,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "destroy",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "4fb521228d4ed5fb2e829a9da772696e2228a116dd25feb1853b3d1271718ada",
+      "verdict": "PASS",
+      "undos": 2,
+      "sessions": {
+        "d47d6eb7b03b47b8bd040a5d7c4bd5fc": {
+          "ui": "767387068"
+        },
+        "bcc6e857f9c34a3ba7552f31e5f5b4e9": {
+          "ui": "767387068"
+        }
+      },
+      "roles": {
+        "ui": {
+          "pid": 67217,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/fool-destroy-focused/ui-terminal.log",
+          "undos": 2,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "post_replay_actions": 2,
+          "target_checks": 2,
+          "final_state_sha256": "0DE84E092626A4A527B011D56FA2761EE8637CE404A8ABDD2C2A9FDD3C536C27",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "fool-symbols-focused",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/fool-symbols-focused",
+      "peers": 1,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "symbols",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "4fb521228d4ed5fb2e829a9da772696e2228a116dd25feb1853b3d1271718ada",
+      "verdict": "PASS",
+      "undos": 2,
+      "sessions": {
+        "e028c48616b0478199998f949ef3ba81": {
+          "ui": "146374070"
+        },
+        "2118232d308a43a5bbd963dc1d34dd62": {
+          "ui": "146374070"
+        }
+      },
+      "roles": {
+        "ui": {
+          "pid": 67385,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/fool-symbols-focused/ui-terminal.log",
+          "undos": 2,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "post_replay_actions": 2,
+          "target_checks": 2,
+          "final_state_sha256": "61525B827FC3B9FC178A82C2BCBDFF1C1EEF24D5987A907BDB357807742CCFCE",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "blitz-arrows-focused",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/blitz-arrows-focused",
+      "peers": 1,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "arrows",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "4fb521228d4ed5fb2e829a9da772696e2228a116dd25feb1853b3d1271718ada",
+      "verdict": "PASS",
+      "undos": 2,
+      "sessions": {
+        "32615c78e3b242739273276dbc0509d4": {
+          "ui": "2329039071"
+        },
+        "c75350f5a13749ee95c067f503ed6da2": {
+          "ui": "2329039071"
+        }
+      },
+      "roles": {
+        "ui": {
+          "pid": 67551,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/blitz-arrows-focused/ui-terminal.log",
+          "undos": 2,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "post_replay_actions": 2,
+          "target_checks": 2,
+          "final_state_sha256": "ADE5C421D0D7B8E6365CC1D15260B6B3D187A6FAC8DFC93CA80B7A6548A213FC",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "blitz-symbols-focused",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/blitz-symbols-focused",
+      "peers": 1,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "symbols",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "4fb521228d4ed5fb2e829a9da772696e2228a116dd25feb1853b3d1271718ada",
+      "verdict": "PASS",
+      "undos": 2,
+      "sessions": {
+        "b521e2b13cd344e7a91142b2121a9dd4": {
+          "ui": "146374070"
+        },
+        "d3164ff74ccc44629f108279d2e97192": {
+          "ui": "146374070"
+        }
+      },
+      "roles": {
+        "ui": {
+          "pid": 67712,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-spwsntnk/blitz-symbols-focused/ui-terminal.log",
+          "undos": 2,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "post_replay_actions": 2,
+          "target_checks": 2,
+          "final_state_sha256": "61525B827FC3B9FC178A82C2BCBDFF1C1EEF24D5987A907BDB357807742CCFCE",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "fool-arrows-focused-v2",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-arrows-focused-v2",
+      "peers": 1,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "arrows",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 2,
+      "sessions": {
+        "dc2f9e3ad01e4248a6573c1096726e13": {
+          "ui": "2329039071"
+        },
+        "3c4e2274d64247c98f8c669a5dbf7363": {
+          "ui": "2329039071"
+        }
+      },
+      "roles": {
+        "ui": {
+          "pid": 71551,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-arrows-focused-v2/ui-terminal.log",
+          "undos": 2,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "post_replay_actions": 2,
+          "target_checks": 2,
+          "final_state_sha256": "ADE5C421D0D7B8E6365CC1D15260B6B3D187A6FAC8DFC93CA80B7A6548A213FC",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "blitz-destroy-focused",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-destroy-focused",
+      "peers": 1,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "destroy",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 2,
+      "sessions": {
+        "ed678366f1e94f579b90f46a9873c1ab": {
+          "ui": "767387068"
+        },
+        "44b3bba8483f4d3b8073f96734c4cd6c": {
+          "ui": "767387068"
+        }
+      },
+      "roles": {
+        "ui": {
+          "pid": 71703,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-destroy-focused/ui-terminal.log",
+          "undos": 2,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "post_replay_actions": 2,
+          "target_checks": 2,
+          "final_state_sha256": "0DE84E092626A4A527B011D56FA2761EE8637CE404A8ABDD2C2A9FDD3C536C27",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "fool-arrows-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-arrows-integration3",
+      "peers": 3,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "arrows",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "c7df5bda92a8469f9734df463b7958b9": {
+          "host": "1183404787",
+          "client": "1183404787",
+          "client2": "1183404787"
+        },
+        "0cf78ab357a14cebb740d4947de00122": {
+          "host": "1183404787",
+          "client": "1183404787",
+          "client2": "1183404787"
+        },
+        "2173629b121848abbb714256294b8224": {
+          "host": "1183404787",
+          "client": "1183404787",
+          "client2": "1183404787"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 71855,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-arrows-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 3,
+          "target_checks": 3,
+          "final_state_sha256": "724AA6A05677395A79A95F53FFB15ED7719AE7A43AD3265DED25506E71579588",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client": {
+          "pid": 71884,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-arrows-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "724AA6A05677395A79A95F53FFB15ED7719AE7A43AD3265DED25506E71579588",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client2": {
+          "pid": 71902,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-arrows-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "724AA6A05677395A79A95F53FFB15ED7719AE7A43AD3265DED25506E71579588",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "fool-destroy-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-destroy-integration3",
+      "peers": 3,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "destroy",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "f48a4cfc92784ca6b42461b3990fdd71": {
+          "host": "1563361645",
+          "client": "1563361645",
+          "client2": "1563361645"
+        },
+        "36f982af48e54130a71a5ccefb5f9121": {
+          "host": "1563361645",
+          "client": "1563361645",
+          "client2": "1563361645"
+        },
+        "8ba042887d48468695ba72124fe28259": {
+          "host": "1563361645",
+          "client": "1563361645",
+          "client2": "1563361645"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 72174,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-destroy-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 3,
+          "target_checks": 3,
+          "final_state_sha256": "37C9FF7C5D12F30BAB7DDC1BCD63239D961E461575F267500ED05D4CC122ED3E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client": {
+          "pid": 72216,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-destroy-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "37C9FF7C5D12F30BAB7DDC1BCD63239D961E461575F267500ED05D4CC122ED3E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client2": {
+          "pid": 72230,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-destroy-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "37C9FF7C5D12F30BAB7DDC1BCD63239D961E461575F267500ED05D4CC122ED3E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "fool-symbols-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-symbols-integration3",
+      "peers": 3,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "symbols",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "4207a460f9a04fe083c70ac5fa48961c": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        },
+        "314e0b6f2b3c4db08bd1dc74e7d073e8": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        },
+        "0c3ff00765254e44bff9ae7233ead8d3": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 72511,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-symbols-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 3,
+          "target_checks": 3,
+          "final_state_sha256": "ACB91456113B9CA1869591046BBED560E35FB1D7FAE385C356478E6260E1E64E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client": {
+          "pid": 72543,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-symbols-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "ACB91456113B9CA1869591046BBED560E35FB1D7FAE385C356478E6260E1E64E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client2": {
+          "pid": 72559,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/fool-symbols-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "ACB91456113B9CA1869591046BBED560E35FB1D7FAE385C356478E6260E1E64E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "blitz-arrows-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-arrows-integration3",
+      "peers": 3,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "arrows",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "5ae06ed61e1f43a39954bf0c47164b2b": {
+          "host": "1183404787",
+          "client": "1183404787",
+          "client2": "1183404787"
+        },
+        "5423bd55aae942e7bf9186f0d5e31af9": {
+          "host": "1183404787",
+          "client": "1183404787",
+          "client2": "1183404787"
+        },
+        "1faba21c0cea4d02a2c2bdc9b201487c": {
+          "host": "1183404787",
+          "client": "1183404787",
+          "client2": "1183404787"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 72795,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-arrows-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 3,
+          "target_checks": 3,
+          "final_state_sha256": "724AA6A05677395A79A95F53FFB15ED7719AE7A43AD3265DED25506E71579588",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client": {
+          "pid": 72853,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-arrows-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "724AA6A05677395A79A95F53FFB15ED7719AE7A43AD3265DED25506E71579588",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client2": {
+          "pid": 72890,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-arrows-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "724AA6A05677395A79A95F53FFB15ED7719AE7A43AD3265DED25506E71579588",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "blitz-destroy-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-destroy-integration3",
+      "peers": 3,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "destroy",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "1fa4ff748da64dbeb8a4d21609bc283a": {
+          "host": "1563361645",
+          "client": "1563361645",
+          "client2": "1563361645"
+        },
+        "e812dfa5f54741959e9bf8526da9f1a1": {
+          "host": "1563361645",
+          "client": "1563361645",
+          "client2": "1563361645"
+        },
+        "e7caa12bed0e4b1898648ff8432615e0": {
+          "host": "1563361645",
+          "client": "1563361645",
+          "client2": "1563361645"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 73185,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-destroy-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 3,
+          "target_checks": 3,
+          "final_state_sha256": "37C9FF7C5D12F30BAB7DDC1BCD63239D961E461575F267500ED05D4CC122ED3E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client": {
+          "pid": 73225,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-destroy-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "37C9FF7C5D12F30BAB7DDC1BCD63239D961E461575F267500ED05D4CC122ED3E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client2": {
+          "pid": 73244,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-destroy-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "37C9FF7C5D12F30BAB7DDC1BCD63239D961E461575F267500ED05D4CC122ED3E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "blitz-symbols-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-symbols-integration3",
+      "peers": 3,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "symbols",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "71ee80a119e3e9bf9401a4314ec3d8dbd8d900c9ebb654c28b398af8b93ff5f2",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "e594384cbc994d3caf9d0b9c6969bdf0": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        },
+        "5953240317984e929ee537693c0dab3e": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        },
+        "747216be629c45ab94955d8b8842e922": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 73530,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-symbols-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 3,
+          "target_checks": 3,
+          "final_state_sha256": "ACB91456113B9CA1869591046BBED560E35FB1D7FAE385C356478E6260E1E64E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client": {
+          "pid": 73581,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-symbols-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "ACB91456113B9CA1869591046BBED560E35FB1D7FAE385C356478E6260E1E64E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        },
+        "client2": {
+          "pid": 73598,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-tg6lv4uf/blitz-symbols-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "ACB91456113B9CA1869591046BBED560E35FB1D7FAE385C356478E6260E1E64E",
+          "progression": [],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "fool-arrow-death-focused3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-focused3",
+      "peers": 3,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "death",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b828e1285172edf8c9a9bf52bd532662c8e31273550c53f5aff0bbfff849d876",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "fc7f1c95f5d942eca0bf1857310c06a6": {
+          "host": "2044686778",
+          "client": "2044686778",
+          "client2": "2044686778"
+        },
+        "3a891df81ab64e34811840012b5d76ab": {
+          "host": "2044686778",
+          "client": "2044686778",
+          "client2": "2044686778"
+        },
+        "b2c7eda71654416d84fda085d2e7134f": {
+          "host": "2044686778",
+          "client": "2044686778",
+          "client2": "2044686778"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 74634,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-focused3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 5,
+          "target_checks": 3,
+          "final_state_sha256": "F27F7279190A27A13583D340B38C959CAD64349E546EDE9EB814D7F54EED6B36",
+          "progression": [],
+          "arrow_target_deaths": 3
+        },
+        "client": {
+          "pid": 74663,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-focused3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "F27F7279190A27A13583D340B38C959CAD64349E546EDE9EB814D7F54EED6B36",
+          "progression": [],
+          "arrow_target_deaths": 3
+        },
+        "client2": {
+          "pid": 74681,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-focused3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "F27F7279190A27A13583D340B38C959CAD64349E546EDE9EB814D7F54EED6B36",
+          "progression": [],
+          "arrow_target_deaths": 3
+        }
+      }
+    },
+    {
+      "label": "fool-arrow-death-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-integration3",
+      "peers": 3,
+      "speed": "normal",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "standard",
+      "profile": "death",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "b828e1285172edf8c9a9bf52bd532662c8e31273550c53f5aff0bbfff849d876",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "e2771ae7f33b47f58ffe4a38f7f45c57": {
+          "host": "2044686778",
+          "client": "2044686778",
+          "client2": "2044686778"
+        },
+        "f5bf0bd697ab4031a9eeb4e015fb23da": {
+          "host": "2044686778",
+          "client": "2044686778",
+          "client2": "2044686778"
+        },
+        "116853568d5343b59505f59f1b467153": {
+          "host": "2044686778",
+          "client": "2044686778",
+          "client2": "2044686778"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 74988,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 5,
+          "target_checks": 3,
+          "final_state_sha256": "F27F7279190A27A13583D340B38C959CAD64349E546EDE9EB814D7F54EED6B36",
+          "progression": [],
+          "arrow_target_deaths": 3
+        },
+        "client": {
+          "pid": 75031,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "F27F7279190A27A13583D340B38C959CAD64349E546EDE9EB814D7F54EED6B36",
+          "progression": [],
+          "arrow_target_deaths": 3
+        },
+        "client2": {
+          "pid": 75046,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-bocijxn2/fool-arrow-death-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "post_replay_actions": 0,
+          "target_checks": 3,
+          "final_state_sha256": "F27F7279190A27A13583D340B38C959CAD64349E546EDE9EB814D7F54EED6B36",
+          "progression": [],
+          "arrow_target_deaths": 3
+        }
+      }
+    },
+    {
+      "label": "blitz-progression-focused-v3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-q3n6nf4z/blitz-progression-focused-v3",
+      "peers": 1,
+      "speed": "instant",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "symbols",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "0c67b7097ada177059a775922ea0615aac4d651bc7c6a9affe6f39b2b2e051a4",
+      "verdict": "PASS",
+      "undos": 2,
+      "sessions": {
+        "6aaf61431b63449496d73182d65b93b7": {
+          "ui": "146374070"
+        },
+        "ff6bf360c3e445d29be98634c50226dc": {
+          "ui": "146374070"
+        }
+      },
+      "roles": {
+        "ui": {
+          "pid": 76952,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-q3n6nf4z/blitz-progression-focused-v3/ui-terminal.log",
+          "undos": 2,
+          "divergences": 0,
+          "viewport_inputs": 16,
+          "native_callbacks": 14,
+          "post_replay_actions": 23,
+          "target_checks": 2,
+          "final_state_sha256": "832126401EFD52952852A07A30E82A15910816E925328377393EAC6B67A9AABA",
+          "progression": [
+            "BLITZ_PROGRESSION room=0 from=MapCoord (3, 1) to=MapCoord (3, 2) rewardTaken=true",
+            "BLITZ_PROGRESSION room=1 from=MapCoord (3, 2) to=MapCoord (3, 3) rewardTaken=true"
+          ],
+          "arrow_target_deaths": 0
+        }
+      }
+    },
+    {
+      "label": "blitz-progression-integration3",
+      "artifact": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-uw7aqand/blitz-progression-integration3",
+      "peers": 3,
+      "speed": "normal",
+      "game": {
+        "commit": "16ac0fe3",
+        "version": "v0.113.0",
+        "date": "2026-11-12T18:09:24+00:00",
+        "branch": "v0.113.0",
+        "main_assembly_hash": -1193471172
+      },
+      "mode": "blitz",
+      "profile": "symbols",
+      "core_sha256": "e36787f074aa4deb25d5371a7113c56899d09545d7fd9a06044710f508bd3754",
+      "harness_sha256": "adc9763f7c4c844083d86351048f0c52661b66e01e0b41a11a3eebbda642d0ad",
+      "verdict": "PASS",
+      "undos": 3,
+      "sessions": {
+        "450b714f8fd147ea92867cf9ff24ade0": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        },
+        "90577344bb104bc2a1d26b05c785e4e4": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        },
+        "f2a28139f49840d9a580177d1c81c498": {
+          "host": "1456548561",
+          "client": "1456548561",
+          "client2": "1456548561"
+        }
+      },
+      "roles": {
+        "host": {
+          "pid": 78756,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-uw7aqand/blitz-progression-integration3/host-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 18,
+          "native_callbacks": 17,
+          "post_replay_actions": 31,
+          "target_checks": 3,
+          "final_state_sha256": "19FF8ADFB05587BB9C683DD64AE62C37E705C225868C0C23BD93D95BC4123E87",
+          "progression": [
+            "BLITZ_PROGRESSION room=0 from=MapCoord (3, 1) to=MapCoord (3, 2) rewardTaken=true",
+            "BLITZ_PROGRESSION room=1 from=MapCoord (3, 2) to=MapCoord (3, 3) rewardTaken=true"
+          ],
+          "arrow_target_deaths": 0
+        },
+        "client": {
+          "pid": 78822,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-uw7aqand/blitz-progression-integration3/client-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 18,
+          "native_callbacks": 17,
+          "post_replay_actions": 30,
+          "target_checks": 3,
+          "final_state_sha256": "19FF8ADFB05587BB9C683DD64AE62C37E705C225868C0C23BD93D95BC4123E87",
+          "progression": [
+            "BLITZ_PROGRESSION room=0 from=MapCoord (3, 1) to=MapCoord (3, 2) rewardTaken=true",
+            "BLITZ_PROGRESSION room=1 from=MapCoord (3, 2) to=MapCoord (3, 3) rewardTaken=true"
+          ],
+          "arrow_target_deaths": 0
+        },
+        "client2": {
+          "pid": 78840,
+          "exit": 0,
+          "log": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-uw7aqand/blitz-progression-integration3/client2-terminal.log",
+          "undos": 3,
+          "divergences": 0,
+          "viewport_inputs": 18,
+          "native_callbacks": 17,
+          "post_replay_actions": 25,
+          "target_checks": 3,
+          "final_state_sha256": "19FF8ADFB05587BB9C683DD64AE62C37E705C225868C0C23BD93D95BC4123E87",
+          "progression": [
+            "BLITZ_PROGRESSION room=0 from=MapCoord (3, 1) to=MapCoord (3, 2) rewardTaken=true",
+            "BLITZ_PROGRESSION room=1 from=MapCoord (3, 2) to=MapCoord (3, 3) rewardTaken=true"
+          ],
+          "arrow_target_deaths": 0
+        }
+      }
+    }
+  ],
+  "runs": 16,
+  "distinct_undos": 41,
+  "processes": 34,
+  "cleanup": {
+    "undosync-extended-q3n6nf4z": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-uw7aqand": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-tg6lv4uf": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-spwsntnk": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    },
+    "undosync-extended-bocijxn2": {
+      "account-1": "RESTORED",
+      "account-1001": "RESTORED",
+      "account-2001": "RESTORED",
+      "account-3001": "RESTORED",
+      "mod-UndoSync": "RESTORED",
+      "mod-MinimalHarness": "RESTORED",
+      "processes": "NONE",
+      "udp33771": "FREE"
+    }
+  },
+  "excluded_attempts": {
+    "undosync-extended-9j281jxu": "Fixture tried to buy starting basic Defend using merchant factory; failed before combat; fixed by retaining starting basics.",
+    "undosync-extended-o3qqdyv_": "Remote test-account Fool epochs not revealed; fixture failed before combat. Revealed via native API before lobby join; original accounts hash-restored.",
+    "undosync-extended-_zsnatpa": "Legacy automated selector sent index instead of mutable combat-card identity for Recall; native pre-Undo divergence. Classified before cleanup; replaced with scoped native-format selector and separate successful reruns.",
+    "undosync-extended-bocijxn2/blitz-progression-integration3": "Normal-speed multiplayer driver clicked reward button during entry animation; actual native viewport screenshot showed the click below the final button. All reward/card/Proceed clicks now wait for stable on-screen geometry. Separate focused and integration reruns required.",
+    "undosync-extended-q3n6nf4z/blitz-progression-integration3": "One replica entered a player-phase-only test idle wait just before native combat ended, so it waited forever after victory. Test-only post-action settling now accepts completed combat. Native reward screen captured, no UndoSync reconstruction or state divergence failure.",
+    "undosync-extended-au4eyy76": "Progression driver clicked moving reward Proceed button outside viewport. Waited for settled native button and independently reran successfully."
+  },
+  "untested": [
+    "All 90 Fool cards and all new relic/potion combinations",
+    "Simultaneous arrows from different Fool owners on the same target",
+    "Blitz opening Neow selection, later acts, elites and bosses",
+    "Merchant purchases and continuing beyond the reached merchant",
+    "Separate-computer authenticated Steam/P2P"
+  ]
+}

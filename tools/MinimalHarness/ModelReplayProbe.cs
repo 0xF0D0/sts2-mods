@@ -40,6 +40,7 @@ internal static class ModelReplayProbe
     private static bool ProbeOrbs => CommandLineHelper.HasArg("minimal-probe-orbs");
     private static bool ProbeGenerated => CommandLineHelper.HasArg("minimal-probe-generated");
     private static bool ProbeTransform => CommandLineHelper.HasArg("minimal-probe-transform");
+    private static bool ProbeFool => CommandLineHelper.GetValue("minimal-character") == "FOOL";
 
     internal static bool ProbeBoss => CommandLineHelper.HasArg("minimal-probe-boss");
     private static bool Mounted => !CommandLineHelper.HasArg("undosync-model-only-replay");
@@ -62,7 +63,7 @@ internal static class ModelReplayProbe
             var pool = FixtureCard == "HAND_OF_GREED" ? ModelDb.CardPool<ColorlessCardPool>() : player.Character.CardPool;
             var option = pool.GetUnlockedCards(player.UnlockState, player.RunState.CardMultiplayerConstraint)
                 .Single(card => card.Id.Entry == FixtureCard);
-            var card = CardFactory.CreateForMerchant(player, new[] { option }, option.Rarity).Card;
+            var card = CardFactory.CreateForMerchant(player, new[] { option }, Array.Empty<CardModel>(), option.Rarity).Card;
             Harness.Require((await CardPileCmd.Add(card, PileType.Deck)).success, "native merchant card acquired: " + FixtureCard);
         }
     }
@@ -95,12 +96,13 @@ internal static class ModelReplayProbe
     private static async Task Play(string label, string actor, bool extra = false)
     {
         bool playFixture = FixtureCard is not null && !extra && actor == Harness.Roles[^1];
-        if (!playFixture && !ProbeOrbs && !ProbeGenerated && !ProbeTransform) { await Harness.Actor(label, actor); return; }
+        if (!playFixture && !ProbeOrbs && !ProbeGenerated && !ProbeTransform && !ProbeFool) { await Harness.Actor(label, actor); return; }
         await Harness.Barrier(label + "-ready");
         if (Harness.Role == actor)
         {
-            string id = playFixture ? FixtureCard! : ProbeGenerated || ProbeTransform ? (extra ? "DEFEND_IRONCLAD" : ProbeTransform ? "PRIMAL_FORCE" : "ANGER") : (extra ? "DUALCAST" : "ZAP");
-            var card = PileType.Hand.GetPile(LocalContext.GetMe(Harness.State)!).Cards.Single(c => c.Id.Entry == id);
+            string id = ProbeFool ? (extra ? "DEFEND_FOOL" : "FOOLISH_SHOT")
+                : playFixture ? FixtureCard! : ProbeGenerated || ProbeTransform ? (extra ? "DEFEND_IRONCLAD" : ProbeTransform ? "PRIMAL_FORCE" : "ANGER") : (extra ? "DUALCAST" : "ZAP");
+            var card = PileType.Hand.GetPile(LocalContext.GetMe(Harness.State)!).Cards.First(c => c.Id.Entry == id);
             bool done = false;
             var executor = Harness.Manager.ActionExecutor;
             void Finished(GameAction action) { if (action is PlayCardAction play && play.OwnerId == card.Owner.NetId) done = true; }
@@ -108,8 +110,10 @@ internal static class ModelReplayProbe
             try
             {
                 var target = card.TargetType == TargetType.AnyEnemy ? CombatManager.Instance.DebugOnlyGetState()!.Enemies.First(c => c.IsAlive) : null;
+                int hp = target?.CurrentHp ?? 0;
                 Harness.Require(card.TryManualPlay(target), "actual native " + id + " played");
                 await Harness.Wait(() => done);
+                if (ProbeFool && !extra) Harness.Require(target!.CurrentHp < hp, "native Foolish Shot dealt arrow damage");
             }
             finally { executor.AfterActionExecuted -= Finished; }
             Harness.RecordCard();
