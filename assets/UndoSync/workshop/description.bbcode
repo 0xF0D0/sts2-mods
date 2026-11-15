@@ -1,39 +1,55 @@
 [h1]multiplayer-undo[/h1]
-Rewind combat together in Slay the Spire 2. Choose an earlier action or restart the current fight while keeping the multiplayer room and connections.
+Undo combat actions or restart the current fight in Slay the Spire 2. Works in singleplayer and multiplayer.
 
 [h2]How to use[/h2]
 [list]
-[*]Press [b]Left Arrow[/b] during combat to open the history window.
-[*]Choose an earlier action, or select [b]Restart Combat[/b].
-[*]The proposer automatically agrees. Every other player must accept before restoration starts.
-[*]After everyone finishes restoration and their results agree, continue playing from the selected point.
-[/list]
-
-[h2]v0.1.19[/h2]
-[list]
-[*]Fixes restoration errors with game v0.113.0, including Fool runs.
-[*]Fixes callbacks into the outgoing map after its screen has been removed.
-[*]Fixes internal state-update exceptions while discarding the old combat; restored combat keeps its native UI and gameplay effects.
-[*]Retains the current multiplayer room, recorded choices and final restored-state agreement.
+[*]Press [b]Left Arrow[/b] during combat to open the action history.
+[*]Choose the point you want to return to, or select [b]Restart Combat[/b] to start the fight over.
+[*]In multiplayer, every other player must accept the proposal. The proposer agrees automatically.
+[*]After restoration finishes, continue playing in the same room.
 [/list]
 
 [h2]Before playing[/h2]
 [list]
-[*]Every player must enable the mod, update to [b]v0.1.19[/b], and restart the game.
-[*]History is kept in memory during the current session.
-[*]Tested on game v0.113.0 with Fool Standard/Blitz content and local three-player ENet timing fuzzing: 30 seed pairs, 50 undo operations. Separate-computer Steam multiplayer remains unverified.
+[*]Every player in the room must install and enable this mod.
+[*]Use the same mod version on every player, and restart the game after updating.
+[*]Undo applies to the current combat. History is not saved between game sessions.
 [/list]
 
 [h2]Languages[/h2]
-English, Korean, Simplified Chinese and Traditional Chinese. Each player sees the UI in their own game language. Other languages use English.
+English, Korean, Simplified Chinese and Traditional Chinese. The mod follows each player's game language; other languages use English.
 
 [h2]한국어[/h2]
-전투 중 [b]왼쪽 방향키[/b]로 기록을 열고 이전 행동 또는 [b]전투 다시 시작[/b]을 선택하세요. 제안자는 자동 동의하며, 다른 플레이어가 모두 수락하면 같은 방에서 복원합니다. v0.1.19는 최신 게임 v0.113.0에서 복원 중 발생하던 지도 오류와 이전 전투 정리 중의 내부 상태 갱신 예외를 수정합니다. Fool 일반·블리츠 및 로컬 3인 타이밍 퍼징으로 검증했습니다. 모든 플레이어가 같은 버전으로 업데이트한 뒤 게임을 다시 실행하세요.
+슬레이 더 스파이어 2에서 전투 중 행동을 되돌리거나 전투를 처음부터 다시 시작할 수 있습니다. 싱글과 멀티플레이에서 사용할 수 있습니다.
+[list]
+[*]전투 중 [b]왼쪽 방향키[/b]를 눌러 행동 기록을 엽니다.
+[*]돌아갈 시점을 고르거나 [b]전투 처음부터[/b]을 선택합니다.
+[*]멀티에서는 제안자를 제외한 모든 플레이어가 수락해야 합니다. 제안자는 자동으로 동의합니다.
+[*]복원이 끝나면 같은 방에서 이어서 플레이합니다.
+[*]방의 모든 플레이어가 모드를 설치하고 활성화해야 합니다. 같은 버전으로 맞추고 업데이트 후에는 게임을 다시 실행하세요.
+[*]되돌리기는 현재 전투에서 사용할 수 있으며, 게임을 종료하면 기록은 저장되지 않습니다.
+[/list]
 
 [h2]简体中文[/h2]
-战斗中按[b]左方向键[/b]打开历史记录，选择之前的行动或[b]重新开始战斗[/b]。提议者自动同意，其他玩家全部接受后在当前房间恢复。v0.1.19修复了游戏v0.113.0恢复时的地图错误，以及清理旧战斗时的内部状态更新异常。已验证Fool普通模式、Blitz模式及本地三人时序模糊测试。所有玩家需更新到同一版本并重启游戏。
+在《杀戮尖塔2》中撤销战斗操作，或从头重新开始当前战斗。支持单人和多人游戏。
+[list]
+[*]战斗中按[b]左方向键[/b]打开操作历史。
+[*]选择要返回的时间点，或选择[b]重新开始战斗[/b]。
+[*]多人游戏中，除提议者外的所有玩家都必须接受。提议者自动同意。
+[*]恢复完成后，在同一个房间继续游戏。
+[*]房间内所有玩家都需要安装并启用此模组，使用相同版本，并在更新后重启游戏。
+[*]撤销仅限当前战斗；退出游戏后不会保留历史记录。
+[/list]
 
 [h2]繁體中文[/h2]
-戰鬥中按[b]左方向鍵[/b]開啟歷史紀錄，選擇先前的行動或[b]重新開始戰鬥[/b]。提議者自動同意，其餘玩家全部接受後在目前房間還原。v0.1.19修正遊戲v0.113.0還原時的地圖錯誤，以及清理舊戰鬥時的內部狀態更新例外。已驗證Fool一般模式、Blitz模式及本機三人時序模糊測試。所有玩家須更新至相同版本並重新啟動遊戲。
+在《殺戮尖塔2》中撤銷戰鬥操作，或從頭重新開始目前的戰鬥。支援單人與多人遊戲。
+[list]
+[*]戰鬥中按[b]左方向鍵[/b]開啟操作歷史。
+[*]選擇要返回的時間點，或選擇[b]重新開始戰鬥[/b]。
+[*]多人遊戲中，除提議者外的所有玩家都必須接受。提議者自動同意。
+[*]還原完成後，在同一個房間繼續遊戲。
+[*]房間內所有玩家都需要安裝並啟用此模組，使用相同版本，並在更新後重新啟動遊戲。
+[*]撤銷僅限目前的戰鬥；退出遊戲後不會保留歷史紀錄。
+[/list]
 
-[url=https://github.com/0xF0D0/sts2-mods/releases/tag/UndoSync-v0.1.19]Download / Release notes[/url]
+[url=https://github.com/0xF0D0/sts2-mods/releases/tag/UndoSync-v0.1.19]Download / Updates[/url]
