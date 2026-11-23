@@ -73,7 +73,8 @@ public static class Harness
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
-    private static CharacterModel Character => CommandLineHelper.GetValue("minimal-character") == "FOOL" ? ModelDb.Character<Fool>()
+    private static CharacterModel Character => WuppyProbe.Active ? ModelDb.Character<Ironclad>()
+        : CommandLineHelper.GetValue("minimal-character") == "FOOL" ? ModelDb.Character<Fool>()
         : FaultScenarios.ChoiceCharacter ?? ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
         ? (_role is "host" or "ui" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
         ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>());
@@ -283,6 +284,8 @@ public static class Harness
             else if (_suite == "replay-long") await LongReplayBenchmark.Run();
             else if (_suite == "model-probe") await ModelReplayProbe.Run();
             else if (CompatibilityProbe.Active) await CompatibilityProbe.Run();
+            else if (WuppyProbe.Active) await WuppyProbe.Run();
+            else if (TurnStartProbe.Active) await TurnStartProbe.Run();
             else if (_suite.StartsWith("fault-")) await FaultScenarios.Run(_suite);
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
@@ -335,7 +338,8 @@ public static class Harness
     {
         _stage = "boot";
         if (_suite == "fault-turn-choice") FaultScenarios.PrepareChoiceUnlocks();
-        if (CompatibilityProbe.Active || FuzzDriver.Active && (CommandLineHelper.GetValue("minimal-character") == "FOOL"
+        if (WuppyProbe.Active) WuppyProbe.PrepareUnlocks();
+        if (TurnStartProbe.Active || CompatibilityProbe.Active || FuzzDriver.Active && (CommandLineHelper.GetValue("minimal-character") == "FOOL"
             || CompatibilityProbe.Mode == GameMode.Blitz)) CompatibilityProbe.PrepareUnlocks();
         var listener = new Listener();
         StartRunLobby? lobby = null;
@@ -343,7 +347,7 @@ public static class Harness
         if (_role == "ui")
         {
             state = RunState.CreateForNewRun(new[] { Player.CreateForNewRun(Character, UnlockState.all, 1UL) },
-                ActModel.GetDefaultList().Select(a => a.ToMutable()).ToList(), Array.Empty<ModifierModel>(), CompatibilityProbe.Mode, false, 0, (CommandLineHelper.GetValue("minimal-seed") ?? "MINIMAL_UI_A"));
+                WuppyProbe.Acts.Select(a => a.ToMutable()).ToList(), Array.Empty<ModifierModel>(), CompatibilityProbe.Mode, false, 0, (CommandLineHelper.GetValue("minimal-seed") ?? "MINIMAL_UI_A"));
             Manager.SetUpNewSingleplayer(state, shouldSave: false);
         }
         else
@@ -358,6 +362,7 @@ public static class Harness
                 lobby = new StartRunLobby(CompatibilityProbe.Mode, false, service, listener, _peers);
                 lobby.AddLocalHostPlayer(UnlockState.all, 0, 0);
                 lobby.SetSeed(CommandLineHelper.GetValue("minimal-seed") ?? "MINIMAL_MP_A");
+                if (WuppyProbe.Active) lobby.Act1 = "underdocks";
                 Log(steam ? "HOST_LISTENING platform=Steam lobby=" + service.GetRawLobbyIdentifier() : "HOST_LISTENING port=33771");
             }
             else
@@ -377,7 +382,7 @@ public static class Harness
                 // A genuine one-host Steam session lifecycle smoke. The normal
                 // lobby start UI requires 2 people; there are no synthetic peers.
                 listener.Seed = CommandLineHelper.GetValue("minimal-seed") ?? "STEAM-LIFETIME-A";
-                listener.Acts = ActModel.GetDefaultList().ToList();
+                listener.Acts = WuppyProbe.Acts.ToList();
                 Log("STEAM_SCOPE single-host lifecycle smoke; not multiplayer acceptance");
             }
             else
@@ -423,6 +428,8 @@ public static class Harness
         if (FuzzDriver.Active) await FuzzCases.Prepare();
         if (_suite == "replay-long") await LongReplayBenchmark.Prepare();
         if (CompatibilityProbe.Active) await CompatibilityProbe.Prepare();
+        if (WuppyProbe.Active) await WuppyProbe.Prepare();
+        if (TurnStartProbe.Active) await TurnStartProbe.Prepare();
         if (_suite == "model-probe")
         {
             if (CommandLineHelper.GetValue("minimal-character") == "FOOL")
@@ -587,6 +594,7 @@ public static class Harness
             Require(viewport.GetTexture().GetImage().SavePng(Path.Combine(_directory, "picker-turn-end-" + _role + ".png")) == Error.Ok,
                 "captured native picker after end turn");
         }
+        if (CommandLineHelper.HasArg("minimal-workshop-captures")) await WorkshopCapture("01-history");
         while (true)
         {
             var popup = UI.CurrentPopup ?? throw new InvalidOperationException("Picker vanished before input.");
@@ -1032,7 +1040,7 @@ public static class Harness
         await Barrier(label + "-settled");
     }
 
-    private static async Task EndTurnAll(string label)
+    internal static async Task EndTurnAll(string label)
     {
         _stage = label;
         await Idle();
@@ -1071,16 +1079,35 @@ public static class Harness
     internal static async Task CheckConnectedUi(string label)
     {
         await Barrier(label + "-input-ready");
-        Manager.InputSynchronizer.SyncLocalMousePos(new Vector2(240, 260), NRun.Instance!);
+        // Native PeerInputMessage is unreliable and not buffered. Exercise ongoing
+        // mouse motion, and keep sending until every peer observes its cursors.
+        ulong nextInput = 0;
+        int inputs = 0;
+        void MoveMouse()
+        {
+            if (Time.GetTicksMsec() < nextInput) return;
+            nextInput = Time.GetTicksMsec() + 100;
+            Manager.InputSynchronizer.SyncLocalMousePos(new Vector2(240 + inputs++ % 20, 260), NRun.Instance!);
+        }
         var remote = State.Players.Where(p => p.NetId != Manager.NetService.NetId).Select(p => p.NetId).ToHashSet();
-        await Wait(() => remote.IsSubsetOf(NGame.Instance!.RemoteCursorContainer.GetChildren()
-            .OfType<NRemoteMouseCursor>().Select(c => c.PlayerId)), 10);
+        await Wait(() =>
+        {
+            MoveMouse();
+            return remote.IsSubsetOf(NGame.Instance!.RemoteCursorContainer.GetChildren()
+                .OfType<NRemoteMouseCursor>().Select(c => c.PlayerId));
+        }, 10);
         Require(State.Players.Select(p => p.NetId).ToHashSet().SetEquals(Manager.RunLobby!.PlayerIds), label + " native roster connected");
         foreach (var node in NRun.Instance!.GlobalUi.MultiplayerPlayerContainer.GetChildren().OfType<NMultiplayerPlayerState>())
             Require(!node.GetNode<TextureRect>("%DisconnectedIndicator").Visible, label + $" avatar {node.Player.NetId} online");
         foreach (ulong peer in remote)
             Require(NGame.Instance!.RemoteCursorContainer.GetCursorPosition(peer).IsFinite(), label + $" cursor {peer} bound");
-        await Barrier(label + "-ui-checked");
+        await Mark(label + "-ui-checked");
+        await Wait(() =>
+        {
+            MoveMouse();
+            return Roles.All(role => Marked(label + "-ui-checked", role));
+        }, 10);
+        Log($"CONNECTED_UI_INPUT label={label} sends={inputs}");
     }
 
     private static int EnemyHp() => CombatManager.Instance.DebugOnlyGetState()!.Enemies.Sum(e => e.CurrentHp);
@@ -1324,11 +1351,20 @@ public static class Harness
         await Barrier("authority-terminal");
     }
 
+    private static async Task WorkshopCapture(string label)
+    {
+        for (int i = 0; i < 35; i++) await NGame.Instance!.AwaitProcessFrame();
+        RenderingServer.ForceDraw();
+        Require(NGame.Instance!.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(_directory, $"workshop-{label}-{_role}.png")) == Error.Ok, "captured actual game viewport " + label);
+    }
+
     private static async Task RegressionAsync()
     {
         _stage = "manual-report-regression";
         await StateBarrier("regression-opening");
         await CheckConnectedUi("opening");
+        if (CommandLineHelper.HasArg("minimal-workshop-captures"))
+            foreach (string actor in Roles) await Actor("workshop-prefix-" + actor, actor);
         foreach (string requester in Roles)
         {
             _stage = "regression-" + requester;
@@ -1337,6 +1373,7 @@ public static class Harness
             await Actor("attack-" + requester, requester, attack: true);
             Require(EnemyHp() < hp, "real attack reduced enemy HP before undo");
             await StateBarrier("damaged-" + requester);
+            if (CommandLineHelper.HasArg("minimal-workshop-captures")) await WorkshopCapture("03-before-" + requester);
             if (_role == requester)
             {
                 if (_suite == "viewport-regression") await RequestViaViewport(target);
@@ -1355,6 +1392,7 @@ public static class Harness
             else Require(Network.CanVote, "other participant must explicitly vote");
             if (_suite == "localization-mp")
                 await CapturePopup($"{_role}-{requester}-proposal", _role == requester ? "WAITING_TITLE" : "PROPOSAL_TITLE");
+            if (CommandLineHelper.HasArg("minimal-workshop-captures")) await WorkshopCapture("02-vote-" + requester);
             await Barrier("proposal-ui-" + requester);
             if (requester == "host" && CommandLineHelper.HasArg("minimal-ui-probe"))
             {
@@ -1379,6 +1417,7 @@ public static class Harness
             _targetChecks++;
             _undos++;
             await CheckConnectedUi("restored-" + requester);
+            if (CommandLineHelper.HasArg("minimal-workshop-captures")) await WorkshopCapture("04-after-" + requester);
             await StateBarrier("restored-state-" + requester);
         }
         await Actor("post-replay-real-attack", "client2", attack: true);

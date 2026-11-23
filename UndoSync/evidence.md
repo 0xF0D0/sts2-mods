@@ -1190,3 +1190,185 @@ User authorized release after reviewing the fix and its verification. Manifest v
 The final DLL/0.1.19 manifest pair passed an additional exact-trace native three-peer phase run with PIDs 25300/25332/25347, three distinct restores, no native C# exceptions and byte-identical before/after action/choice/timing traces. Artifacts: `undosync-extended-18m_7l3t/v019-package-smoke3`. Backup restoration and process/port cleanup passed.
 
 Release notes and multilingual Workshop text describe the v0.113.0 map/teardown fixes and local Fool/Blitz validation without claiming separate-PC Steam coverage. Workshop staging reuses the previous published image unchanged (SHA-256 `2f01accfc29c5de3f6dd9e141461267533590115e6df45e00df325ea362659e0`); the unapproved draft cover is excluded. Publication receipts are recorded separately after remote confirmation.
+
+## 2026-11-15: Wuppy native event and pet reconstruction
+
+**PASS for five selected terminal runs, 11 native game processes and 18 distinct
+completed Undo sessions.** Tested the exact shipped v0.1.19 core DLL, SHA-256
+`efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8`,
+on installed game **v0.113.1 / d09d48e5**. Production modules were unchanged.
+Harness build passed without warnings; metadata-only MinimalCheck verified 37
+patch targets and 15 reflection surfaces against the current game. Static
+metadata checks alone are not runtime evidence.
+
+| Run | Native event Wuppy HP | Display | Native PIDs | Distinct Undo sessions | Full process wall time |
+| --- | ---: | --- | --- | ---: | ---: |
+| focused-cautious | 30 | rendered | 12058 | 3 | 47.158s |
+| integration-immediate | 60 | headless | 12637 | 3 | 22.843s |
+| mp3-cautious | 30 | rendered | 14565, 14594, 14608 | 4 | 53.502s |
+| mp3-immediate | 60 | headless | 14939, 14966, 14980 | 4 | 35.710s |
+| mp3-immediate-rendered | 60 | rendered | 15935, 15963, 15978 | 4 | 61.757s |
+
+Raw PID-bound logs, per-peer verdicts, native final hashes, resumed checksums,
+per-run harness hashes, owner/HP assertions, screenshots and rejected-attempt
+classifications are recorded under
+`tools/MinimalHarness/results/2026-11-15/wuppy-compatibility/summary.json`.
+Each selected run also passed independent `verify_run.verify` with native
+viewport input required. All selected participants had zero native state
+mismatches. Multiplayer sessions retained their original service and transport,
+opened/closed zero connections during replay, suppressed native checksum
+production during replay and compared restored result checksums after replay.
+
+The fixture reveals the native Underdocks epoch only in backed-up temporary
+accounts, selects Underdocks through the native lobby's public `Act1` setting,
+checks that Wuppy is in the generated region event pool and is currently allowed,
+then enters the event through native debug room entry. Each real peer calls the
+native shared-event vote sender. The event itself awards 30-HP or 60-HP Wuppy
+and applies its native HP/Injury cost. Neither relic HP nor live pet/owner state
+is injected. TestMode remains off. Both multiplayer runs use actual ENet peers,
+not fake participants.
+
+Native enemy attacks kill each player's Wuppy. Real picker/Accept input restores
+the full-HP prefix repeatedly, rotating all three proposers in multiplayer, then
+restores a separate damaged prefix. Subsequent native cards/enemy turns execute
+after replay. Assertions compare full native state hashes and separately check
+relic HP/max HP, live pet HP/max HP, pet-owner object identity, membership in the
+replacement player's pet collection, the relic's live pet reference, exactly one
+native pet view per player and its current model binding. Explicit owner checks
+are needed because native `NetFullCombatState.CreatureState` does not include
+pet-owner identity. Rendered screenshots were inspected for the focused
+singleplayer case and all three 30-HP peer views; the rendered 60-HP host and
+client2 views were also inspected. Restored 3-player damaged targets were 23/30
+and 53/60, and native next-combat reconstruction retained those values.
+
+Diagnostic review: headless runs produced dummy texture initialization messages;
+one headless client also reported `Invalid Task ID` during startup before lobby
+join. Both rendered three-player runs completed without those messages or managed
+runtime exceptions. Godot resource/RID diagnostics occurred after terminal success
+and cleanup; raw messages remain in the reports. Failed setup attempts and the
+run rejected for reused test barrier labels are excluded from all passing counts.
+
+All six backup roots (including rejected attempts) were restored and independently
+rechecked by comparing every installed mod/account file hash with the original
+snapshot. Final process inventory was empty and UDP 33771 was free. No release,
+commit, Workshop description/image update or production code fix was performed.
+
+Limits: one seed, Ironclad starting decks and local ENet; no authenticated Steam
+P2P, all-character/event fuzzing or Blitz coverage from this fixture. Native debug
+room entry exercises event acquisition and next-combat teardown/reconstruction;
+it does not prove normal map travel, rewards or full-act progression. The carried
+next-combat state was a damaged living Wuppy; a dead Wuppy carried across rooms
+was not separately exercised.
+
+## 2026-11-23: Ecstasy turn-start replay ordering and native card binding
+
+**Final result: PASS for four selected final-build runs, ten native processes,
+and ten distinct Undo sessions.** Installed game v0.113.1 / d09d48e5. Tested final
+DLL SHA-256: `a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a`.
+This report records pre-release validation. v0.1.20 publication is tracked separately
+in `dist/UndoSync-v0.1.20-release-receipt.json`; its package retains this exact tested DLL.
+
+The user's PID 79770 failed twice during singleplayer Fool/Aeonglass restoration.
+Both logs show future turn-end records executing while still on turn 2, then a
+missing combat-card ID 30. Incident snapshots and the current run save were copied
+read-only into ignored `dist/incidents/2026-11-23-pid79770`; the live save was not
+used as a mutable test profile. Installed Workshop v0.1.19 matched the published
+baseline DLL SHA-256 `efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8`.
+
+Native source confirms that EndPlayerTurnAction does not wait for turn transition,
+CurrentSide becomes Player before setup finishes, and the action executor can be
+idle while turn-start hooks are still running. Ecstasy transforms Sadness to Joy
+in AfterPlayerTurnStart. The former replay feeder checked only side/ending flags
+and executor inactivity, so future ordinary actions could enter the paused queue
+before setup completed. The native end-turn transition then cancels queued manual
+actions; mismatched turn-end records are ignored and later generated cards never
+receive their expected IDs. NetCombatCardDb assigns IDs on pile membership changes
+and does not remove individual IDs during a combat. Missing-card lookup is a
+consequence rather than a reason to invent or remap an ID.
+
+Production changes are confined to `UndoSync/Replay/Replay.cs`:
+
+- Ordinary CombatPlayPhaseOnly records wait for the owner's Play phase and native
+  synchronizer PlayPhase as well as the Player side. A future numbered turn-end
+  cannot overtake setup. An originally late turn-end keeps native ignore semantics.
+- Hook, choice and resume record handling is unchanged, including native
+  ReadyToBeginEnemyTurnAction's separate Combat action type. No new proposal/vote
+  eligibility checks were added.
+- Canceled actions receive one diagnostic with action identity and live phase.
+  Native history records before cancellation, so rejecting every canceled input
+  would reject valid original prefixes. Actual action exceptions still fail
+  immediately; target-state and peer-checksum verification remain required.
+- During mounted reconstruction only, disposable NCardTransformShineVfx creation
+  is replaced by its verified native UpdateCard helper. The helper still cancels
+  a pending card drag/play, rebinds NCard.Model, updates visuals and updates the
+  NHandCardHolder. Transformation, pile changes, RNG and generation hooks execute
+  normally. Normal gameplay and UI-free replay keep their existing paths.
+
+A focused real rendered test passed before the final separate multiplayer runs.
+The native producer uses merchant factories for Ecstasy/Vitriol plus starting
+Defends, native Vitriol-generated Sadness, native Ecstasy-generated Joy and seven
+real enemy turns. No card IDs, powers, hand contents or delay are injected. Three
+players also play naturally generated Slimed instead of assuming a fixed hand.
+Every actor actually plays at least four generated Joy cards. Original and fixed
+producer traces AND target hashes/counts are identical, independently compared.
+
+Before/after controls:
+
+- Published v0.1.19, singleplayer PID 71230: 35 valid recorded events, then turn
+  drift and missing card ID 8. Expected baseline failure, not a passing run.
+- Published v0.1.19, three peers PIDs 91346 / 91481 / 91524: 120 valid events;
+  future turn ends ignored and clients fail on missing ID 30. Host cancels the
+  shared operation. Expected matching baseline failure.
+- Readiness-only correction, rendered PID 73718: same 35-event target restored
+  twice. Replay work 3021–3048 ms; total core restoration 3698–3721 ms.
+- Final build, rendered PID 98197: same target restored twice, replay work
+  548–555 ms; total core restoration 1092–1202 ms. Both replay builds force native
+  Instant speed, so the core interval measures the actual transformation-shine
+  wait reduction. The unmodified baseline did not finish and supplies no valid
+  successful-replay speed ratio.
+
+| Selected final run | Native PIDs | Distinct Undo sessions | Verdict |
+| --- | --- | ---: | --- |
+| fixed-sp | 98197 | 2 | PASS |
+| fixed-mp3 | 92926, 93112, 93159 | 3 | PASS |
+| extended-mp3 | 94748, 94795, 94839 | 4 | PASS |
+| turn-choice-mp3 | 95918, 95961, 96005 | 1 | PASS |
+
+Final three-player 120-event restorations took 2167–2419 ms per peer for the core
+restore. RESTORE_BEGIN to native RESUME (including fade/release consensus) took
+2527–3794 ms; do not substitute core time for the time until all peers resume.
+Singleplayer RESTORE_BEGIN-to-RESUME was 1095–1211 ms. These are bounded local
+measurements, not a guarantee for arbitrary history lengths or Steam latency.
+
+All selected participants compare exact native target state, turn number, native
+hand-holder/current-model binding, resumed checksums, retained transport and
+continued real actions. The seven-turn cases restore twice in singleplayer and
+rotate all three proposers in multiplayer, then reach native turn 9. Extended
+regression supplies replayed choice records; the turn-choice regression cancels
+discarded native live waits and continues after restore. Selected runs have zero
+native divergences, skipped-turn diagnostics, unexpected cancellation diagnostics
+and managed exception lines. Resource/RID shutdown messages remain in raw logs.
+
+Validation: zero-warning Release builds; metadata-only MinimalCheck verifies 38
+Harmony targets and 16 reflection surfaces including the exact static native
+transform-update signature. Python syntax/CLI and diff checks pass. Independent
+verifier accepts zero sleeps when readiness checks pass synchronously, requires
+positive readiness counters and native transform/binding coverage, and rejects
+both `[ERROR] System.*` and `ERROR: System.*` diagnostics.
+
+Earlier failed fixture/preflight attempts are excluded and recorded in summary:
+missing import/stale harness, overly strict sleep expectation, native Slimed
+crowding fixed hands and one pre-replay Godot ScriptManagerBridge startup
+KeyNotFoundException. A clean rendered focused rerun replaced the latter; the
+startup engine diagnostic was not claimed fixed by this patch.
+
+All eight temporary backup roots were restored and independently checked against
+original installed-mod/test-profile hashes. Final process inventory is empty and
+UDP 33771 free. Source, per-run harness hashes, PID-bound raw logs, screenshots,
+exact producer comparisons, timings, verdicts and cleanup receipts are indexed in
+`tools/MinimalHarness/results/2026-11-23/turn-start-fix/summary.json`.
+
+Limits: one content seed and bounded weak encounters. This is a minimized real
+native producer for the incident's mechanism, not the full user boss/relic/potion
+trace. No exhaustive content fuzz sweep, arbitrary late-input/death/revive matrix,
+other-mod compatibility acceptance or separate-computer Steam/P2P verification.

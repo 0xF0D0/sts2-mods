@@ -51,8 +51,8 @@ def verify(folder, require_input=None, require_transport=None):
             issue('INFRA_ERROR', f'{role}: observed transport {value.get("transport")} != {expected_transport}')
         if value.get('divergences', -1) != 0:
             issue('FAIL', f'{role}: native divergence counter not zero')
-        if run['suite'] == 'fuzz':
-            native_exceptions = re.findall(r'^\[ERROR\] (System\.[^\r\n]+)', log, re.MULTILINE)
+        if run['suite'] in ('fuzz', 'wuppy', 'turn-start'):
+            native_exceptions = re.findall(r'^(?:\[ERROR\] |ERROR: )(System\.[^\r\n]+)', log, re.MULTILINE)
             if native_exceptions:
                 issue('FAIL', f'{role}: native runtime exceptions ({len(native_exceptions)}): '
                       + '; '.join(sorted(set(native_exceptions))))
@@ -113,6 +113,46 @@ def verify(folder, require_input=None, require_transport=None):
             }
         except (OSError, ValueError, KeyError) as error:
             issue('INFRA_ERROR', 'Fuzz artifacts missing/invalid: ' + str(error))
+    if run['suite'] == 'turn-start':
+        for role in roles:
+            try:
+                proof = json.loads((folder/f'turn-start-proof.{role}.json').read_text())
+                target = json.loads((folder/f'turn-start-target.{role}.json').read_text())
+                if proof['turns'] != 7 or proof['final_turn'] != 9 or proof['replay_events'] != target['events'] or target['turn'] != 8:
+                    issue('UNCOVERED', f'{role}: multi-turn target or continuation incomplete')
+                if len(target.get('joys_by_player', {})) != len(roles) or any(n < 4 for n in target['joys_by_player'].values()):
+                    issue('UNCOVERED', f'{role}: native Joy generation missing for an actor')
+                if target['joys'] < 4 * len(roles):
+                    issue('UNCOVERED', f'{role}: native Ecstasy transformations were not exercised')
+                log = (folder/f'{role}-terminal.log').read_text()
+                if any(x in log for x in ('Ignoring end turn action.', 'was in state Canceled!', 'Could not map ID', 'REPLAY_ACTION_CANCELED ')):
+                    issue('FAIL', f'{role}: skipped turn, canceled action or unmapped card during replay')
+                checks = [int(n) for n in re.findall(r'REPLAY_DONE .*?turnChecks=(\d+)', log)]
+                observed_waits = log.count('REPLAY_TURN_READY ')
+                if not (len(checks) == verdicts[role]['undos'] and all(n >= 21 * len(roles) for n in checks)) and observed_waits < 6 * verdicts[role]['undos']:
+                    issue('UNCOVERED', f'{role}: readiness checks were not observed on each restored turn')
+                # No sleep is required when the native setup has already finished.
+                # Fast visual binding can make the same readiness gate synchronous.
+                if 'transforms=' in log:
+                    transforms = [int(n) for n in re.findall(r'MOUNTED_UI_READY .*?transforms=(\d+)', log)]
+                    if len(transforms) != verdicts[role]['undos'] or any(n < 4 for n in transforms):
+                        issue('UNCOVERED', f'{role}: native transformed-card visual bindings were not exercised')
+            except (OSError, ValueError, KeyError) as error:
+                issue('INFRA_ERROR', f'{role}: turn-start proof missing/invalid: {error}')
+    if run['suite'] == 'wuppy':
+        for role in roles:
+            try:
+                proof = json.loads((folder/f'wuppy-proof.{role}.json').read_text())
+                if proof['damage_turns'] < 1 or proof['deaths'] < max(2, len(roles)) + 1 or proof['restores'] != max(2, len(roles)) + 1:
+                    issue('UNCOVERED', f'{role}: Wuppy damage/death/repeated restore not executed')
+                if not all(proof.get(k) for k in ('native_event', 'native_enemy_damage', 'next_combat', 'owner_ui_checks')):
+                    issue('UNCOVERED', f'{role}: Wuppy lifecycle coverage incomplete')
+                for label in ('opening', 'target', 'partial-target', 'partial-restored', 'next-combat'):
+                    pets = json.loads((folder/f'wuppy-{label}.{role}.json').read_text())
+                    if len(pets) != len(roles) or any(p['count'] != 1 or p['owner'] != p['NetId'] or p['hp'] != p['CurrentHp'] or p['max'] != proof['max_hp'] for p in pets):
+                        issue('FAIL', f'{role}: Wuppy owner/count/HP mismatch at {label}')
+            except (OSError, ValueError, KeyError) as error:
+                issue('INFRA_ERROR', f'{role}: Wuppy proof missing/invalid: {error}')
     if run.get('phases'):
         for key in ('busy_votes', 'preparing_before_release', 'skew_holds', 'recorder_faults'):
             observed = sum(v.get('phase_coverage', {}).get(key, 0) for v in verdicts.values())

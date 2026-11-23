@@ -1,0 +1,148 @@
+diff --git a/UndoSync/Replay/Replay.cs b/UndoSync/Replay/Replay.cs
+index 579506c..32c519c 100644
+--- a/UndoSync/Replay/Replay.cs
++++ b/UndoSync/Replay/Replay.cs
+@@ -13,6 +13,7 @@ using MegaCrit.Sts2.Core.Models;
+ using MegaCrit.Sts2.Core.Models.Cards;
+ using MegaCrit.Sts2.Core.Random;
+ using MegaCrit.Sts2.Core.GameActions;
++using MegaCrit.Sts2.Core.Entities.Actions;
+ using MegaCrit.Sts2.Core.Helpers;
+ using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+ using MegaCrit.Sts2.Core.Multiplayer;
+@@ -27,6 +28,7 @@ using MegaCrit.Sts2.Core.Nodes.Cards;
+ using MegaCrit.Sts2.Core.Nodes.Combat;
+ using MegaCrit.Sts2.Core.Nodes.CommonUi;
+ using MegaCrit.Sts2.Core.Nodes.Vfx;
++using MegaCrit.Sts2.Core.Nodes.Vfx.Cards;
+ using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
+ using MegaCrit.Sts2.Core.Multiplayer.Serialization;
+ using MegaCrit.Sts2.Core.Rooms;
+@@ -41,6 +43,11 @@ internal static class Replay
+ {
+     private static readonly Dictionary<(ulong, uint), TaskCompletionSource<NetPlayerChoiceResult>> Choices = new();
+     private static readonly List<GameAction> Actions = new();
++    private static readonly HashSet<GameAction> ReportedCancellations = new();
++    // Same native helper the shine animation calls after its presentation wait.
++    private static readonly Action<NCard, CardModel> UpdateTransformedCard = AccessTools.Method(
++        typeof(NCardTransformShineVfx), "UpdateCard", new[] { typeof(NCard), typeof(CardModel) })
++        .CreateDelegate<Action<NCard, CardModel>>();
+     private static INetGameService? _transport;
+     private static object? _nativeTransport;
+     private static string? _lobbyId;
+@@ -106,6 +113,7 @@ internal static class Replay
+     private static bool _injecting;
+     internal static bool IsInjecting => _injecting;
+     internal static bool OwnsCleanup { get; private set; }
++    private static int _turnReadinessChecks, _turnReadinessWaits;
+     private static int _choiceWaits;
+     private static int _choiceInjections;
+     private static CancellationTokenSource _liveWaits = new();
+@@ -189,7 +197,7 @@ internal static class Replay
+         manager.ChecksumTracker.IsEnabled = false;
+         manager.CombatStateSynchronizer.IsDisabled = true;
+         old.SetBufferMessages(false); // Drain old native buffered packets through the replay receive gate.
+-        Choices.Clear(); Actions.Clear(); _choiceWaits = _choiceInjections = 0;
++        Choices.Clear(); Actions.Clear(); ReportedCancellations.Clear(); _turnReadinessChecks = _turnReadinessWaits = 0; _choiceWaits = _choiceInjections = 0;
+         foreach (var entry in replay.events.Where(e => e.eventType == CombatReplayEventType.PlayerChoice))
+             Choices.Add((entry.playerId!.Value, entry.choiceId!.Value), new());
+         Hooks.Log($"RESTORE_BEGIN role={role} events={replay.events.Count} speed={SaveManager.Instance.PrefsSave.FastMode}");
+@@ -302,10 +310,31 @@ internal static class Replay
+                 case CombatReplayEventType.GameAction:
+                     await WaitUntilAsync(() => !CombatManager.Instance.EndingPlayerTurnPhaseOne
+                         && !CombatManager.Instance.EndingPlayerTurnPhaseTwo, token);
+-                    var action = entry.action!.ToGameAction(state.GetPlayer(entry.playerId!.Value)
+-                        ?? throw new InvalidOperationException("Replay player missing."));
++                    var player = state.GetPlayer(entry.playerId!.Value)
++                        ?? throw new InvalidOperationException("Replay player missing.");
++                    var action = entry.action!.ToGameAction(player);
+                     if (action.ActionType == GameActionType.CombatPlayPhaseOnly)
+-                        await WaitUntilAsync(() => CombatManager.Instance.DebugOnlyGetState()?.CurrentSide == CombatSide.Player, token);
++                    {
++                        _turnReadinessChecks++;
++                        // CurrentSide becomes Player before turn-start hooks (e.g.
++                        // Ecstasy's transformations) finish. A paused/empty executor
++                        // does not mean this player's next turn is ready for input.
++                        bool Ready() => CombatManager.Instance.DebugOnlyGetState()?.CurrentSide == CombatSide.Player
++                            && player.PlayerCombatState?.Phase == PlayerTurnPhase.Play
++                            && manager.ActionQueueSynchronizer.CombatState == ActionSynchronizerCombatState.PlayPhase
++                            && (entry.action is not NetEndPlayerTurnAction end
++                                // Preserve native handling of an originally late
++                                // turn-end; only a future turn must not overtake.
++                                || player.PlayerCombatState.TurnNumber >= end.turnNumber);
++                        if (!Ready())
++                        {
++                            _turnReadinessWaits++;
++                            ulong started = Time.GetTicksMsec();
++                            Hooks.Log($"REPLAY_TURN_WAIT event={i} action={action.GetType().Name} player={player.NetId} turn={player.PlayerCombatState?.TurnNumber} phase={player.PlayerCombatState?.Phase}");
++                            await WaitUntilAsync(Ready, token);
++                            Hooks.Log($"REPLAY_TURN_READY event={i} player={player.NetId} turn={player.PlayerCombatState?.TurnNumber} waitMs={Time.GetTicksMsec() - started}");
++                        }
++                    }
+                     Inject(() => manager.ActionQueueSet.EnqueueWithoutSynchronizing(action));
+                     Actions.Add(action);
+                     if (action is EndPlayerTurnAction or ReadyToBeginEnemyTurnAction)
+@@ -338,7 +367,7 @@ internal static class Replay
+         uint checksum = manager.ChecksumTracker.GenerateChecksum(NetFullCombatState.FromRun(state, null));
+         if (MountedReplay)
+         {
+-            Hooks.Log($"MOUNTED_UI_READY checksum={checksum} pileTweens={_completedPileTweens} oneShots={_skippedOneShots} banners={_skippedBanners} previews={_skippedPreviews}");
++            Hooks.Log($"MOUNTED_UI_READY checksum={checksum} pileTweens={_completedPileTweens} oneShots={_skippedOneShots} banners={_skippedBanners} previews={_skippedPreviews} transforms={_skippedTransformVisuals}");
+         }
+         else
+         {
+@@ -351,7 +380,7 @@ internal static class Replay
+             Hooks.Log($"MODEL_UI_ATTACHED checksum={checksum} pileVisuals={_skippedPileVisuals} cardNodes={_skippedCardNodes} damageNumbers={_skippedDamageNumbers} previews={_skippedPreviews} transforms={_skippedTransformVisuals} powerFlyVisuals={_skippedPowerFlyVisuals}"
+                 + $" forgePreviews={_skippedForgePreviews} cardSpecificVisuals={_skippedCardSpecificVisuals} oneShots={_skippedOneShots}");
+         }
+-        Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} checksum={checksum} "
++        Hooks.Log($"REPLAY_DONE events={replay.events.Count} waits={_choiceWaits} choices={_choiceInjections} turnChecks={_turnReadinessChecks} turnWaits={_turnReadinessWaits} checksum={checksum} "
+             + $"restoreMs={replayStarted - restoreStarted} replayMs={Time.GetTicksMsec() - replayStarted} totalMs={Time.GetTicksMsec() - restoreStarted}");
+         Hooks.Log($"ACTIVE_STATE_NOTIFICATIONS allowed={_activeStateNotifications}");
+         return checksum;
+@@ -557,6 +586,21 @@ internal static class Replay
+         }
+     }
+
++    [HarmonyPatch(typeof(NCardTransformShineVfx), nameof(NCardTransformShineVfx.Create))]
++    private static class MountedTransformShine
++    {
++        private static bool Prefix(NCard cardNode, CardModel endCard, ref NCardTransformShineVfx __result)
++        {
++            if (!MountedReplay || !SuppressNative) return true;
++            // Keep the native card model/visual/holder rebinding. Only the
++            // disposable shine, scale animation and its frame waits disappear.
++            UpdateTransformedCard(cardNode, endCard);
++            _skippedTransformVisuals++;
++            __result = null!;
++            return false;
++        }
++    }
++
+     private static bool ShowTransformedCard(CardModel card)
+     {
+         if (!ModelOnly) return LocalContext.IsMine(card);
+@@ -626,8 +670,15 @@ internal static class Replay
+     private static void ThrowIfActionFailed()
+     {
+         foreach (var action in Actions)
++        {
+             if (action.Exception is not null)
+                 throw new InvalidOperationException($"Replayed {action.GetType().Name} {action.Id} failed: {action.Exception.GetBaseException().Message}", action.Exception);
++            // History also contains inputs canceled natively at end of turn.
++            // They are not all replay defects. Report once without rejecting
++            // a formerly valid prefix; real exceptions still fail immediately.
++            if (action.State == GameActionState.Canceled && ReportedCancellations.Add(action))
++                Hooks.Log($"REPLAY_ACTION_CANCELED action={action.Id} detail={action} {DescribeProgress()}");
++        }
+     }
+     private static void Inject(Action action)
+     {
+@@ -641,6 +692,7 @@ internal static class Replay
+         _mountedCustomMusic = null;
+         foreach (var choice in Choices.Values) choice.TrySetCanceled();
+         Choices.Clear(); Actions.Clear(); _transport = null; _nativeTransport = null; _lobbyId = null; NativeResumed = false;
++        ReportedCancellations.Clear();
+     }
+
+     internal static void DisconnectSession()

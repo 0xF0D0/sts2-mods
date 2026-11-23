@@ -178,3 +178,54 @@ takes each player's card reward through native UI, compares deck contents and
 upgrades across peers, and reaches the native Blitz merchant without a forced
 victory or debug room jump. This is bounded encounter coverage, not all Fool
 cards, every act or authenticated Steam multiplayer coverage.
+
+Wuppy compatibility (`v0.113.1`) uses `--suite wuppy --wuppy-branch cautious`
+(30 HP) or `immediate` (60 HP). The native lobby selects Underdocks, and each
+temporary account reveals the native Underdocks epoch. An allowed Wuppy event
+is entered through native debug room entry; all real peers vote through
+`EventSynchronizer.ChooseLocalOption`. The event itself awards the relic and
+applies Injury/HP costs. No Wuppy HP, owner or combat creature is injected.
+
+Normal enemy turns kill Wuppy, then actual picker/Accept input restores the
+full-HP target repeatedly (all three proposers in a three-peer test) and a
+separate damaged target. Assertions compare native state hashes plus explicit
+relic/pet HP, pet-owner object identity, native pet collections and current
+creature views. The next combat is entered with native debug room entry to
+exercise room teardown and pet reconstruction with carried HP; this does not
+cover normal map travel, rewards or full act progression. Structured Wuppy
+proof files and retained-session checks are required for a passing run.
+
+```sh
+python3 tools/MinimalHarness/runtime.py prepare
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label wuppy-focus --suite wuppy --wuppy-branch cautious --peers 1 --visible --speed instant
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label wuppy-mp --suite wuppy --wuppy-branch immediate --peers 3 --speed instant
+python3 tools/MinimalHarness/verify_run.py /absolute/backup-root/wuppy-mp --require-input viewport
+python3 tools/MinimalHarness/runtime.py restore --root /absolute/backup-root
+```
+
+
+The `turn-start` regression requires `--character FOOL`. Native merchant factories
+build a small legal Ecstasy/Vitriol/Defend deck. Vitriol itself generates Sadness;
+Ecstasy itself transforms it into Joy. Seven native enemy turns exercise repeated
+turn-start transformations. Enemy-generated Slimed is played through the native
+card path, and an absent deck card is not assumed to be in hand. Coverage requires
+at least four actual generated Joy plays per actor. The target, content trace,
+card model/holder bindings, restored state, turn number and next-turn continuation
+are checked, with two singleplayer restores or three rotating real ENet proposers.
+No artificial delay, hand/card-ID mutation or replacement power logic is used.
+
+```sh
+python3 tools/MinimalHarness/runtime.py prepare
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label ecstasy-sp --suite turn-start --character FOOL --peers 1 --visible --speed instant
+python3 tools/MinimalHarness/runtime.py run --root /absolute/backup-root --label ecstasy-mp --suite turn-start --character FOOL --peers 3 --visible --speed instant
+python3 tools/MinimalHarness/verify_run.py /absolute/backup-root/ecstasy-mp --require-input viewport
+python3 tools/MinimalHarness/runtime.py restore --root /absolute/backup-root
+```
+
+The native combat-card database must generate the original IDs through the original
+turns and effects; the regression never manufactures a missing ID. Readiness-check
+counts prove the replay gate ran. A successful ready check need not sleep: native
+setup can finish synchronously when disposable transformation shine is skipped.
+The native transform helper still rebinds card models, visuals and hand holders.
+Both `[ERROR] System.*` and `ERROR: System.*` diagnostics fail strict turn-start
+verification; startup exceptions are not silently accepted as clean runs.

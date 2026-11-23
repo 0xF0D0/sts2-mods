@@ -1,0 +1,2488 @@
+{
+  "verdict": "PASS",
+  "tested_core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+  "baseline_core_sha256": "efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8",
+  "selected_final_runs": 4,
+  "selected_final_processes": 10,
+  "distinct_final_undo_sessions": 10,
+  "records": [
+    {
+      "label": "baseline-sp",
+      "selected_final": false,
+      "game": {
+        "commit": "d09d48e5",
+        "version": "v0.113.1",
+        "date": "2026-11-14T02:31:11+00:00",
+        "branch": "v0.113.1",
+        "main_assembly_hash": -1414792094
+      },
+      "peers": 1,
+      "transport": "singleplayer",
+      "rendered": true,
+      "suite": "turn-start",
+      "wall_seconds": 84.315,
+      "participants": {
+        "ui": {
+          "pid": 71230,
+          "verdict": "FAIL",
+          "core_sha256": "efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8",
+          "harness_sha256": "667179db215e07ec7ff1800eb2dfc087685da8e7801c6d361ddce3d270dfb897",
+          "undos": 0,
+          "native_divergences": 0,
+          "core_restore_ms": [],
+          "begin_to_resume_ms": [],
+          "replay_ms": [],
+          "managed_exceptions": [
+            "System.InvalidOperationException: Could not map ID 8 to any card!",
+            "System.InvalidOperationException: Could not map ID 10 to any card!",
+            "System.InvalidOperationException: Could not map ID 12 to any card!",
+            "System.InvalidOperationException: Could not map ID 14 to any card!",
+            "System.InvalidOperationException: Could not map ID 16 to any card!"
+          ],
+          "canceled_actions": 0,
+          "skipped_turns": 5,
+          "choice_injections": []
+        }
+      },
+      "diagnostics": [
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 8 to any card!"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 8 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (Could not map ID 8 to any card!)"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 10 to any card!"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 10 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 12 to any card!"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 12 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 14 to any card!"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 14 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 16 to any card!"
+        },
+        {
+          "role": "ui",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 16 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 7 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 7 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 7 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 19 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 8 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 49 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 35 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 121 resources still in use at exit (run with --verbose for details)."
+        }
+      ]
+    },
+    {
+      "label": "baseline-mp3",
+      "selected_final": false,
+      "game": {
+        "commit": "d09d48e5",
+        "version": "v0.113.1",
+        "date": "2026-11-14T02:31:11+00:00",
+        "branch": "v0.113.1",
+        "main_assembly_hash": -1414792094
+      },
+      "peers": 3,
+      "transport": "enet",
+      "rendered": true,
+      "suite": "turn-start",
+      "wall_seconds": 74.88,
+      "participants": {
+        "host": {
+          "pid": 91346,
+          "verdict": "FAIL",
+          "core_sha256": "efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 0,
+          "native_divergences": 0,
+          "core_restore_ms": [],
+          "begin_to_resume_ms": [],
+          "replay_ms": [],
+          "managed_exceptions": [
+            "System.InvalidOperationException: Could not map ID 30 to any card!",
+            "System.InvalidOperationException: Could not map ID 31 to any card!",
+            "System.InvalidOperationException: Could not map ID 32 to any card!",
+            "System.InvalidOperationException: Could not map ID 36 to any card!",
+            "System.InvalidOperationException: Could not map ID 37 to any card!",
+            "System.InvalidOperationException: Could not map ID 38 to any card!",
+            "System.InvalidOperationException: Could not map ID 48 to any card!",
+            "System.InvalidOperationException: Could not map ID 45 to any card!",
+            "System.InvalidOperationException: Could not map ID 42 to any card!",
+            "System.InvalidOperationException: Could not map ID 49 to any card!",
+            "System.InvalidOperationException: Could not map ID 43 to any card!",
+            "System.InvalidOperationException: Could not map ID 46 to any card!",
+            "System.InvalidOperationException: Could not map ID 50 to any card!",
+            "System.InvalidOperationException: Could not map ID 44 to any card!",
+            "System.InvalidOperationException: Could not map ID 47 to any card!",
+            "System.InvalidOperationException: Could not map ID 54 to any card!",
+            "System.InvalidOperationException: Could not map ID 55 to any card!",
+            "System.InvalidOperationException: Could not map ID 56 to any card!",
+            "System.InvalidOperationException: Could not map ID 63 to any card!",
+            "System.InvalidOperationException: Could not map ID 60 to any card!",
+            "System.InvalidOperationException: Could not map ID 64 to any card!",
+            "System.InvalidOperationException: Could not map ID 61 to any card!",
+            "System.InvalidOperationException: Could not map ID 65 to any card!",
+            "System.InvalidOperationException: Could not map ID 62 to any card!"
+          ],
+          "canceled_actions": 0,
+          "skipped_turns": 15,
+          "choice_injections": []
+        },
+        "client": {
+          "pid": 91481,
+          "verdict": "FAIL",
+          "core_sha256": "efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 0,
+          "native_divergences": 0,
+          "core_restore_ms": [],
+          "begin_to_resume_ms": [],
+          "replay_ms": [],
+          "managed_exceptions": [
+            "System.InvalidOperationException: Could not map ID 30 to any card!",
+            "System.InvalidOperationException: Could not map ID 31 to any card!",
+            "System.InvalidOperationException: Could not map ID 32 to any card!",
+            "System.InvalidOperationException: Could not map ID 36 to any card!",
+            "System.InvalidOperationException: Could not map ID 37 to any card!",
+            "System.InvalidOperationException: Could not map ID 38 to any card!",
+            "System.InvalidOperationException: Could not map ID 48 to any card!",
+            "System.InvalidOperationException: Could not map ID 45 to any card!",
+            "System.InvalidOperationException: Could not map ID 42 to any card!",
+            "System.InvalidOperationException: Could not map ID 49 to any card!",
+            "System.InvalidOperationException: Could not map ID 43 to any card!",
+            "System.InvalidOperationException: Could not map ID 46 to any card!",
+            "System.InvalidOperationException: Could not map ID 50 to any card!",
+            "System.InvalidOperationException: Could not map ID 44 to any card!",
+            "System.InvalidOperationException: Could not map ID 47 to any card!",
+            "System.InvalidOperationException: Could not map ID 54 to any card!",
+            "System.InvalidOperationException: Could not map ID 55 to any card!",
+            "System.InvalidOperationException: Could not map ID 56 to any card!",
+            "System.InvalidOperationException: Could not map ID 63 to any card!",
+            "System.InvalidOperationException: Could not map ID 60 to any card!",
+            "System.InvalidOperationException: Could not map ID 64 to any card!",
+            "System.InvalidOperationException: Could not map ID 61 to any card!",
+            "System.InvalidOperationException: Could not map ID 65 to any card!",
+            "System.InvalidOperationException: Could not map ID 62 to any card!"
+          ],
+          "canceled_actions": 0,
+          "skipped_turns": 15,
+          "choice_injections": []
+        },
+        "client2": {
+          "pid": 91524,
+          "verdict": "FAIL",
+          "core_sha256": "efd5544939b716a229b0f5c4f7d17a38d715e3f8c2757d42d4b2ca236a3ad8a8",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 0,
+          "native_divergences": 0,
+          "core_restore_ms": [],
+          "begin_to_resume_ms": [],
+          "replay_ms": [],
+          "managed_exceptions": [
+            "System.InvalidOperationException: Could not map ID 30 to any card!",
+            "System.InvalidOperationException: Could not map ID 31 to any card!",
+            "System.InvalidOperationException: Could not map ID 32 to any card!",
+            "System.InvalidOperationException: Could not map ID 36 to any card!",
+            "System.InvalidOperationException: Could not map ID 37 to any card!",
+            "System.InvalidOperationException: Could not map ID 38 to any card!",
+            "System.InvalidOperationException: Could not map ID 48 to any card!",
+            "System.InvalidOperationException: Could not map ID 45 to any card!",
+            "System.InvalidOperationException: Could not map ID 42 to any card!",
+            "System.InvalidOperationException: Could not map ID 49 to any card!",
+            "System.InvalidOperationException: Could not map ID 43 to any card!",
+            "System.InvalidOperationException: Could not map ID 46 to any card!",
+            "System.InvalidOperationException: Could not map ID 50 to any card!",
+            "System.InvalidOperationException: Could not map ID 44 to any card!",
+            "System.InvalidOperationException: Could not map ID 47 to any card!",
+            "System.InvalidOperationException: Could not map ID 54 to any card!",
+            "System.InvalidOperationException: Could not map ID 55 to any card!",
+            "System.InvalidOperationException: Could not map ID 56 to any card!",
+            "System.InvalidOperationException: Could not map ID 63 to any card!",
+            "System.InvalidOperationException: Could not map ID 60 to any card!",
+            "System.InvalidOperationException: Could not map ID 64 to any card!",
+            "System.InvalidOperationException: Could not map ID 61 to any card!",
+            "System.InvalidOperationException: Could not map ID 65 to any card!",
+            "System.InvalidOperationException: Could not map ID 62 to any card!"
+          ],
+          "canceled_actions": 0,
+          "skipped_turns": 15,
+          "choice_injections": []
+        }
+      },
+      "diagnostics": [
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 30 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 30 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (Could not map ID 30 to any card!)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (27962556) index: 27 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 31 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 31 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (18345371) index: 28 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 32 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 32 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (61746676) index: 29 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 36 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 36 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 37 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 37 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 38 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 38 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 48 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 48 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 45 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 45 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 42 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 42 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 49 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 49 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 43 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 43 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 46 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 46 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 50 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 50 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 44 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 44 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 47 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 47 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 54 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 54 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 55 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 55 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 56 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 56 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 63 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 63 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 60 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 60 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 64 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 64 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 61 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 61 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 65 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 65 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 62 to any card!"
+        },
+        {
+          "role": "host",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 62 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Peer not connected."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Parameter \"peer\" is null."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Parameter \"peer\" is null."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Invalid Task ID"
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 7 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 51 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 51 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 67 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 8 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 51 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 696 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 129 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 30 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 30 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (Could not map ID 30 to any card!)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (28328515) index: 27 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 31 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 31 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (17180567) index: 28 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 32 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 32 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (5367409) index: 29 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 36 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 36 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 37 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 37 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 38 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 38 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 48 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 48 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 45 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 45 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 42 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 42 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 49 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 49 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 43 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 43 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 46 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 46 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 50 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 50 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 44 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 44 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 47 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 47 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 54 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 54 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 55 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 55 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 56 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 56 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 63 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 63 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 60 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 60 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 64 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 64 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 61 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 61 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 65 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 65 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 62 to any card!"
+        },
+        {
+          "role": "client",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 62 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Invalid Task ID"
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 7 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 20 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 20 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 36 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 8 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 50 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 235 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 129 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] A local card was played, but the card holder passed is null (or its card is null). This should never occur outside of a replay."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 30 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 30 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (Could not map ID 30 to any card!)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (5599560) index: 27 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 31 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 31 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (10152796) index: 28 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 32 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 32 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card: CARD.SADNESS (53513810) index: 29 targetid:  finished execution, but was in state Canceled! The task probably kept executing in a paused state without properly resuming."
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 36 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 36 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 37 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 37 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 38 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 38 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 48 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 48 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 45 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 45 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 42 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 42 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 49 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 49 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 43 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 43 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 46 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 46 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 50 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 50 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 44 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 44 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 47 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 47 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 54 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 54 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 55 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 55 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 56 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 56 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 63 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 63 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 60 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 60 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 64 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 64 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 61 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 61 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 65 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 65 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] System.InvalidOperationException: Could not map ID 62 to any card!"
+        },
+        {
+          "role": "client2",
+          "line": "[ERROR] GameAction PlayCardAction card:  index: 62 targetid:  completed with exception: System.AggregateException: One or more errors occurred. (An attempt was made to transition a task to a final state when it had already completed.)"
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 7 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 19 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 19 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 35 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 8 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 50 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 223 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 129 resources still in use at exit (run with --verbose for details)."
+        }
+      ]
+    },
+    {
+      "label": "guard-only-sp",
+      "selected_final": false,
+      "game": {
+        "commit": "d09d48e5",
+        "version": "v0.113.1",
+        "date": "2026-11-14T02:31:11+00:00",
+        "branch": "v0.113.1",
+        "main_assembly_hash": -1414792094
+      },
+      "peers": 1,
+      "transport": "singleplayer",
+      "rendered": true,
+      "suite": "turn-start",
+      "wall_seconds": 93.655,
+      "participants": {
+        "ui": {
+          "pid": 73718,
+          "verdict": "PASS",
+          "core_sha256": "bda8201c54820402843e32e826efafb4a7c582ee89e8696eba0306bc1426ebab",
+          "harness_sha256": "667179db215e07ec7ff1800eb2dfc087685da8e7801c6d361ddce3d270dfb897",
+          "undos": 2,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            3721,
+            3698
+          ],
+          "begin_to_resume_ms": [
+            3819,
+            3815
+          ],
+          "replay_ms": [
+            3048,
+            3021
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0,
+            0
+          ]
+        }
+      },
+      "diagnostics": [
+        {
+          "role": "ui",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 4 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 18 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 18 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 28 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 5 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 28 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 262 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 68 resources still in use at exit (run with --verbose for details)."
+        }
+      ]
+    },
+    {
+      "label": "fixed-sp",
+      "selected_final": true,
+      "game": {
+        "commit": "d09d48e5",
+        "version": "v0.113.1",
+        "date": "2026-11-14T02:31:11+00:00",
+        "branch": "v0.113.1",
+        "main_assembly_hash": -1414792094
+      },
+      "peers": 1,
+      "transport": "singleplayer",
+      "rendered": true,
+      "suite": "turn-start",
+      "wall_seconds": 31.168,
+      "participants": {
+        "ui": {
+          "pid": 98197,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 2,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            1202,
+            1092
+          ],
+          "begin_to_resume_ms": [
+            1211,
+            1095
+          ],
+          "replay_ms": [
+            548,
+            555
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0,
+            0
+          ]
+        }
+      },
+      "diagnostics": [
+        {
+          "role": "ui",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 4 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 24 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 24 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 35 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 5 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 28 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 365 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "ui",
+          "line": "ERROR: 71 resources still in use at exit (run with --verbose for details)."
+        }
+      ]
+    },
+    {
+      "label": "fixed-mp3",
+      "selected_final": true,
+      "game": {
+        "commit": "d09d48e5",
+        "version": "v0.113.1",
+        "date": "2026-11-14T02:31:11+00:00",
+        "branch": "v0.113.1",
+        "main_assembly_hash": -1414792094
+      },
+      "peers": 3,
+      "transport": "enet",
+      "rendered": true,
+      "suite": "turn-start",
+      "wall_seconds": 85.164,
+      "participants": {
+        "host": {
+          "pid": 92926,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 3,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            2419,
+            2241,
+            2175
+          ],
+          "begin_to_resume_ms": [
+            3596,
+            2527,
+            3087
+          ],
+          "replay_ms": [
+            1884,
+            1773,
+            1745
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0,
+            0,
+            0
+          ]
+        },
+        "client": {
+          "pid": 93112,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 3,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            2235,
+            2167,
+            2189
+          ],
+          "begin_to_resume_ms": [
+            3794,
+            2655,
+            3216
+          ],
+          "replay_ms": [
+            1798,
+            1731,
+            1757
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0,
+            0,
+            0
+          ]
+        },
+        "client2": {
+          "pid": 93159,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 3,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            2256,
+            2180,
+            2195
+          ],
+          "begin_to_resume_ms": [
+            3775,
+            2666,
+            3223
+          ],
+          "replay_ms": [
+            1777,
+            1698,
+            1681
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "diagnostics": [
+        {
+          "role": "host",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 4 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 55 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 55 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 67 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 5 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 28 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 884 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 72 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Invalid Task ID"
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 4 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 54 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 54 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 66 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 5 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 28 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 867 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 72 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Invalid Task ID"
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 4 shaders of type CanvasShaderRD were never freed"
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 54 RID allocations of type 'N10RendererRD16ParticlesStorage9ParticlesE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 1 shaders of type ParticlesShaderRD were never freed"
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 54 RID allocations of type 'N10RendererRD11MeshStorage4MeshE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 66 RID allocations of type 'N10RendererRD15MaterialStorage8MaterialE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 5 RID allocations of type 'N10RendererRD15MaterialStorage6ShaderE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 28 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 871 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 72 resources still in use at exit (run with --verbose for details)."
+        }
+      ]
+    },
+    {
+      "label": "extended-mp3",
+      "selected_final": true,
+      "game": {
+        "commit": "d09d48e5",
+        "version": "v0.113.1",
+        "date": "2026-11-14T02:31:11+00:00",
+        "branch": "v0.113.1",
+        "main_assembly_hash": -1414792094
+      },
+      "peers": 3,
+      "transport": "enet",
+      "rendered": false,
+      "suite": "extended",
+      "wall_seconds": 56.02,
+      "participants": {
+        "host": {
+          "pid": 94748,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 4,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            454,
+            284,
+            285,
+            346
+          ],
+          "begin_to_resume_ms": [
+            541,
+            358,
+            359,
+            396
+          ],
+          "replay_ms": [
+            42,
+            35,
+            35,
+            84
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            4,
+            4,
+            4,
+            6
+          ]
+        },
+        "client": {
+          "pid": 94795,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 4,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            326,
+            304,
+            307,
+            356
+          ],
+          "begin_to_resume_ms": [
+            631,
+            442,
+            446,
+            472
+          ],
+          "replay_ms": [
+            42,
+            39,
+            38,
+            85
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            4,
+            4,
+            4,
+            6
+          ]
+        },
+        "client2": {
+          "pid": 94839,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 4,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            344,
+            309,
+            316,
+            376
+          ],
+          "begin_to_resume_ms": [
+            634,
+            447,
+            438,
+            475
+          ],
+          "replay_ms": [
+            48,
+            42,
+            41,
+            91
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            4,
+            4,
+            4,
+            6
+          ]
+        }
+      },
+      "diagnostics": [
+        {
+          "role": "host",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 25 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 13 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 23 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 5 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 176 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 68 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Parameter \"t\" is null."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Parameter \"t\" is null."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 26 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 12 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 22 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 5 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 168 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 68 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Parameter \"t\" is null."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 26 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 11 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 21 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 5 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 153 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 68 resources still in use at exit (run with --verbose for details)."
+        }
+      ]
+    },
+    {
+      "label": "turn-choice-mp3",
+      "selected_final": true,
+      "game": {
+        "commit": "d09d48e5",
+        "version": "v0.113.1",
+        "date": "2026-11-14T02:31:11+00:00",
+        "branch": "v0.113.1",
+        "main_assembly_hash": -1414792094
+      },
+      "peers": 3,
+      "transport": "enet",
+      "rendered": false,
+      "suite": "fault-turn-choice",
+      "wall_seconds": 18.645,
+      "participants": {
+        "host": {
+          "pid": 95918,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 1,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            434
+          ],
+          "begin_to_resume_ms": [
+            497
+          ],
+          "replay_ms": [
+            9
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0
+          ]
+        },
+        "client": {
+          "pid": 95961,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 1,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            325
+          ],
+          "begin_to_resume_ms": [
+            600
+          ],
+          "replay_ms": [
+            14
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0
+          ]
+        },
+        "client2": {
+          "pid": 96005,
+          "verdict": "PASS",
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "934ebeaec6bebd6608bb66d3e84e359169b7565dcb0a5c47775d5cc68acb5412",
+          "undos": 1,
+          "native_divergences": 0,
+          "core_restore_ms": [
+            325
+          ],
+          "begin_to_resume_ms": [
+            600
+          ],
+          "replay_ms": [
+            14
+          ],
+          "managed_exceptions": [],
+          "canceled_actions": 0,
+          "skipped_turns": 0,
+          "choice_injections": [
+            0
+          ]
+        }
+      },
+      "diagnostics": [
+        {
+          "role": "host",
+          "line": "ERROR: Parameter \"t\" is null."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Parameter \"t\" is null."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Parent node is busy setting up children, `move_child()` failed. Consider using `move_child.call_deferred(child, index)` instead (or `popup.call_deferred()` if this is from a popup)."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 28 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 15 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 51 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 5 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 181 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "host",
+          "line": "ERROR: 66 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Parameter \"t\" is null."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Parent node is busy setting up children, `move_child()` failed. Consider using `move_child.call_deferred(child, index)` instead (or `popup.call_deferred()` if this is from a popup)."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 25 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 14 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 48 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 5 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 168 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client",
+          "line": "ERROR: 66 resources still in use at exit (run with --verbose for details)."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Parameter \"t\" is null."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Parent node is busy setting up children, `move_child()` failed. Consider using `move_child.call_deferred(child, index)` instead (or `popup.call_deferred()` if this is from a popup)."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: Cannot get path of node as it is not in a scene tree."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 1 RID allocations of type 'N26RendererEnvironmentStorage11EnvironmentE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 25 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 14 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 48 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 5 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 169 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 4 RID allocations of type 'PN18TextServerAdvanced27FontAdvancedLinkedVariationE' were leaked at exit."
+        },
+        {
+          "role": "client2",
+          "line": "ERROR: 66 resources still in use at exit (run with --verbose for details)."
+        }
+      ]
+    }
+  ],
+  "paired_producer_checks": [
+    {
+      "before": "baseline-sp",
+      "after": "fixed-sp",
+      "trace_and_target_identical": true
+    },
+    {
+      "before": "baseline-mp3",
+      "after": "fixed-mp3",
+      "trace_and_target_identical": true
+    },
+    {
+      "before": "guard-only-sp",
+      "after": "fixed-sp",
+      "trace_and_target_identical": true
+    }
+  ],
+  "cleanup": [
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-v6j_3_xl",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zes2uwl2",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-1r7vwlng",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-9z20eu2m",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-r3gg7kbx",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-rvianzty",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-cke_52ie",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-1u0bjc8g",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      },
+      "independent_hash_recheck": "PASS"
+    }
+  ],
+  "excluded_attempts": [
+    {
+      "root": "v6j_3_xl",
+      "reason": "Build lacked namespace import; stale harness attempt rejected and stopped by exact task PID."
+    },
+    {
+      "root": "9z20eu2m",
+      "reason": "Native scenario/UI passed; old verifier incorrectly demanded a sleep even after synchronous native setup. Excluded from final-core counts."
+    },
+    {
+      "root": "r3gg7kbx",
+      "reason": "Singleplayer producer/replay passed but startup Godot ScriptManagerBridge KeyNotFoundException rejected as clean evidence; earlier MP fixture assumed fixed hands despite native Slimed generation."
+    },
+    {
+      "root": "rvianzty",
+      "reason": "MP fixture still assumed a Defend in every hand. Failed before restoration, excluded; final fixture plays native Slimed and uses available hand cards."
+    }
+  ],
+  "limits": [
+    "One content seed, bounded weak encounters and a five-card starting fixture; not the full user Aeonglass save/38-event trace.",
+    "Actual user save/log snapshots preserved read-only under ignored dist/incidents; no game/profile data modified for reproduction.",
+    "Local singleplayer and ENet only; no separate-computer Steam P2P acceptance.",
+    "No full content fuzz sweep; random late network input and player-death/revive combinations remain untested."
+  ],
+  "publication_receipt": "dist/UndoSync-v0.1.20-release-receipt.json"
+}

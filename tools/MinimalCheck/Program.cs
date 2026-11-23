@@ -85,7 +85,13 @@ foreach (var type in mod.GetTypes())
         patches++;
     }
 }
-Require(patches == 37, $"all 37 Harmony targets checked (actual {patches})");
+Require(patches == 38, $"all 38 Harmony targets checked (actual {patches})");
+var nativeTransformUpdate = game.GetType("MegaCrit.Sts2.Core.Nodes.Vfx.Cards.NCardTransformShineVfx", true)!
+    .GetMethods(all).Single(m => m.Name == "UpdateCard");
+Require(nativeTransformUpdate.IsStatic && nativeTransformUpdate.ReturnType.FullName == "System.Void"
+    && nativeTransformUpdate.GetParameters().Select(p => p.ParameterType.FullName).SequenceEqual(new[]
+        { "MegaCrit.Sts2.Core.Nodes.Cards.NCard", "MegaCrit.Sts2.Core.Models.CardModel" }),
+    "native transform card/model/holder rebind helper");
 var reflectionMembers = new (string Type, string Name, bool Property)[]
 {
     ("MegaCrit.Sts2.Core.Multiplayer.Replay.CombatReplayWriter", "_replay", false),
@@ -119,7 +125,7 @@ Require(message.IsPublic && message.IsValueType && message.GetInterfaces().Any(i
 var entry = mod.GetType("UndoSync.Hooks", true)!;
 Require(entry.GetCustomAttributesData().Any(a => a.AttributeType.Name == "ModInitializerAttribute")
     && entry.GetMethod("Initialize", BindingFlags.Public | BindingFlags.Static) is not null, "mod initializer");
-Console.WriteLine($"PASS metadata-only: five modules, manifest, {patches} patch targets and injected parameters, {reflectionMembers.Length + 2} reflection surfaces, message, initializer.");
+Console.WriteLine($"PASS metadata-only: five modules, manifest, {patches} patch targets and injected parameters, {reflectionMembers.Length + 3} reflection surfaces, message, initializer.");
 Console.WriteLine("NOT TESTED: Harmony installation, Godot UI, serialization execution, replay, network transport or gameplay.");
 
 static void Require(bool condition, string description)
