@@ -229,3 +229,14 @@ setup can finish synchronously when disposable transformation shine is skipped.
 The native transform helper still rebinds card models, visuals and hand holders.
 Both `[ERROR] System.*` and `ERROR: System.*` diagnostics fail strict turn-start
 verification; startup exceptions are not silently accepted as clean runs.
+
+## Fixed category regression command
+
+See [CATEGORIES.md](CATEGORIES.md) for six coarse native category representatives,
+pending-choice teardown, other-player selection and mixed three-peer integration.
+Startup-selection variants also queue use/discard/choice input before a native
+Gambling Chip selector completes, checking the exact enqueue/resume IDs and
+order rather than only the final state.
+Run `python3 tools/MinimalHarness/categories.py` from the repository root.
+The command records per-case proof, binary/game identity and exact cleanup;
+category success is not an all-content or authenticated Steam/P2P guarantee.

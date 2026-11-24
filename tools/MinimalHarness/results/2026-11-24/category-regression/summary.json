@@ -1,0 +1,4479 @@
+{
+  "schema": 1,
+  "result": "PASS",
+  "game": {
+    "commit": "d09d48e5",
+    "version": "v0.113.1",
+    "date": "2026-11-14T02:31:11+00:00",
+    "branch": "v0.113.1",
+    "main_assembly_hash": -1414792094
+  },
+  "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+  "selected_runs": 16,
+  "default_case_variants": 15,
+  "native_processes": 28,
+  "distinct_undo_sessions": 34,
+  "peer_local_restores": 62,
+  "main_13_case_batch_seconds": 272.974,
+  "selected_default_case_duration_sum_seconds": 336.757,
+  "note": "Default case duration sum spans main batch and two supplements; not a measured single new 15-case command. Final integration is an additional repeat on the extended harness.",
+  "native_csharp_exceptions": 0,
+  "native_divergences": 0,
+  "steam_p2p_tested": false,
+  "all_optional_all_peers_cases_executed": false,
+  "selected": [
+    {
+      "case": "choice",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/00-choice-1p",
+      "run": {
+        "label": "00-choice-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": false,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 73682,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/00-choice-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=choice",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 22.363
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 73682,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 4,
+          "undos": 2,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 3,
+          "target_checks": 2,
+          "final_state_sha256": "0A9D3B285BFA85E406B634D18BC25C8AAB61E13AF394834DA5648258DE27C4D6",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 4,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "choice",
+          "targets": 2,
+          "restores": 2,
+          "pending": 0,
+          "live": {
+            "card": 4,
+            "enemy-action": 1
+          },
+          "replayed": {
+            "card": 2
+          },
+          "choices": 1,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 3,
+          "target_state": "B07D7889CB6F581CCB933BFE1598FC6E0C1E4AC899C4D2B1384224DDF7C01B99",
+          "final_turn": 2
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 73682,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 4,
+            "undos": 2,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 3,
+            "target_checks": 2,
+            "final_state_sha256": "0A9D3B285BFA85E406B634D18BC25C8AAB61E13AF394834DA5648258DE27C4D6",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 4,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "736f0a12f5ce43159313acca0459266c": {
+            "ui": "3354411471"
+          },
+          "840db189e0f34fe7bc916cd3afe2966d": {
+            "ui": "3354411471"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "card",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/01-card-1p",
+      "run": {
+        "label": "01-card-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 74147,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/01-card-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=card",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 12.567
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 74147,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 4,
+          "undos": 2,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "target_checks": 2,
+          "final_state_sha256": "A84EE9A65C6D8E2F1727F5FD973F7B1D662D039AB6CF31D312AB7533602D8E86",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 4,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "card",
+          "targets": 2,
+          "restores": 2,
+          "pending": 0,
+          "live": {
+            "card": 4,
+            "enemy-action": 1
+          },
+          "replayed": {
+            "card": 2
+          },
+          "choices": 0,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 1,
+          "target_state": "EAB7A7B2FA508BE170F1DC0AFFF961D5E689CB6008ACD85B4FC922259B01E40B",
+          "final_turn": 2
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 74147,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 4,
+            "undos": 2,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 2,
+            "target_checks": 2,
+            "final_state_sha256": "A84EE9A65C6D8E2F1727F5FD973F7B1D662D039AB6CF31D312AB7533602D8E86",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 4,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "d500283124794d9eb789706252b830d0": {
+            "ui": "2802128237"
+          },
+          "43295a962c5e42c08abe8efa90e69184": {
+            "ui": "2802128237"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "turn-end",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/02-turn-end-1p",
+      "run": {
+        "label": "02-turn-end-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 74407,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/02-turn-end-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=turn-end",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 12.578
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 74407,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 5,
+          "undos": 2,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "target_checks": 2,
+          "final_state_sha256": "B34A79D616DCEEDD708AAEED43A25A5AFA5191C5A756FCDC4804C929D9D59E61",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 16,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "turn-end",
+          "targets": 2,
+          "restores": 2,
+          "pending": 0,
+          "live": {
+            "card": 5,
+            "turn-end": 2,
+            "enemy-action": 2
+          },
+          "replayed": {
+            "card": 4,
+            "turn-end": 4,
+            "enemy-action": 2
+          },
+          "choices": 0,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 4,
+          "target_state": "982339C82191EA3A82419E10A1A75A968A80BC70E4491EF3F0D5064683AF1CC7",
+          "final_turn": 3
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 74407,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 5,
+            "undos": 2,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 2,
+            "target_checks": 2,
+            "final_state_sha256": "B34A79D616DCEEDD708AAEED43A25A5AFA5191C5A756FCDC4804C929D9D59E61",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 16,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "60643c57ec1d45ac9226036ab4c7d13a": {
+            "ui": "2438414682"
+          },
+          "04e542ba73f2483f9544259731ad3cac": {
+            "ui": "2438414682"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "turn-start",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/03-turn-start-1p",
+      "run": {
+        "label": "03-turn-start-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 74668,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/03-turn-start-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=turn-start",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 20.614
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 74668,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 5,
+          "undos": 2,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "target_checks": 2,
+          "final_state_sha256": "2E9BC8D07A259A28A9526D742E42EE7EE8023234CCE5F001DA27BA7CDB89AD1A",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 16,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "turn-start",
+          "targets": 2,
+          "restores": 2,
+          "pending": 0,
+          "live": {
+            "card": 5,
+            "enemy-action": 2,
+            "turn-start": 2,
+            "boulder-vfx": 2
+          },
+          "replayed": {
+            "card": 4,
+            "enemy-action": 2,
+            "turn-start": 2,
+            "boulder-vfx": 2
+          },
+          "choices": 0,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 4,
+          "target_state": "EE3DC05808A7136DD7DA5C6EA5CC1A1C69D33D551F56BED431F01BC10D8B7221",
+          "final_turn": 3
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 74668,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 5,
+            "undos": 2,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 2,
+            "target_checks": 2,
+            "final_state_sha256": "2E9BC8D07A259A28A9526D742E42EE7EE8023234CCE5F001DA27BA7CDB89AD1A",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 16,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "ed039f0d990543a0a47f1b6bb8dc3ae2": {
+            "ui": "4123982514"
+          },
+          "22bf14c68e4d480c8c71a2a4162f026e": {
+            "ui": "4123982514"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "choice-pending",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/04-choice-pending-1p",
+      "run": {
+        "label": "04-choice-pending-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 75090,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/04-choice-pending-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=choice-pending",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 12.581
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 75090,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 2,
+          "undos": 2,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "target_checks": 2,
+          "final_state_sha256": "EE311641C99520132B65728DE24E2E2575C0E50771806F8C5602A8E8D5E90963",
+          "post_replay_actions": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 4,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "choice-pending",
+          "targets": 2,
+          "restores": 2,
+          "pending": 2,
+          "live": {
+            "card": 4,
+            "enemy-action": 1
+          },
+          "replayed": {
+            "card": 2
+          },
+          "choices": 0,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 1,
+          "target_state": "9D5016D9DADD3981960B9105EEC81E4662DC8362344A022DF19B184226068B7D",
+          "final_turn": 2
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 75090,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 2,
+            "undos": 2,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 2,
+            "target_checks": 2,
+            "final_state_sha256": "EE311641C99520132B65728DE24E2E2575C0E50771806F8C5602A8E8D5E90963",
+            "post_replay_actions": 1,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 4,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "0f67e6d88c324c47969751f78cb48ea7": {
+            "ui": "607814551"
+          },
+          "acd083c031ed427184d495b84995a315": {
+            "ui": "607814551"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "potion",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/05-potion-1p",
+      "run": {
+        "label": "05-potion-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 75358,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/05-potion-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=potion",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 12.581
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 75358,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 3,
+          "undos": 2,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 3,
+          "target_checks": 2,
+          "final_state_sha256": "0F47DDD668A3B6F463376173F3C5466813797644D9426859E719217559FA2D60",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 8,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "potion",
+          "targets": 2,
+          "restores": 2,
+          "pending": 0,
+          "live": {
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "card": 3,
+            "enemy-action": 1
+          },
+          "replayed": {
+            "potion-use": 4,
+            "potion-immediate": 2,
+            "potion-discard": 2
+          },
+          "choices": 1,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 5,
+          "target_state": "7EAD029E3DF04B785D92F7483368AE30AE38E0DEF00853EB0DFDFF51298EB749",
+          "final_turn": 2
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 75358,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 3,
+            "undos": 2,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 3,
+            "target_checks": 2,
+            "final_state_sha256": "0F47DDD668A3B6F463376173F3C5466813797644D9426859E719217559FA2D60",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 8,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "b2f2fc728c1f485281394c664559b615": {
+            "ui": "4066102689"
+          },
+          "bfaf53b95ea344e38acbc502dd9c3f2d": {
+            "ui": "4066102689"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "potion-pending",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/06-potion-pending-1p",
+      "run": {
+        "label": "06-potion-pending-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 75627,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/06-potion-pending-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=potion-pending",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 12.575
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 75627,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 2,
+          "undos": 2,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "target_checks": 2,
+          "final_state_sha256": "4323FFDFDA82E928E51DBCAA1278F14CC7ECFE4BB81867CD2D410ED368CB4FB4",
+          "post_replay_actions": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 4,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "potion-pending",
+          "targets": 2,
+          "restores": 2,
+          "pending": 2,
+          "live": {
+            "card": 2,
+            "potion-use": 2,
+            "enemy-action": 1
+          },
+          "replayed": {
+            "card": 2
+          },
+          "choices": 0,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 1,
+          "target_state": "34429C608F26A106C0CE199B8FAC4239531B7D525D847DAFDB8F90EA6C334D33",
+          "final_turn": 2
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 75627,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 2,
+            "undos": 2,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 2,
+            "target_checks": 2,
+            "final_state_sha256": "4323FFDFDA82E928E51DBCAA1278F14CC7ECFE4BB81867CD2D410ED368CB4FB4",
+            "post_replay_actions": 1,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 4,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "d8f0bbc5117a4e9c9d362802b84e8361": {
+            "ui": "1174528771"
+          },
+          "2a35874ef44b4bafa22b94fcf97ab3c2": {
+            "ui": "1174528771"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "combat-start",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/07-combat-start-1p",
+      "run": {
+        "label": "07-combat-start-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 75892,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/07-combat-start-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=combat-start",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 12.58
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 75892,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 4,
+          "undos": 2,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "target_checks": 2,
+          "final_state_sha256": "CBB2896BC039C6D4DEB3B62741B93586380B2E32D0D9D05F4F3140F1B4CAA27A",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 4,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "combat-start",
+          "targets": 2,
+          "restores": 2,
+          "pending": 0,
+          "live": {
+            "combat-start": 1,
+            "card": 4,
+            "enemy-action": 1
+          },
+          "replayed": {
+            "combat-start": 2,
+            "card": 2
+          },
+          "choices": 0,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 1,
+          "target_state": "70F2C7FBA44F70CF4A292D71ACE892664D49AEE644B61A0D3671BA083D3016C0",
+          "final_turn": 2
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 75892,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 4,
+            "undos": 2,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 2,
+            "target_checks": 2,
+            "final_state_sha256": "CBB2896BC039C6D4DEB3B62741B93586380B2E32D0D9D05F4F3140F1B4CAA27A",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 4,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "b5ab1c5c6d864b16ae1f040d509d614f": {
+            "ui": "2896013373"
+          },
+          "78baaa1d91ae47219acdb50ee7e6ee4a": {
+            "ui": "2896013373"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "mixed",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/08-mixed-1p",
+      "run": {
+        "label": "08-mixed-1p",
+        "peers": 1,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 76151,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/08-mixed-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=mixed",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 27.632
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 76151,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 7,
+          "undos": 2,
+          "selections": 2,
+          "divergences": 0,
+          "viewport_inputs": 6,
+          "native_callbacks": 4,
+          "target_checks": 2,
+          "final_state_sha256": "7994BC73BF591510350C7831E1B1DCF1C7529108A368BA5766C12515C55DFDA3",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 36,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "ui": {
+          "profile": "mixed",
+          "targets": 2,
+          "restores": 2,
+          "pending": 0,
+          "live": {
+            "combat-start": 1,
+            "card": 7,
+            "enemy-action": 3,
+            "turn-start": 3,
+            "boulder-vfx": 3,
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "turn-end": 2
+          },
+          "replayed": {
+            "combat-start": 2,
+            "card": 8,
+            "enemy-action": 4,
+            "turn-start": 4,
+            "boulder-vfx": 4,
+            "potion-use": 4,
+            "potion-immediate": 2,
+            "potion-discard": 2,
+            "turn-end": 4
+          },
+          "choices": 2,
+          "actor": "ui",
+          "chooser": "ui",
+          "target_events": 15,
+          "target_state": "A4ACD513E56021EF5E02B40E90DC9BAF57710B81DF466211B25CD0E3DC57F9AA",
+          "final_turn": 4
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 76151,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 7,
+            "undos": 2,
+            "selections": 2,
+            "divergences": 0,
+            "viewport_inputs": 6,
+            "native_callbacks": 4,
+            "target_checks": 2,
+            "final_state_sha256": "7994BC73BF591510350C7831E1B1DCF1C7529108A368BA5766C12515C55DFDA3",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 36,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "2e1214fbb971465799cb9f92a33e24f9": {
+            "ui": "3600946465"
+          },
+          "d2c6490d834645a1b51c479882ac43be": {
+            "ui": "3600946465"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "potion",
+      "peers": 3,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/09-potion-3p",
+      "run": {
+        "label": "09-potion-3p",
+        "peers": 3,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 76753,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/09-potion-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=potion",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 76845,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/09-potion-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-category=potion",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 76893,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/09-potion-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-category=potion",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 22.149
+      },
+      "verdicts": {
+        "host": {
+          "schema": 1,
+          "role": "host",
+          "pid": 76753,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 4,
+          "undos": 3,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "target_checks": 3,
+          "final_state_sha256": "326087B721F4FD9AAD44108E352052340E9B3F7AB5E7CD8C5A16C9C36490EC2D",
+          "post_replay_actions": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 15,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client": {
+          "schema": 1,
+          "role": "client",
+          "pid": 76845,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "326087B721F4FD9AAD44108E352052340E9B3F7AB5E7CD8C5A16C9C36490EC2D",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 15,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client2": {
+          "schema": 1,
+          "role": "client2",
+          "pid": 76893,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "2001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "target_checks": 3,
+          "final_state_sha256": "326087B721F4FD9AAD44108E352052340E9B3F7AB5E7CD8C5A16C9C36490EC2D",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 15,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "host": {
+          "profile": "potion",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "card": 4,
+            "enemy-action": 3
+          },
+          "replayed": {
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3
+          },
+          "choices": 0,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 6,
+          "target_state": "F20D39C15EA988341E9D8E90DB8A77380BEBD1375F422E5A5FEA74DA661FF643",
+          "final_turn": 2
+        },
+        "client": {
+          "profile": "potion",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "card": 4,
+            "enemy-action": 3
+          },
+          "replayed": {
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 6,
+          "target_state": "F20D39C15EA988341E9D8E90DB8A77380BEBD1375F422E5A5FEA74DA661FF643",
+          "final_turn": 2
+        },
+        "client2": {
+          "profile": "potion",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "card": 4,
+            "enemy-action": 3
+          },
+          "replayed": {
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3
+          },
+          "choices": 0,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 6,
+          "target_state": "F20D39C15EA988341E9D8E90DB8A77380BEBD1375F422E5A5FEA74DA661FF643",
+          "final_turn": 2
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "enet",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "participants": {
+          "host": {
+            "schema": 1,
+            "role": "host",
+            "pid": 76753,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 4,
+            "undos": 3,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 3,
+            "target_checks": 3,
+            "final_state_sha256": "326087B721F4FD9AAD44108E352052340E9B3F7AB5E7CD8C5A16C9C36490EC2D",
+            "post_replay_actions": 3,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 15,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client": {
+            "schema": 1,
+            "role": "client",
+            "pid": 76845,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "326087B721F4FD9AAD44108E352052340E9B3F7AB5E7CD8C5A16C9C36490EC2D",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 15,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client2": {
+            "schema": 1,
+            "role": "client2",
+            "pid": 76893,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "2001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 3,
+            "target_checks": 3,
+            "final_state_sha256": "326087B721F4FD9AAD44108E352052340E9B3F7AB5E7CD8C5A16C9C36490EC2D",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 15,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "1b849cbeca864c78afff5812359406de": {
+            "host": "3292097943",
+            "client": "3292097943",
+            "client2": "3292097943"
+          },
+          "fedea208d4b4429e9c4df4a47990b1fb": {
+            "host": "3292097943",
+            "client": "3292097943",
+            "client2": "3292097943"
+          },
+          "baed060e1e2a45109370fbc010766e10": {
+            "host": "3292097943",
+            "client": "3292097943",
+            "client2": "3292097943"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "enemy-choice",
+      "peers": 3,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/10-enemy-choice-3p",
+      "run": {
+        "label": "10-enemy-choice-3p",
+        "peers": 3,
+        "suite": "fault-knowledge-choice",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 77235,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/10-enemy-choice-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=fault-knowledge-choice",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-knowledge-chooser=client",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 77332,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/10-enemy-choice-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=fault-knowledge-choice",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-knowledge-chooser=client",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 77335,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/10-enemy-choice-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=fault-knowledge-choice",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-knowledge-chooser=client",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 19.142
+      },
+      "verdicts": {
+        "host": {
+          "schema": 1,
+          "role": "host",
+          "pid": 77235,
+          "suite": "fault-knowledge-choice",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 1,
+          "undos": 1,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "target_checks": 1,
+          "final_state_sha256": "F5186D47346EEEC29605B7E3482F82BFAC226B7A4A7742459AF3BB0A731DA77F",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 1,
+          "suppressed_checksum_calls": 2,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client": {
+          "schema": 1,
+          "role": "client",
+          "pid": 77332,
+          "suite": "fault-knowledge-choice",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 2,
+          "undos": 1,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 1,
+          "native_callbacks": 1,
+          "target_checks": 1,
+          "final_state_sha256": "F5186D47346EEEC29605B7E3482F82BFAC226B7A4A7742459AF3BB0A731DA77F",
+          "post_replay_actions": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 1,
+          "suppressed_checksum_calls": 2,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client2": {
+          "schema": 1,
+          "role": "client2",
+          "pid": 77335,
+          "suite": "fault-knowledge-choice",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "2001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 1,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 1,
+          "native_callbacks": 1,
+          "target_checks": 1,
+          "final_state_sha256": "F5186D47346EEEC29605B7E3482F82BFAC226B7A4A7742459AF3BB0A731DA77F",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 1,
+          "suppressed_checksum_calls": 2,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {},
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "enet",
+        "suite": "fault-knowledge-choice",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "participants": {
+          "host": {
+            "schema": 1,
+            "role": "host",
+            "pid": 77235,
+            "suite": "fault-knowledge-choice",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 1,
+            "undos": 1,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 2,
+            "native_callbacks": 1,
+            "target_checks": 1,
+            "final_state_sha256": "F5186D47346EEEC29605B7E3482F82BFAC226B7A4A7742459AF3BB0A731DA77F",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 1,
+            "suppressed_checksum_calls": 2,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client": {
+            "schema": 1,
+            "role": "client",
+            "pid": 77332,
+            "suite": "fault-knowledge-choice",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 2,
+            "undos": 1,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 1,
+            "native_callbacks": 1,
+            "target_checks": 1,
+            "final_state_sha256": "F5186D47346EEEC29605B7E3482F82BFAC226B7A4A7742459AF3BB0A731DA77F",
+            "post_replay_actions": 1,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 1,
+            "suppressed_checksum_calls": 2,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client2": {
+            "schema": 1,
+            "role": "client2",
+            "pid": 77335,
+            "suite": "fault-knowledge-choice",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "2001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 1,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 1,
+            "native_callbacks": 1,
+            "target_checks": 1,
+            "final_state_sha256": "F5186D47346EEEC29605B7E3482F82BFAC226B7A4A7742459AF3BB0A731DA77F",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 1,
+            "suppressed_checksum_calls": 2,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "50e30a1cfa354af681429153929adb04": {
+            "host": "3535899670",
+            "client": "3535899670",
+            "client2": "3535899670"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "turn-choice",
+      "peers": 3,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/11-turn-choice-3p",
+      "run": {
+        "label": "11-turn-choice-3p",
+        "peers": 3,
+        "suite": "fault-turn-choice",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 77639,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/11-turn-choice-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=fault-turn-choice",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-choice-card=TOOLS_OF_THE_TRADE",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 77729,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/11-turn-choice-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=fault-turn-choice",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-choice-card=TOOLS_OF_THE_TRADE",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 77772,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/11-turn-choice-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=fault-turn-choice",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-choice-card=TOOLS_OF_THE_TRADE",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 19.146
+      },
+      "verdicts": {
+        "host": {
+          "schema": 1,
+          "role": "host",
+          "pid": 77639,
+          "suite": "fault-turn-choice",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 2,
+          "undos": 1,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 2,
+          "native_callbacks": 1,
+          "target_checks": 1,
+          "final_state_sha256": "FCBBE4C1B7122CC4FFCC81EFDAC5D0B622DDF1508439A59E87A3078928215C09",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 1,
+          "suppressed_checksum_calls": 2,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client": {
+          "schema": 1,
+          "role": "client",
+          "pid": 77729,
+          "suite": "fault-turn-choice",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 2,
+          "undos": 1,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 1,
+          "native_callbacks": 1,
+          "target_checks": 1,
+          "final_state_sha256": "FCBBE4C1B7122CC4FFCC81EFDAC5D0B622DDF1508439A59E87A3078928215C09",
+          "post_replay_actions": 1,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 1,
+          "suppressed_checksum_calls": 2,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client2": {
+          "schema": 1,
+          "role": "client2",
+          "pid": 77772,
+          "suite": "fault-turn-choice",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "2001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 1,
+          "undos": 1,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 1,
+          "native_callbacks": 1,
+          "target_checks": 1,
+          "final_state_sha256": "FCBBE4C1B7122CC4FFCC81EFDAC5D0B622DDF1508439A59E87A3078928215C09",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 1,
+          "suppressed_checksum_calls": 2,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {},
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "enet",
+        "suite": "fault-turn-choice",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "participants": {
+          "host": {
+            "schema": 1,
+            "role": "host",
+            "pid": 77639,
+            "suite": "fault-turn-choice",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 2,
+            "undos": 1,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 2,
+            "native_callbacks": 1,
+            "target_checks": 1,
+            "final_state_sha256": "FCBBE4C1B7122CC4FFCC81EFDAC5D0B622DDF1508439A59E87A3078928215C09",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 1,
+            "suppressed_checksum_calls": 2,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client": {
+            "schema": 1,
+            "role": "client",
+            "pid": 77729,
+            "suite": "fault-turn-choice",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 2,
+            "undos": 1,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 1,
+            "native_callbacks": 1,
+            "target_checks": 1,
+            "final_state_sha256": "FCBBE4C1B7122CC4FFCC81EFDAC5D0B622DDF1508439A59E87A3078928215C09",
+            "post_replay_actions": 1,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 1,
+            "suppressed_checksum_calls": 2,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client2": {
+            "schema": 1,
+            "role": "client2",
+            "pid": 77772,
+            "suite": "fault-turn-choice",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "2001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 1,
+            "undos": 1,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 1,
+            "native_callbacks": 1,
+            "target_checks": 1,
+            "final_state_sha256": "FCBBE4C1B7122CC4FFCC81EFDAC5D0B622DDF1508439A59E87A3078928215C09",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 1,
+            "suppressed_checksum_calls": 2,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "f0036d7808a448a7b6731fa59e52ac99": {
+            "host": "27799867",
+            "client": "27799867",
+            "client2": "27799867"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "mixed",
+      "peers": 3,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/full-02/12-mixed-3p",
+      "run": {
+        "label": "12-mixed-3p",
+        "peers": 3,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": false,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 78024,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/12-mixed-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=mixed",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 78153,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/12-mixed-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-category=mixed",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 78160,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp/12-mixed-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-category=mixed",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 64.844
+      },
+      "verdicts": {
+        "host": {
+          "schema": 1,
+          "role": "host",
+          "pid": 78024,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 8,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+          "post_replay_actions": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 57,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client": {
+          "schema": 1,
+          "role": "client",
+          "pid": 78153,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 57,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        },
+        "client2": {
+          "schema": 1,
+          "role": "client2",
+          "pid": 78160,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "2001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "target_checks": 3,
+          "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 57,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+        }
+      },
+      "category_proofs": {
+        "host": {
+          "profile": "mixed",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "combat-start": 3,
+            "card": 8,
+            "enemy-action": 9,
+            "turn-start": 9,
+            "boulder-vfx": 3,
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "turn-end": 2
+          },
+          "replayed": {
+            "combat-start": 9,
+            "card": 12,
+            "enemy-action": 18,
+            "turn-start": 18,
+            "boulder-vfx": 6,
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3,
+            "turn-end": 6
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 24,
+          "target_state": "0AE47928672165C8CD5DC66DDEB90AFE6A9F05396541C2A557C41434D9F17147",
+          "final_turn": 4
+        },
+        "client": {
+          "profile": "mixed",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "combat-start": 3,
+            "card": 8,
+            "enemy-action": 9,
+            "turn-start": 9,
+            "boulder-vfx": 3,
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "turn-end": 2
+          },
+          "replayed": {
+            "combat-start": 9,
+            "card": 12,
+            "enemy-action": 18,
+            "turn-start": 18,
+            "boulder-vfx": 6,
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3,
+            "turn-end": 6
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 24,
+          "target_state": "0AE47928672165C8CD5DC66DDEB90AFE6A9F05396541C2A557C41434D9F17147",
+          "final_turn": 4
+        },
+        "client2": {
+          "profile": "mixed",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "combat-start": 3,
+            "card": 8,
+            "enemy-action": 9,
+            "turn-start": 9,
+            "boulder-vfx": 3,
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "turn-end": 2
+          },
+          "replayed": {
+            "combat-start": 9,
+            "card": 12,
+            "enemy-action": 18,
+            "turn-start": 18,
+            "boulder-vfx": 6,
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3,
+            "turn-end": 6
+          },
+          "choices": 0,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 24,
+          "target_state": "0AE47928672165C8CD5DC66DDEB90AFE6A9F05396541C2A557C41434D9F17147",
+          "final_turn": 4
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "enet",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11",
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "participants": {
+          "host": {
+            "schema": 1,
+            "role": "host",
+            "pid": 78024,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 8,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+            "post_replay_actions": 3,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 57,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client": {
+            "schema": 1,
+            "role": "client",
+            "pid": 78153,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 57,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          },
+          "client2": {
+            "schema": 1,
+            "role": "client2",
+            "pid": 78160,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "2001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 3,
+            "target_checks": 3,
+            "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 57,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "915e6eb8cfdcbd1f49ce1cdc5219ccb79e25a6ee2d52d25c80cdfb01339f7e11"
+          }
+        },
+        "sessions": {
+          "d49a92ae114d45f484566b072a90c20f": {
+            "host": "3956042948",
+            "client": "3956042948",
+            "client2": "3956042948"
+          },
+          "eff06f30db9747f6b6accdb4ca4579c6": {
+            "host": "3956042948",
+            "client": "3956042948",
+            "client2": "3956042948"
+          },
+          "b105b70179de4d55a34bf312cf131a01": {
+            "host": "3956042948",
+            "client": "3956042948",
+            "client2": "3956042948"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "enemy-replay",
+      "peers": 3,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/boss-completed/00-enemy-replay-3p",
+      "run": {
+        "label": "00-enemy-replay-3p",
+        "peers": 3,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": false,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 80756,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-b7jh9aw3/00-enemy-replay-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=enemy-replay",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 80855,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-b7jh9aw3/00-enemy-replay-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-category=enemy-replay",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 80898,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-b7jh9aw3/00-enemy-replay-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-category=enemy-replay",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 43.009
+      },
+      "verdicts": {
+        "host": {
+          "schema": 1,
+          "role": "host",
+          "pid": 80756,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 5,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "9599AE0B83623E17B1B292C4FE7C034948B5E7142EB694B861137C2BBF5E000F",
+          "post_replay_actions": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 21,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+        },
+        "client": {
+          "schema": 1,
+          "role": "client",
+          "pid": 80855,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "9599AE0B83623E17B1B292C4FE7C034948B5E7142EB694B861137C2BBF5E000F",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 21,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+        },
+        "client2": {
+          "schema": 1,
+          "role": "client2",
+          "pid": 80898,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "2001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "9599AE0B83623E17B1B292C4FE7C034948B5E7142EB694B861137C2BBF5E000F",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 21,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+        }
+      },
+      "category_proofs": {
+        "host": {
+          "profile": "enemy-replay",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "card": 5,
+            "enemy-action": 2
+          },
+          "replayed": {
+            "card": 3,
+            "enemy-action": 3
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "host",
+          "target_events": 10,
+          "target_state": "2DF4C604F31AECD3E866781A7279B096C03DEEAAC4173FD1FD580785EC882EFC",
+          "final_turn": 3
+        },
+        "client": {
+          "profile": "enemy-replay",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "card": 5,
+            "enemy-action": 2
+          },
+          "replayed": {
+            "card": 3,
+            "enemy-action": 3
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "host",
+          "target_events": 10,
+          "target_state": "2DF4C604F31AECD3E866781A7279B096C03DEEAAC4173FD1FD580785EC882EFC",
+          "final_turn": 3
+        },
+        "client2": {
+          "profile": "enemy-replay",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "card": 5,
+            "enemy-action": 2
+          },
+          "replayed": {
+            "card": 3,
+            "enemy-action": 3
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "host",
+          "target_events": 10,
+          "target_state": "2DF4C604F31AECD3E866781A7279B096C03DEEAAC4173FD1FD580785EC882EFC",
+          "final_turn": 3
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "enet",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28",
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "participants": {
+          "host": {
+            "schema": 1,
+            "role": "host",
+            "pid": 80756,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 5,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "9599AE0B83623E17B1B292C4FE7C034948B5E7142EB694B861137C2BBF5E000F",
+            "post_replay_actions": 3,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 21,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+          },
+          "client": {
+            "schema": 1,
+            "role": "client",
+            "pid": 80855,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "9599AE0B83623E17B1B292C4FE7C034948B5E7142EB694B861137C2BBF5E000F",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 21,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+          },
+          "client2": {
+            "schema": 1,
+            "role": "client2",
+            "pid": 80898,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "2001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "9599AE0B83623E17B1B292C4FE7C034948B5E7142EB694B861137C2BBF5E000F",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 21,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+          }
+        },
+        "sessions": {
+          "9765e019cb34433abe1e2c06ca0cd0b6": {
+            "host": "2180512702",
+            "client": "2180512702",
+            "client2": "2180512702"
+          },
+          "378e1038f8674cf78942469a8d14d837": {
+            "host": "2180512702",
+            "client": "2180512702",
+            "client2": "2180512702"
+          },
+          "e4d29cde73854d78a1e3f2ee83c395da": {
+            "host": "2180512702",
+            "client": "2180512702",
+            "client2": "2180512702"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "mixed",
+      "peers": 3,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/final-integration/00-mixed-3p",
+      "run": {
+        "label": "00-mixed-3p",
+        "peers": 3,
+        "suite": "category",
+        "seed": "MINIMAL_MP_A",
+        "headless": false,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 82553,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-nd46u9m9/00-mixed-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-category=mixed",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 82651,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-nd46u9m9/00-mixed-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-category=mixed",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 82694,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-nd46u9m9/00-mixed-3p",
+              "--minimal-peers=3",
+              "--minimal-suite=category",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-category=mixed",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 65.831
+      },
+      "verdicts": {
+        "host": {
+          "schema": 1,
+          "role": "host",
+          "pid": 82553,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 8,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+          "post_replay_actions": 3,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 57,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+        },
+        "client": {
+          "schema": 1,
+          "role": "client",
+          "pid": 82651,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "1001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 1,
+          "divergences": 0,
+          "viewport_inputs": 5,
+          "native_callbacks": 4,
+          "target_checks": 3,
+          "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 57,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+        },
+        "client2": {
+          "schema": 1,
+          "role": "client2",
+          "pid": 82694,
+          "suite": "category",
+          "speed": "Instant",
+          "transport": "enet",
+          "net_id": "2001",
+          "peers": 3,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 0,
+          "undos": 3,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 3,
+          "target_checks": 3,
+          "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+          "post_replay_actions": 0,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 3,
+          "suppressed_checksum_calls": 57,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+        }
+      },
+      "category_proofs": {
+        "host": {
+          "profile": "mixed",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "combat-start": 3,
+            "card": 8,
+            "enemy-action": 9,
+            "turn-start": 9,
+            "boulder-vfx": 3,
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "turn-end": 2
+          },
+          "replayed": {
+            "combat-start": 9,
+            "card": 12,
+            "enemy-action": 18,
+            "turn-start": 18,
+            "boulder-vfx": 6,
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3,
+            "turn-end": 6
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 24,
+          "target_state": "0AE47928672165C8CD5DC66DDEB90AFE6A9F05396541C2A557C41434D9F17147",
+          "final_turn": 4
+        },
+        "client": {
+          "profile": "mixed",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "combat-start": 3,
+            "card": 8,
+            "enemy-action": 9,
+            "turn-start": 9,
+            "boulder-vfx": 3,
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "turn-end": 2
+          },
+          "replayed": {
+            "combat-start": 9,
+            "card": 12,
+            "enemy-action": 18,
+            "turn-start": 18,
+            "boulder-vfx": 6,
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3,
+            "turn-end": 6
+          },
+          "choices": 1,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 24,
+          "target_state": "0AE47928672165C8CD5DC66DDEB90AFE6A9F05396541C2A557C41434D9F17147",
+          "final_turn": 4
+        },
+        "client2": {
+          "profile": "mixed",
+          "targets": 3,
+          "restores": 3,
+          "pending": 0,
+          "live": {
+            "combat-start": 3,
+            "card": 8,
+            "enemy-action": 9,
+            "turn-start": 9,
+            "boulder-vfx": 3,
+            "potion-use": 2,
+            "potion-immediate": 1,
+            "potion-discard": 1,
+            "turn-end": 2
+          },
+          "replayed": {
+            "combat-start": 9,
+            "card": 12,
+            "enemy-action": 18,
+            "turn-start": 18,
+            "boulder-vfx": 6,
+            "potion-use": 6,
+            "potion-immediate": 3,
+            "potion-discard": 3,
+            "turn-end": 6
+          },
+          "choices": 0,
+          "actor": "host",
+          "chooser": "client",
+          "target_events": 24,
+          "target_state": "0AE47928672165C8CD5DC66DDEB90AFE6A9F05396541C2A557C41434D9F17147",
+          "final_turn": 4
+        }
+      },
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "enet",
+        "suite": "category",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28",
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "participants": {
+          "host": {
+            "schema": 1,
+            "role": "host",
+            "pid": 82553,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 8,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+            "post_replay_actions": 3,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 57,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+          },
+          "client": {
+            "schema": 1,
+            "role": "client",
+            "pid": 82651,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "1001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 1,
+            "divergences": 0,
+            "viewport_inputs": 5,
+            "native_callbacks": 4,
+            "target_checks": 3,
+            "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 57,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+          },
+          "client2": {
+            "schema": 1,
+            "role": "client2",
+            "pid": 82694,
+            "suite": "category",
+            "speed": "Instant",
+            "transport": "enet",
+            "net_id": "2001",
+            "peers": 3,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 0,
+            "undos": 3,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 3,
+            "target_checks": 3,
+            "final_state_sha256": "8E87365B9BEA3DA3CA1571EF25BCAB9FFF318236376310844566D0ED6ED10E26",
+            "post_replay_actions": 0,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 3,
+            "suppressed_checksum_calls": 57,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+          }
+        },
+        "sessions": {
+          "ac4283460aae40289892e0c9ace86d7e": {
+            "host": "3956042948",
+            "client": "3956042948",
+            "client2": "3956042948"
+          },
+          "4fd92d81c20649e7bba75d9e75870eb1": {
+            "host": "3956042948",
+            "client": "3956042948",
+            "client2": "3956042948"
+          },
+          "da5908e18ff5434f99408a904e51fcb7": {
+            "host": "3956042948",
+            "client": "3956042948",
+            "client2": "3956042948"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    },
+    {
+      "case": "turn-transform",
+      "peers": 1,
+      "folder": "/Users/kimbeomsu/.codex/worktrees/undosync-minimal/sts2-my-mod/tools/MinimalHarness/results/2026-11-24/category-regression/turn-transform/00-turn-transform-1p",
+      "run": {
+        "label": "00-turn-transform-1p",
+        "peers": 1,
+        "suite": "turn-start",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 85448,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-77kl3wuu/00-turn-transform-1p",
+              "--minimal-peers=1",
+              "--minimal-suite=turn-start",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "UndoSync.json": "3268373dc342705758027bf08aa4a1041c18ee812c799c594352a4f69445c3b8"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 22.396
+      },
+      "verdicts": {
+        "ui": {
+          "schema": 1,
+          "role": "ui",
+          "pid": 85448,
+          "suite": "turn-start",
+          "speed": "Instant",
+          "transport": "singleplayer",
+          "net_id": "1",
+          "peers": 1,
+          "verdict": "PASS",
+          "failure": null,
+          "cards": 24,
+          "undos": 2,
+          "selections": 0,
+          "divergences": 0,
+          "viewport_inputs": 4,
+          "native_callbacks": 2,
+          "target_checks": 2,
+          "final_state_sha256": "FBFB43E4A55B191B33B9DE10313D969C2CB367D7A73E7A7BE1821EDF0C82C93F",
+          "post_replay_actions": 2,
+          "phase_coverage": {
+            "busy_votes": 0,
+            "preparing_before_release": 0,
+            "skew_holds": 0,
+            "recorder_faults": 0
+          },
+          "session_replacements": 0,
+          "connections_opened": 0,
+          "connections_closed": 0,
+          "native_checksums_during_replay": 0,
+          "preserved_disconnects": 0,
+          "suppressed_checksum_calls": 114,
+          "dropped_checksum_messages": 0,
+          "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+          "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+        }
+      },
+      "category_proofs": {},
+      "independent": {
+        "schema": 1,
+        "verdict": "PASS",
+        "transport": "singleplayer",
+        "suite": "turn-start",
+        "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+        "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28",
+        "roles": [
+          "ui"
+        ],
+        "participants": {
+          "ui": {
+            "schema": 1,
+            "role": "ui",
+            "pid": 85448,
+            "suite": "turn-start",
+            "speed": "Instant",
+            "transport": "singleplayer",
+            "net_id": "1",
+            "peers": 1,
+            "verdict": "PASS",
+            "failure": null,
+            "cards": 24,
+            "undos": 2,
+            "selections": 0,
+            "divergences": 0,
+            "viewport_inputs": 4,
+            "native_callbacks": 2,
+            "target_checks": 2,
+            "final_state_sha256": "FBFB43E4A55B191B33B9DE10313D969C2CB367D7A73E7A7BE1821EDF0C82C93F",
+            "post_replay_actions": 2,
+            "phase_coverage": {
+              "busy_votes": 0,
+              "preparing_before_release": 0,
+              "skew_holds": 0,
+              "recorder_faults": 0
+            },
+            "session_replacements": 0,
+            "connections_opened": 0,
+            "connections_closed": 0,
+            "native_checksums_during_replay": 0,
+            "preserved_disconnects": 0,
+            "suppressed_checksum_calls": 114,
+            "dropped_checksum_messages": 0,
+            "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+            "harness_sha256": "b7cf14bdc8ab027d43a7b23766678962373b4f149fddde98ce0b22e7efc15f28"
+          }
+        },
+        "sessions": {
+          "cd068eba7bb8445ba2726146d348f313": {
+            "ui": "3942677270"
+          },
+          "afc8c8d3ab074b16ad1584383640dfcc": {
+            "ui": "3942677270"
+          }
+        },
+        "issues": [],
+        "input_requirement": "viewport",
+        "content_coverage": null
+      }
+    }
+  ],
+  "cleanup": [
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-v3dkashr",
+      "independent_live_primary_archive_checks": "PASS",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-wnavry2d",
+      "independent_live_primary_archive_checks": "PASS",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-ic_tpwyh",
+      "independent_live_primary_archive_checks": "PASS",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-zb6kcpyp",
+      "independent_live_primary_archive_checks": "PASS",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-b7jh9aw3",
+      "independent_live_primary_archive_checks": "PASS",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-nd46u9m9",
+      "independent_live_primary_archive_checks": "PASS",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-77kl3wuu",
+      "independent_live_primary_archive_checks": "PASS",
+      "receipt": {
+        "account-1": "RESTORED",
+        "account-1001": "RESTORED",
+        "account-2001": "RESTORED",
+        "account-3001": "RESTORED",
+        "mod-UndoSync": "RESTORED",
+        "mod-MinimalHarness": "RESTORED",
+        "processes": "NONE",
+        "udp33771": "FREE"
+      }
+    }
+  ]
+}

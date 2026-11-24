@@ -51,7 +51,7 @@ def verify(folder, require_input=None, require_transport=None):
             issue('INFRA_ERROR', f'{role}: observed transport {value.get("transport")} != {expected_transport}')
         if value.get('divergences', -1) != 0:
             issue('FAIL', f'{role}: native divergence counter not zero')
-        if run['suite'] in ('fuzz', 'wuppy', 'turn-start'):
+        if run['suite'] in ('fuzz', 'wuppy', 'turn-start', 'category', 'startup-queue'):
             native_exceptions = re.findall(r'^(?:\[ERROR\] |ERROR: )(System\.[^\r\n]+)', log, re.MULTILINE)
             if native_exceptions:
                 issue('FAIL', f'{role}: native runtime exceptions ({len(native_exceptions)}): '
@@ -113,6 +113,76 @@ def verify(folder, require_input=None, require_transport=None):
             }
         except (OSError, ValueError, KeyError) as error:
             issue('INFRA_ERROR', 'Fuzz artifacts missing/invalid: ' + str(error))
+    if run['suite'] == 'category':
+        proofs = []
+        for role in roles:
+            try:
+                proof = json.loads((folder/f'category-proof.{role}.json').read_text())
+                proofs.append(proof)
+                profile = proof['profile']
+                expected = max(2, len(roles))
+                if proof['restores'] != expected or proof['targets'] != expected or proof['target_events'] < 1:
+                    issue('UNCOVERED', f'{role}: category repeated nonempty target restoration missing')
+                if profile.endswith('-pending') and proof['pending'] != expected:
+                    issue('UNCOVERED', f'{role}: actual pending native choice not exercised on every restore')
+                required = ['card'] if not profile.endswith('-pending') and profile != 'potion' else []
+                if profile in ('turn-end', 'mixed'): required += ['turn-end']
+                if profile in ('turn-start', 'mixed'): required += ['turn-start', 'boulder-vfx']
+                if profile in ('combat-start', 'mixed'): required += ['combat-start']
+                if profile in ('potion', 'mixed'): required += ['potion-use', 'potion-discard', 'potion-immediate']
+                if profile in ('mixed', 'enemy-replay'): required += ['enemy-action']
+                for key in required:
+                    if proof['live'].get(key, 0) < 1 or proof['replayed'].get(key, 0) < expected:
+                        issue('UNCOVERED', f'{role}: actual native {key} absent live or replay')
+                if profile == 'enemy-replay':
+                    boss_log = (folder/f'{role}-terminal.log').read_text()
+                    if proof['choices'] != 1 or 'CATEGORY_BOSS_CHOICE_COMPLETED native=true' not in boss_log or 'all actual boss choices are inside the restored historical prefix' not in boss_log:
+                        issue('UNCOVERED', f'{role}: actual completed mandatory boss choice was not recorded')
+                    counts = [int(n) for n in re.findall(r'REPLAY_DONE .*?choices=(\d+)', boss_log)]
+                    if len(counts) != expected or any(n < len(roles) for n in counts):
+                        issue('UNCOVERED', f'{role}: historical boss choices not replayed on every restore')
+                if 'CATEGORY_PASS profile=' + profile not in (folder/f'{role}-terminal.log').read_text():
+                    issue('UNCOVERED', f'{role}: category terminal mechanism marker absent')
+            except (OSError, ValueError, KeyError) as error:
+                issue('INFRA_ERROR', f'{role}: category proof missing/invalid: {error}')
+        if proofs and len({(p['profile'], p['target_events'], p['target_state']) for p in proofs}) != 1:
+            issue('FAIL', 'Category target/profile differs across peers')
+        if proofs and proofs[0]['profile'] in ('choice', 'potion', 'mixed', 'enemy-replay') and sum(p['choices'] for p in proofs) < 1:
+            issue('UNCOVERED', 'No native viewport card choice completed')
+        if len(roles) > 1 and proofs and proofs[0]['profile'] in ('potion', 'mixed') and any(p['actor'] == p['chooser'] for p in proofs):
+            issue('UNCOVERED', 'Other-player potion choice branch not reached')
+    if run['suite'] == 'startup-queue':
+        proofs = []
+        for role in roles:
+            try:
+                proof = json.loads((folder/f'startup-proof.{role}.json').read_text())
+                proofs.append(proof)
+                target = json.loads((folder/f'startup-target.{role}.json').read_text())
+                if (proof['target'], proof['expected'], proof['mode']) != (target['target'], target['expected'], target['mode']):
+                    issue('FAIL', f'{role}: startup proof differs from original target')
+                original = json.loads((folder/f'startup-original.{role}.json').read_text())
+                log = (folder/f'{role}-terminal.log').read_text()
+                expected = max(2, len(roles))
+                if proof['trace_checks'] != expected or proof['target'] < 1 or not proof['native_input_while_start']:
+                    issue('UNCOVERED', f'{role}: startup queued input/repeated restoration absent')
+                for attempt in range(expected):
+                    trace = json.loads((folder/f'startup-replay-{attempt}.{role}.json').read_text())
+                    if trace != original:
+                        issue('FAIL', f'{role}: native action IDs/order differ on restore {attempt}')
+                    if (folder/f'startup-queue-restored-{attempt}.state.{role}').read_text() != target['expected']:
+                        issue('FAIL', f'{role}: saved native target state differs on restore {attempt}')
+                if log.count('REPLAY_QUEUED_BEHIND_CHOICE ') < expected:
+                    issue('UNCOVERED', f'{role}: startup choice queue bypass not exercised on every restore')
+                for marker in ('STARTUP_INPUT_QUEUED mode='+proof['mode']+' phase=Start',
+                               'real recorded order is Hook -> queued input -> Choice -> Resume',
+                               'STARTUP_QUEUE_PASS mode='+proof['mode']):
+                    if marker not in log: issue('UNCOVERED', f'{role}: absent startup mechanism: {marker}')
+                if any(x in log for x in ('Ignoring end turn action.', 'was in state Canceled!', 'Could not map ID', 'REPLAY_ACTION_CANCELED ')):
+                    issue('FAIL', f'{role}: skipped turn, canceled action or unmapped card during startup replay')
+            except (OSError, ValueError, KeyError) as error:
+                issue('INFRA_ERROR', f'{role}: startup proof missing/invalid: {error}')
+        if proofs and len({(p['mode'], p['target'], p['expected']) for p in proofs}) != 1:
+            issue('FAIL', 'Startup queued-input target differs across peers')
     if run['suite'] == 'turn-start':
         for role in roles:
             try:

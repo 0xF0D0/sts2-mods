@@ -3,7 +3,7 @@
 Cooperative combat undo, implemented by five modules: **Hook, History, Replay,
 Network and UI**. This is the validated minimal implementation promoted into the
 original `UndoSync` project; the assembly, namespace, mod ID and install folder
-are all `UndoSync`. This update is version `0.1.19`, verified against game v0.113.0.
+are all `UndoSync`. This update is version `0.1.21`, verified against game v0.113.1.
 
 During combat, press **Left Arrow**, select a native card-history
 tile, and request undo. The requester is already counted as agreeing; other

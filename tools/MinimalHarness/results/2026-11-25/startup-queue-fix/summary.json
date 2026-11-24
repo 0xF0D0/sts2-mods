@@ -1,0 +1,23 @@
+{
+  "verdict": "PASS",
+  "core_sha256": "d21f95ecafe6df140995ac8590772d3bc4d6f854ac38cf92ee3471b0526ec280",
+  "batches": [
+    {
+      "name": "full-regression",
+      "cases": 21,
+      "elapsed_seconds": 427.611
+    },
+    {
+      "name": "ecstasy-mp3",
+      "cases": 1,
+      "elapsed_seconds": 94.272
+    }
+  ],
+  "category_cases": 22,
+  "game_processes": 40,
+  "peer_local_undos": 95,
+  "distinct_undos": 49,
+  "focused_additional_undos": 2,
+  "runtime": "native local singleplayer + ENet; authenticated Steam/P2P untested",
+  "cleanup": "independently verified against all four primary fixture manifests"
+}

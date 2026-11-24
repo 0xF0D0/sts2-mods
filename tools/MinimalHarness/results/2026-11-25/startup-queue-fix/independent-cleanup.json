@@ -1,0 +1,51 @@
+{
+  "verdict": "PASS",
+  "processes": "NONE",
+  "udp33771": "FREE",
+  "roots": [
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-a9iuc9u2",
+      "live_hashes": {
+        "account-1": "EXACT_ORIGINAL",
+        "account-1001": "EXACT_ORIGINAL",
+        "account-2001": "ABSENT_AS_ORIGINAL",
+        "account-3001": "ABSENT_AS_ORIGINAL",
+        "mod-UndoSync": "EXACT_ORIGINAL",
+        "mod-MinimalHarness": "ABSENT_AS_ORIGINAL"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-5kxx1gcd",
+      "live_hashes": {
+        "account-1": "EXACT_ORIGINAL",
+        "account-1001": "EXACT_ORIGINAL",
+        "account-2001": "ABSENT_AS_ORIGINAL",
+        "account-3001": "ABSENT_AS_ORIGINAL",
+        "mod-UndoSync": "EXACT_ORIGINAL",
+        "mod-MinimalHarness": "ABSENT_AS_ORIGINAL"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-3pw5w98s",
+      "live_hashes": {
+        "account-1": "EXACT_ORIGINAL",
+        "account-1001": "EXACT_ORIGINAL",
+        "account-2001": "ABSENT_AS_ORIGINAL",
+        "account-3001": "ABSENT_AS_ORIGINAL",
+        "mod-UndoSync": "EXACT_ORIGINAL",
+        "mod-MinimalHarness": "ABSENT_AS_ORIGINAL"
+      }
+    },
+    {
+      "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-h189cjhx",
+      "live_hashes": {
+        "account-1": "EXACT_ORIGINAL",
+        "account-1001": "EXACT_ORIGINAL",
+        "account-2001": "ABSENT_AS_ORIGINAL",
+        "account-3001": "ABSENT_AS_ORIGINAL",
+        "mod-UndoSync": "EXACT_ORIGINAL",
+        "mod-MinimalHarness": "ABSENT_AS_ORIGINAL"
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "baseline": {
+    "classification": "EXPECTED_DEFECT_REPRODUCED",
+    "pid": 77233,
+    "core_sha256": "a764b6ae018c8a35f8229390cd966ff6b4223b29e6844796b22aa0252e4afc5a",
+    "event": 1,
+    "phase": "Start",
+    "bounded_wait_seconds": 6,
+    "cleanup": "Task-owned explicit Network.Fail after diagnostic; not a passing restore"
+  },
+  "fixed": {
+    "classification": "PASS",
+    "pid": 78528,
+    "core_sha256": "d21f95ecafe6df140995ac8590772d3bc4d6f854ac38cf92ee3471b0526ec280",
+    "restores": 2,
+    "restore_total_ms": [
+      728,
+      552
+    ]
+  },
+  "same_native_seed": true,
+  "same_target": true,
+  "same_original_action_ids_and_order": true,
+  "game": {
+    "commit": "d09d48e5",
+    "version": "v0.113.1",
+    "date": "2026-11-14T02:31:11+00:00",
+    "branch": "v0.113.1",
+    "main_assembly_hash": -1414792094
+  }
+}

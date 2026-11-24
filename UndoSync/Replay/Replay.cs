@@ -308,10 +308,16 @@ internal static class Replay
             switch (entry.eventType)
             {
                 case CombatReplayEventType.GameAction:
-                    await WaitUntilAsync(() => !CombatManager.Instance.EndingPlayerTurnPhaseOne
-                        && !CombatManager.Instance.EndingPlayerTurnPhaseTwo, token);
                     var player = state.GetPlayer(entry.playerId!.Value)
                         ?? throw new InvalidOperationException("Replay player missing.");
+                    // Native PauseActionForPlayerChoice requires this action at
+                    // its owner's queue front. Later input can safely be queued
+                    // behind it; waiting for setup to finish here would starve
+                    // the recorded choice/resume events that finish that setup.
+                    bool WaitingForOwnChoice() => Actions.Any(a => a.OwnerId == player.NetId
+                        && a is GenericHookGameAction && a.State == GameActionState.GatheringPlayerChoice);
+                    await WaitUntilAsync(() => (!CombatManager.Instance.EndingPlayerTurnPhaseOne
+                        && !CombatManager.Instance.EndingPlayerTurnPhaseTwo) || WaitingForOwnChoice(), token);
                     var action = entry.action!.ToGameAction(player);
                     if (action.ActionType == GameActionType.CombatPlayPhaseOnly)
                     {
@@ -319,21 +325,24 @@ internal static class Replay
                         // CurrentSide becomes Player before turn-start hooks (e.g.
                         // Ecstasy's transformations) finish. A paused/empty executor
                         // does not mean this player's next turn is ready for input.
+                        bool TurnReached() => entry.action is not NetEndPlayerTurnAction end
+                            // A future turn-end must never overtake turn setup,
+                            // including setup paused for a choice.
+                            || player.PlayerCombatState?.TurnNumber >= end.turnNumber;
                         bool Ready() => CombatManager.Instance.DebugOnlyGetState()?.CurrentSide == CombatSide.Player
                             && player.PlayerCombatState?.Phase == PlayerTurnPhase.Play
-                            && manager.ActionQueueSynchronizer.CombatState == ActionSynchronizerCombatState.PlayPhase
-                            && (entry.action is not NetEndPlayerTurnAction end
-                                // Preserve native handling of an originally late
-                                // turn-end; only a future turn must not overtake.
-                                || player.PlayerCombatState.TurnNumber >= end.turnNumber);
-                        if (!Ready())
+                            && manager.ActionQueueSynchronizer.CombatState == ActionSynchronizerCombatState.PlayPhase;
+                        bool CanEnqueue() => TurnReached() && (Ready() || WaitingForOwnChoice());
+                        if (!CanEnqueue())
                         {
                             _turnReadinessWaits++;
                             ulong started = Time.GetTicksMsec();
                             Hooks.Log($"REPLAY_TURN_WAIT event={i} action={action.GetType().Name} player={player.NetId} turn={player.PlayerCombatState?.TurnNumber} phase={player.PlayerCombatState?.Phase}");
-                            await WaitUntilAsync(Ready, token);
+                            await WaitUntilAsync(CanEnqueue, token);
                             Hooks.Log($"REPLAY_TURN_READY event={i} player={player.NetId} turn={player.PlayerCombatState?.TurnNumber} waitMs={Time.GetTicksMsec() - started}");
                         }
+                        if (!Ready() && WaitingForOwnChoice())
+                            Hooks.Log($"REPLAY_QUEUED_BEHIND_CHOICE event={i} action={action.GetType().Name} player={player.NetId} turn={player.PlayerCombatState?.TurnNumber} phase={player.PlayerCombatState?.Phase}");
                     }
                     Inject(() => manager.ActionQueueSet.EnqueueWithoutSynchronizing(action));
                     Actions.Add(action);

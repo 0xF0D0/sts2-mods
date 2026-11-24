@@ -90,7 +90,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
     if transport == 'steam' and peers != 1: raise ValueError('Only the single-host Steam lifetime smoke is configured here.')
     folder = root/label
     folder.mkdir()
-    roles = ['host'] if transport == 'steam' else ['ui'] if suite in ('fuzz', 'model-probe', 'compatibility', 'wuppy', 'turn-start') and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['host'] if transport == 'steam' else ['ui'] if suite in ('fuzz', 'model-probe', 'compatibility', 'wuppy', 'turn-start', 'category', 'startup-queue') and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
     record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else transport, 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
     record['mixed_characters'] = mixed
@@ -161,7 +161,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
     if suite == 'preview' and record['verdict'] == 'PASS':
         record['verdict'] = 'CLOSED'; save(folder/'run.json', record)
     if retained or suite in ('viewport-ui', 'viewport-regression', 'fuzz', 'release-race'):
-        report = verify(folder, require_input='viewport' if suite in ('viewport-ui', 'viewport-regression', 'fuzz', 'release-race', 'wuppy') else None)
+        report = verify(folder, require_input='viewport' if suite in ('viewport-ui', 'viewport-regression', 'fuzz', 'release-race', 'wuppy', 'category', 'startup-queue') else None)
         save(folder/'summary.json', report)
         print(label, report['verdict'], flush=True)
         if report['verdict'] != 'PASS':
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=Path)
     parser.add_argument('--label', default='extended')
     parser.add_argument('--peers', type=int, default=4, choices=[1,2,3,4])
-    parser.add_argument('--suite', default='extended', choices=['turn-start','wuppy','compatibility','fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','replay-long','model-probe','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error','fault-knowledge-choice','fault-turn-choice'])
+    parser.add_argument('--suite', default='extended', choices=['startup-queue','turn-start','wuppy','compatibility','fuzz','basic','extended','choice-ui','picker-ui','viewport-ui','viewport-regression','localization-ui','localization-mp','preview','regression','speed-skew','vote-busy-ui','vote-ui-regression','proposer-record','vote-loss','replay-loss','picker-remote','ended-voter','restoring-ui','replay-speed','replay-speed-cancel','replay-long','model-probe','fault-old-action','fault-disconnect','fault-send','fault-send-matrix','fault-replay-error','fault-knowledge-choice','fault-turn-choice'])
     parser.add_argument('--expect', choices=['baseline','fixed'], default='fixed')
     parser.add_argument('--fault-op', default='Done')
     parser.add_argument('--drop-side', choices=['client','host'], default='client')
@@ -218,6 +218,7 @@ if __name__ == '__main__':
     parser.add_argument('--choice-card', choices=['TOOLS_OF_THE_TRADE','FOREGONE_CONCLUSION','TYRANNY','ENTROPY','STRATAGEM'])
     parser.add_argument('--knowledge-chooser', choices=['host','client','client2','client3','none'], default='host')
     parser.add_argument('--character', choices=['FOOL'])
+    parser.add_argument('--queued-action', choices=['use','discard','select'], default='use')
     parser.add_argument('--wuppy-branch', choices=['immediate', 'cautious'], default='cautious')
     parser.add_argument('--mode', choices=['standard', 'blitz'], default='standard')
     parser.add_argument('--profile', choices=['arrows', 'destroy', 'symbols', 'death'], default='arrows')
@@ -234,6 +235,7 @@ if __name__ == '__main__':
         extra_args = ['--minimal-expect='+args.expect, '--minimal-fault-op='+args.fault_op,
                       '--minimal-drop-side='+args.drop_side, '--minimal-drop-count='+str(args.drop_count),
                       '--minimal-knowledge-chooser='+args.knowledge_chooser]
+        if args.suite == 'startup-queue': extra_args.append('--minimal-queued-action='+args.queued_action)
         if args.choice_card: extra_args.append('--minimal-choice-card='+args.choice_card)
         if args.character: extra_args.append('--minimal-character='+args.character)
         if args.suite == 'turn-start' and args.character != 'FOOL': parser.error('turn-start requires --character FOOL')
@@ -245,7 +247,7 @@ if __name__ == '__main__':
                 if args.mode != 'blitz' or args.profile != 'symbols': parser.error('progression requires --mode blitz --profile symbols')
                 extra_args.append('--minimal-progression')
         run(args.root, args.label, args.peers, args.suite, not args.visible, args.seed, args.schedule_seed, args.repro, args.speed,
-            extra_args=extra_args, retained=args.suite == 'turn-start')
+            extra_args=extra_args, retained=args.suite == 'turn-start' or args.suite == 'startup-queue' and args.expect != 'baseline')
         result = json.loads((args.root/args.label/'run.json').read_text())
         if result['verdict'] == 'FAIL': raise SystemExit(1)
     else: restore(args.root)

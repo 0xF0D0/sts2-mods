@@ -73,7 +73,8 @@ public static class Harness
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
-    private static CharacterModel Character => WuppyProbe.Active ? ModelDb.Character<Ironclad>()
+    private static CharacterModel Character => CategoryProbe.Active ? CategoryProbe.Character
+        : WuppyProbe.Active ? ModelDb.Character<Ironclad>()
         : CommandLineHelper.GetValue("minimal-character") == "FOOL" ? ModelDb.Character<Fool>()
         : FaultScenarios.ChoiceCharacter ?? ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
         ? (_role is "host" or "ui" ? ModelDb.Character<Defect>() : ModelDb.Character<Silent>()) : _suite == "basic" || _role == "ui" && _suite is not "choice-ui" and not "fuzz"
@@ -133,6 +134,7 @@ public static class Harness
         Manager.RunStarted += runState =>
         {
             _generation++;
+            if (StartupQueueProbe.Active) StartupQueueProbe.Attach();
             var service = Manager.NetService;
             if (Network.Executing && _suite is "replay-speed-baseline" or "replay-speed")
             {
@@ -262,6 +264,7 @@ public static class Harness
             _netId = Manager.NetService.NetId.ToString();
             Log($"OBSERVED_TRANSPORT transport={_observedTransport} netId={_netId}");
             _stage = "combat-entry";
+            if (StartupQueueProbe.Active) await StartupQueueProbe.CompleteOpening();
             await Idle();
             Require(Manager.ChecksumTracker.IsEnabled, "native checksum enabled");
             Require(NCombatRoom.Instance is not null, "real native combat UI exists");
@@ -286,6 +289,8 @@ public static class Harness
             else if (CompatibilityProbe.Active) await CompatibilityProbe.Run();
             else if (WuppyProbe.Active) await WuppyProbe.Run();
             else if (TurnStartProbe.Active) await TurnStartProbe.Run();
+            else if (CategoryProbe.Active) await CategoryProbe.Run();
+            else if (StartupQueueProbe.Active) await StartupQueueProbe.Run();
             else if (_suite.StartsWith("fault-")) await FaultScenarios.Run(_suite);
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
@@ -338,8 +343,9 @@ public static class Harness
     {
         _stage = "boot";
         if (_suite == "fault-turn-choice") FaultScenarios.PrepareChoiceUnlocks();
+        if (CategoryProbe.Active) CategoryProbe.Unlock();
         if (WuppyProbe.Active) WuppyProbe.PrepareUnlocks();
-        if (TurnStartProbe.Active || CompatibilityProbe.Active || FuzzDriver.Active && (CommandLineHelper.GetValue("minimal-character") == "FOOL"
+        if (TurnStartProbe.Active || StartupQueueProbe.Active || CompatibilityProbe.Active || FuzzDriver.Active && (CommandLineHelper.GetValue("minimal-character") == "FOOL"
             || CompatibilityProbe.Mode == GameMode.Blitz)) CompatibilityProbe.PrepareUnlocks();
         var listener = new Listener();
         StartRunLobby? lobby = null;
@@ -416,11 +422,11 @@ public static class Harness
         lobby?.CleanUp(disconnectSession: false);
         _pump = null; // Native NRun now owns Update; replacement lobbies pump themselves.
         int actIndex = 0;
-        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss || _suite == "fault-knowledge-choice")
+        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss || _suite == "fault-knowledge-choice" || CategoryProbe.Boss)
         {
             var hive = state.Acts.OfType<Hive>().Single();
             actIndex = state.Acts.ToList().IndexOf(hive);
-            hive.SetBossEncounter(hive.AllBossEncounters.Single(encounter => _suite == "fault-knowledge-choice"
+            hive.SetBossEncounter(hive.AllBossEncounters.Single(encounter => _suite == "fault-knowledge-choice" || CategoryProbe.Boss
                 ? encounter is KnowledgeDemonBoss : encounter is TheInsatiableBoss));
         }
         await Manager.SetActInternal(actIndex);
@@ -430,6 +436,8 @@ public static class Harness
         if (CompatibilityProbe.Active) await CompatibilityProbe.Prepare();
         if (WuppyProbe.Active) await WuppyProbe.Prepare();
         if (TurnStartProbe.Active) await TurnStartProbe.Prepare();
+        if (CategoryProbe.Active) await CategoryProbe.Prepare();
+        if (StartupQueueProbe.Active) await StartupQueueProbe.Prepare();
         if (_suite == "model-probe")
         {
             if (CommandLineHelper.GetValue("minimal-character") == "FOOL")
@@ -458,7 +466,7 @@ public static class Harness
             }
             else await LongReplayBenchmark.Prepare();
         }
-        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss || _suite == "fault-knowledge-choice")
+        if (_suite == "model-probe" && ModelReplayProbe.ProbeBoss || _suite == "fault-knowledge-choice" || CategoryProbe.Boss)
         {
             var boss = state.Map.BossMapPoint;
             await Manager.EnterMapCoordDebug(boss.coord, RoomType.Boss, MapPointType.Boss, showTransition: false);

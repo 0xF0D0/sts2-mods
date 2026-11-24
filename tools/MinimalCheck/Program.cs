@@ -6,8 +6,15 @@ if (args.Length != 2) throw new ArgumentException("Usage: MinimalCheck <mod-proj
 string modRoot = Path.GetFullPath(args[0]);
 string gameRoot = Path.GetFullPath(args[1]);
 string assemblyPath = Path.Combine(modRoot, "bin/Release/net9.0/UndoSync.dll");
+// Derived audit documents are not a sixth runtime module. Keep this exception
+// narrow: a source/project/binary in that directory still fails the check.
+string auditDocs = Path.Combine(modRoot, "audits");
+if (Directory.Exists(auditDocs))
+    Require(!Directory.EnumerateFiles(auditDocs, "*", SearchOption.AllDirectories)
+        .Any(p => new[] { ".cs", ".csproj", ".dll" }.Contains(Path.GetExtension(p), StringComparer.OrdinalIgnoreCase)),
+        "audit directory contains no production source/project/binary");
 var modules = Directory.GetDirectories(modRoot)
-    .Select(Path.GetFileName).Where(n => n is not "bin" and not "obj").Order().ToArray();
+    .Select(Path.GetFileName).Where(n => n is not "bin" and not "obj" and not "audits").Order().ToArray();
 Require(modules.SequenceEqual(new[] { "History", "Hook", "Network", "Replay", "UI" }), "exactly five production modules");
 using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(modRoot, "UndoSync.json")));
 Require(manifest.RootElement.GetProperty("id").GetString() == "UndoSync", "manifest identity");

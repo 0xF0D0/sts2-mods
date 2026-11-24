@@ -1,0 +1,89 @@
+{
+  "completed": 21,
+  "results": [
+    {
+      "label": "00-choice-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "01-card-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "02-turn-end-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "03-turn-start-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "04-turn-transform-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "05-choice-pending-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "06-potion-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "07-potion-pending-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "08-combat-start-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "09-startup-use-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "10-startup-discard-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "11-startup-select-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "12-mixed-1p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "13-potion-3p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "14-enemy-replay-3p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "15-enemy-choice-3p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "16-turn-choice-3p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "17-startup-use-3p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "18-startup-discard-3p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "19-startup-select-3p",
+      "verdict": "PASS"
+    },
+    {
+      "label": "20-mixed-3p",
+      "verdict": "PASS"
+    }
+  ]
+}

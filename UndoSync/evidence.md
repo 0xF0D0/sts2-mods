@@ -1372,3 +1372,39 @@ Limits: one content seed and bounded weak encounters. This is a minimized real
 native producer for the incident's mechanism, not the full user boss/relic/potion
 trace. No exhaustive content fuzz sweep, arbitrary late-input/death/revive matrix,
 other-mod compatibility acceptance or separate-computer Steam/P2P verification.
+
+
+## v0.1.21 startup selection / queued-input replay fix (2026-11-25)
+
+The shipped v0.1.20 gate reproduced the user's event-1 UsePotionAction / phase
+Start stall with a legal native Gambling Chip choice and queued potion input.
+PID 77233: bounded expected-defect reproduction, explicitly cleaned up after
+six seconds; this is not counted as a successful restore. Fixed rendered focus
+PID 78528: identical original target/ID trace, two exact restores (728/552 ms).
+
+The common feeder allows enqueue behind an actually gathering own native hook,
+then delivers the historical choice/resume records in order. Native execution
+still waits at the queue front. The future-turn EndTurn guard and ordinary
+play-phase readiness remain. No potion-specific branch or wire format change.
+
+22 native local case runs passed (21-case category batch plus rendered three-peer
+seven-turn Fool Ecstasy/Vitriol regression): 40 processes, 49 distinct Undo
+sessions and 95 peer-local verified restores. The separate focus adds two Undo
+sessions. Startup use/discard/Skill Potion profiles compare exact enqueue/resume
+IDs/order as well as saved full target states; each multiplayer profile rotates
+all three proposers. All continue with real input/next turn. Native transport
+replacement, reconnects, ordinary checksums during replay, C# exceptions and
+state divergences were absent. Original local mod/test profiles were restored
+and independently compared against all four primary/ZIP backup roots.
+
+Core DLL SHA-256 retained by the release package:
+`d21f95ecafe6df140995ac8590772d3bc4d6f854ac38cf92ee3471b0526ec280`.
+Game v0.113.1 / d09d48e5. Authenticated Steam/P2P remains untested. The exact
+36-event user combat was not recovered; this is a native reconstruction of the
+same wait cycle. An earlier outgoing card-view NullReference in the same user
+PID remains a separate unresolved incident. See
+[report](../tools/MinimalHarness/results/2026-11-25/startup-queue-fix/report.md),
+[summary](../tools/MinimalHarness/results/2026-11-25/startup-queue-fix/summary.json)
+and the report's native safety/coverage limits.
+
+Publication receipts are kept in `dist/UndoSync-v0.1.21-release-receipt.json`.
