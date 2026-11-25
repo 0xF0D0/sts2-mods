@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "verdict": "PASS",
+  "transport": "singleplayer",
+  "suite": "lifecycle",
+  "core_sha256": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+  "harness_sha256": "370f1dfb9bd477500ad8ab1fb224efb3a607d9affb1204dc2b0cc868780482e8",
+  "roles": [
+    "ui"
+  ],
+  "participants": {
+    "ui": {
+      "schema": 1,
+      "role": "ui",
+      "pid": 73442,
+      "suite": "lifecycle",
+      "speed": "Normal",
+      "transport": "singleplayer",
+      "net_id": "1",
+      "peers": 1,
+      "verdict": "PASS",
+      "failure": null,
+      "cards": 5,
+      "undos": 3,
+      "selections": 0,
+      "divergences": 0,
+      "viewport_inputs": 0,
+      "native_callbacks": 0,
+      "target_checks": 3,
+      "final_state_sha256": "A722FCCBFF3CC49584302FAE19AA8EC574F2AA013D766A6A2A21505C2A23472A",
+      "post_replay_actions": 3,
+      "phase_coverage": {
+        "busy_votes": 0,
+        "preparing_before_release": 0,
+        "skew_holds": 0,
+        "recorder_faults": 0
+      },
+      "session_replacements": 0,
+      "connections_opened": 0,
+      "connections_closed": 0,
+      "native_checksums_during_replay": 0,
+      "preserved_disconnects": 0,
+      "suppressed_checksum_calls": 6,
+      "dropped_checksum_messages": 0,
+      "core_sha256": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+      "harness_sha256": "370f1dfb9bd477500ad8ab1fb224efb3a607d9affb1204dc2b0cc868780482e8"
+    }
+  },
+  "sessions": {
+    "549cc5c3c08d482ea27d9040fb833909": {
+      "ui": "1821899888"
+    },
+    "9ee2b1f61690481d92977c32a0fcf9a7": {
+      "ui": "1821899888"
+    },
+    "9b4f05d034f14c37906311fa3530c060": {
+      "ui": "1821899888"
+    }
+  },
+  "issues": [],
+  "input_requirement": null,
+  "content_coverage": null
+}

@@ -1,0 +1,75 @@
+[
+  {
+    "path": "focused-draw",
+    "verdict": "PASS",
+    "roles": [
+      "ui"
+    ]
+  },
+  {
+    "path": "redraw-focus/redraw-sp",
+    "verdict": "PASS",
+    "roles": [
+      "ui"
+    ]
+  },
+  {
+    "path": "skew-02/skew-mp3",
+    "verdict": "PASS",
+    "roles": [
+      "host",
+      "client",
+      "client2"
+    ]
+  },
+  {
+    "path": "mixed-01/enemy-sp",
+    "verdict": "PASS",
+    "roles": [
+      "ui"
+    ]
+  },
+  {
+    "path": "mixed-01/enemy-mp3",
+    "verdict": "PASS",
+    "roles": [
+      "host",
+      "client",
+      "client2"
+    ]
+  },
+  {
+    "path": "mixed-01/lifecycle-mp3",
+    "verdict": "PASS",
+    "roles": [
+      "host",
+      "client",
+      "client2"
+    ]
+  },
+  {
+    "path": "mixed-01/redraw-mp3",
+    "verdict": "PASS",
+    "roles": [
+      "host",
+      "client",
+      "client2"
+    ]
+  },
+  {
+    "path": "mixed-01/transform-sp",
+    "verdict": "PASS",
+    "roles": [
+      "ui"
+    ]
+  },
+  {
+    "path": "mixed-01/transform-mp3",
+    "verdict": "PASS",
+    "roles": [
+      "host",
+      "client",
+      "client2"
+    ]
+  }
+]

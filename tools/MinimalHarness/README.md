@@ -240,3 +240,9 @@ order rather than only the final state.
 Run `python3 tools/MinimalHarness/categories.py` from the repository root.
 The command records per-case proof, binary/game identity and exact cleanup;
 category success is not an all-content or authenticated Steam/P2P guarantee.
+
+For reconstruction during pending native draw/enemy work, nonempty Gambling
+Chip redraw plus transformations, and heterogeneous partly-completed peer
+choices, see [MIXED.md](MIXED.md) and `mixed.py`. These are timing/composition
+variants of the same categories; run the category and overlap suites together
+when checking a new game build.

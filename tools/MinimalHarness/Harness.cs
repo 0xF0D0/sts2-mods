@@ -73,7 +73,8 @@ public static class Harness
     private static string _suite = "basic";
     internal static string[] Roles => _role == "ui" ? new[] { "ui" } : Enumerable.Range(0, _peers).Select(i => i == 0 ? "host" : i == 1 ? "client" : $"client{i}").ToArray();
     private static bool AutoChoices => _suite is "extended" or "vote-loss" or "replay-loss" or "replay-speed-baseline" or "replay-speed";
-    private static CharacterModel Character => CategoryProbe.Active ? CategoryProbe.Character
+    private static CharacterModel Character => StartupQueueProbe.Skew ? (_role == "host" ? ModelDb.Character<Fool>() : _role == "client" ? ModelDb.Character<Ironclad>() : ModelDb.Character<Silent>())
+        : CategoryProbe.Active ? CategoryProbe.Character
         : WuppyProbe.Active ? ModelDb.Character<Ironclad>()
         : CommandLineHelper.GetValue("minimal-character") == "FOOL" ? ModelDb.Character<Fool>()
         : FaultScenarios.ChoiceCharacter ?? ModelReplayProbe.FixtureCharacter ?? (CommandLineHelper.HasArg("minimal-mixed")
@@ -291,6 +292,7 @@ public static class Harness
             else if (TurnStartProbe.Active) await TurnStartProbe.Run();
             else if (CategoryProbe.Active) await CategoryProbe.Run();
             else if (StartupQueueProbe.Active) await StartupQueueProbe.Run();
+            else if (LifecycleProbe.Active) await LifecycleProbe.Run();
             else if (_suite.StartsWith("fault-")) await FaultScenarios.Run(_suite);
             else if (_suite == "viewport-ui") await ViewportUiAsync();
             else if (_suite == "choice-ui") await ChoiceUiAsync();
@@ -438,6 +440,7 @@ public static class Harness
         if (TurnStartProbe.Active) await TurnStartProbe.Prepare();
         if (CategoryProbe.Active) await CategoryProbe.Prepare();
         if (StartupQueueProbe.Active) await StartupQueueProbe.Prepare();
+        if (LifecycleProbe.Active) await LifecycleProbe.Prepare();
         if (_suite == "model-probe")
         {
             if (CommandLineHelper.GetValue("minimal-character") == "FOOL")
@@ -580,6 +583,29 @@ public static class Harness
                 else if (control is Button previousButton) previousButton.Pressed -= Standard;
             }
         }
+    }
+
+    internal static async Task SelectHandViaViewport(CardModel card)
+    {
+        var holder = NCombatRoom.Instance!.Ui.Hand.ActiveHolders.Single(h => h.CardNode?.Model == card);
+        await Wait(() => holder.Hitbox.IsEnabled && holder.IsVisibleInTree());
+        bool clicked = false;
+        void Native(MegaCrit.Sts2.Core.Nodes.Cards.Holders.NCardHolder _) { clicked = true; _nativeCallbacks++; Log("NATIVE_UI_CALLBACK action=hand-select"); }
+        holder.HolderMouseClicked += Native;
+        try
+        {
+            var viewport = holder.GetViewport();
+            Vector2 Position() => holder.Hitbox.GetGlobalTransformWithCanvas() * (holder.Hitbox.Size * .5f);
+            viewport.PushInput(new InputEventMouseMotion { Position = Position(), GlobalPosition = Position() }, true);
+            await NGame.Instance!.AwaitProcessFrame();
+            var point = Position();
+            viewport.PushInput(new InputEventMouseButton { Position=point, GlobalPosition=point, ButtonIndex=MouseButton.Left, Pressed=true }, true);
+            await NGame.Instance!.AwaitProcessFrame();
+            viewport.PushInput(new InputEventMouseButton { Position=point, GlobalPosition=point, ButtonIndex=MouseButton.Left, Pressed=false }, true);
+            _viewportInputs++; Log("VIEWPORT_INPUT action=hand-select card="+card.Id.Entry);
+            await Wait(() => clicked,5);
+        }
+        finally { if (GodotObject.IsInstanceValid(holder)) holder.HolderMouseClicked -= Native; }
     }
 
     internal static async Task RequestViaViewport(int target)

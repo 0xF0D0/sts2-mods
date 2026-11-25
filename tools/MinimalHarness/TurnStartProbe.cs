@@ -21,7 +21,7 @@ namespace MinimalHarness;
 // Vitriol/Ecstasy. No injected pauses, choice results, HP, card IDs or powers.
 internal static class TurnStartProbe
 {
-    internal static bool Active => CommandLineHelper.GetValue("minimal-suite") == "turn-start";
+    internal static bool Active => CommandLineHelper.GetValue("minimal-suite") is "turn-start" or "startup-transform";
     private static readonly List<string> Trace = new();
     private static int _joys;
     private static readonly Dictionary<ulong, int> JoysByPlayer = new();
@@ -148,6 +148,7 @@ internal static class TurnStartProbe
         await Harness.EndTurnAll("probe-continued");
         Harness.Require(Harness.State.Players.All(p => p.PlayerCombatState!.TurnNumber == 9), "next native turn works after restoration");
         File.WriteAllText(Path.Combine(Harness.DirectoryPath, $"turn-start-proof.{Harness.Role}.json"), JsonSerializer.Serialize(new { turns = 7, replay_events = target, generated_joys_played = _joys, generated_joys_by_player = JoysByPlayer, final_turn = 9 }));
+        if (StartupQueueProbe.Transform) StartupQueueProbe.WriteCompositionProof();
         await Harness.Barrier("probe-terminal");
     }
 }

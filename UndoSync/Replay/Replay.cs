@@ -210,6 +210,13 @@ internal static class Replay
         UI.DetachRunMusic();
         // Unsubscribe the outgoing map while its native scene is still available.
         NRun.Instance?.GlobalUi.MapScreen.CleanUp();
+        // Exiting a view completes its native tween awaits synchronously. Stop
+        // the old turn first, while RunManager still owns the original run and
+        // the views can process native creature/power cleanup. Otherwise Draw
+        // can resume against an already detached NCombatRoom before CleanUp.
+        OwnsCleanup = true;
+        try { CombatManager.Instance.Reset(graceful: true); }
+        finally { OwnsCleanup = false; }
         // Exit native UI against its original run owners before disposing them.
         NGame.Instance.RootSceneContainer.SetCurrentScene(new Control());
         await Frame(token);

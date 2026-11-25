@@ -1,0 +1,423 @@
+{
+  "verdict": "PASS",
+  "game": "v0.113.1 d09d48e5",
+  "native_sha256": "a671e9efb86a7b80405133105665867b053c787670d475b4347cf5ccc15cb5fb",
+  "fixed_core_sha256": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+  "successful_cases": 30,
+  "new_overlap_cases": 9,
+  "existing_category_cases": 21,
+  "successful_processes": 56,
+  "distinct_undos": 71,
+  "peer_local_undos": 141,
+  "baseline_expected_defect_pid": 71367,
+  "excluded_attempts": [
+    {
+      "pids": [
+        70177
+      ],
+      "classification": "NOT_REPRODUCED",
+      "reason": "Draw was still awaiting shuffle; old task completed normally."
+    },
+    {
+      "pids": [
+        81632,
+        81700,
+        81729
+      ],
+      "classification": "FIXTURE_SCHEDULING_ERROR",
+      "reason": "Tried new input while voting; production InputGate rejected it. No final vote/restore occurred."
+    }
+  ],
+  "runtime": "Native singleplayer and real local ENet; Steam/P2P untested",
+  "cleanup": "Independent primary/ZIP/live hash checks across seven roots; no game process or UDP 33771 listener",
+  "cases": [
+    {
+      "path": "focused-draw",
+      "suite": "lifecycle",
+      "peers": 1,
+      "pids": {
+        "ui": 73442
+      },
+      "seconds": 47.217,
+      "distinct_undos": 3,
+      "peer_local_undos": 3,
+      "verdict": "PASS"
+    },
+    {
+      "path": "redraw-focus/redraw-sp",
+      "suite": "startup-queue",
+      "peers": 1,
+      "pids": {
+        "ui": 77008
+      },
+      "seconds": 22.119,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "skew-02/skew-mp3",
+      "suite": "peer-skew",
+      "peers": 3,
+      "pids": {
+        "host": 85523,
+        "client": 85630,
+        "client2": 85632
+      },
+      "seconds": 63.604,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "mixed-01/enemy-sp",
+      "suite": "lifecycle",
+      "peers": 1,
+      "pids": {
+        "ui": 78194
+      },
+      "seconds": 26.871,
+      "distinct_undos": 3,
+      "peer_local_undos": 3,
+      "verdict": "PASS"
+    },
+    {
+      "path": "mixed-01/enemy-mp3",
+      "suite": "lifecycle",
+      "peers": 3,
+      "pids": {
+        "host": 78568,
+        "client": 78631,
+        "client2": 78633
+      },
+      "seconds": 38.974,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "mixed-01/lifecycle-mp3",
+      "suite": "lifecycle",
+      "peers": 3,
+      "pids": {
+        "host": 79117,
+        "client": 79186,
+        "client2": 79215
+      },
+      "seconds": 84.138,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "mixed-01/redraw-mp3",
+      "suite": "startup-queue",
+      "peers": 3,
+      "pids": {
+        "host": 80279,
+        "client": 80346,
+        "client2": 80376
+      },
+      "seconds": 21.894,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "mixed-01/transform-sp",
+      "suite": "startup-transform",
+      "peers": 1,
+      "pids": {
+        "ui": 80600
+      },
+      "seconds": 19.597,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "mixed-01/transform-mp3",
+      "suite": "startup-transform",
+      "peers": 3,
+      "pids": {
+        "host": 80886,
+        "client": 80948,
+        "client2": 80950
+      },
+      "seconds": 53.277,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/00-choice-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 86779
+      },
+      "seconds": 22.126,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/01-card-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 87096
+      },
+      "seconds": 12.581,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/02-turn-end-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 87269
+      },
+      "seconds": 12.58,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/03-turn-start-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 87446
+      },
+      "seconds": 20.616,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/04-turn-transform-1p",
+      "suite": "turn-start",
+      "peers": 1,
+      "pids": {
+        "ui": 87739
+      },
+      "seconds": 19.591,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/05-choice-pending-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 88021
+      },
+      "seconds": 12.57,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/06-potion-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 88195
+      },
+      "seconds": 12.571,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/07-potion-pending-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 88369
+      },
+      "seconds": 12.572,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/08-combat-start-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 88545
+      },
+      "seconds": 12.585,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/09-startup-use-1p",
+      "suite": "startup-queue",
+      "peers": 1,
+      "pids": {
+        "ui": 88763
+      },
+      "seconds": 21.106,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/10-startup-discard-1p",
+      "suite": "startup-queue",
+      "peers": 1,
+      "pids": {
+        "ui": 89412
+      },
+      "seconds": 12.577,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/11-startup-select-1p",
+      "suite": "startup-queue",
+      "peers": 1,
+      "pids": {
+        "ui": 89606
+      },
+      "seconds": 12.829,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/12-mixed-1p",
+      "suite": "category",
+      "peers": 1,
+      "pids": {
+        "ui": 89779
+      },
+      "seconds": 27.63,
+      "distinct_undos": 2,
+      "peer_local_undos": 2,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/13-potion-3p",
+      "suite": "category",
+      "peers": 3,
+      "pids": {
+        "host": 90174,
+        "client": 90236,
+        "client2": 90238
+      },
+      "seconds": 21.156,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/14-enemy-replay-3p",
+      "suite": "category",
+      "peers": 3,
+      "pids": {
+        "host": 90472,
+        "client": 90534,
+        "client2": 90563
+      },
+      "seconds": 22.167,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/15-enemy-choice-3p",
+      "suite": "fault-knowledge-choice",
+      "peers": 3,
+      "pids": {
+        "host": 90790,
+        "client": 90857,
+        "client2": 90859
+      },
+      "seconds": 17.655,
+      "distinct_undos": 1,
+      "peer_local_undos": 3,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/16-turn-choice-3p",
+      "suite": "fault-turn-choice",
+      "peers": 3,
+      "pids": {
+        "host": 91065,
+        "client": 91126,
+        "client2": 91130
+      },
+      "seconds": 19.15,
+      "distinct_undos": 1,
+      "peer_local_undos": 3,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/17-startup-use-3p",
+      "suite": "startup-queue",
+      "peers": 3,
+      "pids": {
+        "host": 91325,
+        "client": 91388,
+        "client2": 91418
+      },
+      "seconds": 21.176,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/18-startup-discard-3p",
+      "suite": "startup-queue",
+      "peers": 3,
+      "pids": {
+        "host": 91612,
+        "client": 91681,
+        "client2": 91710
+      },
+      "seconds": 20.902,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/19-startup-select-3p",
+      "suite": "startup-queue",
+      "peers": 3,
+      "pids": {
+        "host": 91904,
+        "client": 91967,
+        "client2": 91996
+      },
+      "seconds": 21.158,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    },
+    {
+      "path": "full-regression/20-mixed-3p",
+      "suite": "category",
+      "peers": 3,
+      "pids": {
+        "host": 92221,
+        "client": 92284,
+        "client2": 92313
+      },
+      "seconds": 58.562,
+      "distinct_undos": 3,
+      "peer_local_undos": 9,
+      "verdict": "PASS"
+    }
+  ],
+  "publication": "Pre-release validation; see subsequent v0.1.22 publication receipt",
+  "publication_receipt": "dist/UndoSync-v0.1.22-release-receipt.json"
+}

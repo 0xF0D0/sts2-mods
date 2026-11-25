@@ -1408,3 +1408,34 @@ PID remains a separate unresolved incident. See
 and the report's native safety/coverage limits.
 
 Publication receipts are kept in `dist/UndoSync-v0.1.21-release-receipt.json`.
+
+
+## v0.1.22 outgoing card-view exception fix (2026-11-25)
+
+The earlier unresolved CreateCardNodeAndUpdateVisuals NullReference from PID
+22570 was reproduced with native turn-start Draw and a real first-card tween
+(PID 71367, shipped v0.1.21 core). Removing the scene completed the tween while
+the old combat was still live, allowing Draw to access a missing room. This was
+our teardown order, not invalid injected game content or a proven native bug.
+The seven-line local Replay correction runs native public CombatManager.Reset
+under the existing cleanup guard before removing the scene, while RunManager's
+old run is still present. No gameplay skip, new reflection or wire change.
+
+Rendered same-condition before/after passed, followed by nine overlap profiles
+and all 21 existing category cases: 56 successful processes, 71 Undo sessions,
+141 peer-local target checks, zero native C# exceptions/divergences. Actual
+five-card Gambling Chip discard/redraw/shuffle, startup potion + seven-turn
+Fool transformations, heterogeneous Fool/Ironclad/Silent partial choices and
+unfinished Strike at final vote are covered. Targets alternate 13/14/13 in the
+heterogeneous run. An earlier non-reproducing trigger and a fixture scheduling
+failure are retained and excluded. Seven backup roots' primary/ZIP/live file
+hashes match originals; no active game or test port remains.
+
+Fixed local core SHA-256:
+`361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d`.
+This records pre-release validation of the exact DLL retained by v0.1.22.
+The earlier v0.1.21 DLL predates this correction; authenticated Steam/P2P is
+not covered. Publication is tracked in `dist/UndoSync-v0.1.22-release-receipt.json`. See the detailed
+[report](../tools/MinimalHarness/results/2026-11-25/teardown-mixed/report.md),
+[summary](../tools/MinimalHarness/results/2026-11-25/teardown-mixed/summary.json)
+and [native lifecycle review](../tools/MinimalHarness/results/2026-11-25/teardown-mixed/review.md).

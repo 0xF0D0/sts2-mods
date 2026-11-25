@@ -1,0 +1,708 @@
+{
+  "root": "/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w",
+  "results": [
+    {
+      "case": "enemy-sp",
+      "peers": 1,
+      "suite": "lifecycle",
+      "rendered": false,
+      "verdict": "PASS",
+      "run": {
+        "label": "enemy-sp",
+        "peers": 1,
+        "suite": "lifecycle",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 78194,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/enemy-sp",
+              "--minimal-peers=1",
+              "--minimal-suite=lifecycle",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=normal",
+              "--minimal-lifecycle-phase=enemy",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "normal",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+            "UndoSync.json": "90d46c38c4df87fae7a44270f87b806507f0a5e65c8c98424073386911b2df01"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "561238e631cf202812556013ad5fe8f97c47defb1d45db7b5170e99dbad28ead",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 26.871
+      }
+    },
+    {
+      "case": "enemy-mp3",
+      "peers": 3,
+      "suite": "lifecycle",
+      "rendered": false,
+      "verdict": "PASS",
+      "run": {
+        "label": "enemy-mp3",
+        "peers": 3,
+        "suite": "lifecycle",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 78568,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/enemy-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=lifecycle",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=normal",
+              "--minimal-lifecycle-phase=enemy",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 78631,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/enemy-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=lifecycle",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=normal",
+              "--minimal-lifecycle-phase=enemy",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 78633,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/enemy-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=lifecycle",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=normal",
+              "--minimal-lifecycle-phase=enemy",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "normal",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+            "UndoSync.json": "90d46c38c4df87fae7a44270f87b806507f0a5e65c8c98424073386911b2df01"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "561238e631cf202812556013ad5fe8f97c47defb1d45db7b5170e99dbad28ead",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 38.974
+      }
+    },
+    {
+      "case": "lifecycle-mp3",
+      "peers": 3,
+      "suite": "lifecycle",
+      "rendered": true,
+      "verdict": "PASS",
+      "run": {
+        "label": "lifecycle-mp3",
+        "peers": 3,
+        "suite": "lifecycle",
+        "seed": "MINIMAL_MP_A",
+        "headless": false,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 79117,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/lifecycle-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=lifecycle",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=normal",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 79186,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/lifecycle-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=lifecycle",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=normal",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 79215,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/lifecycle-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=lifecycle",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=normal",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "normal",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+            "UndoSync.json": "90d46c38c4df87fae7a44270f87b806507f0a5e65c8c98424073386911b2df01"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "561238e631cf202812556013ad5fe8f97c47defb1d45db7b5170e99dbad28ead",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 84.138
+      }
+    },
+    {
+      "case": "redraw-mp3",
+      "peers": 3,
+      "suite": "startup-queue",
+      "rendered": false,
+      "verdict": "PASS",
+      "run": {
+        "label": "redraw-mp3",
+        "peers": 3,
+        "suite": "startup-queue",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 80279,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/redraw-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=startup-queue",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--minimal-startup-discards=5",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 80346,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/redraw-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=startup-queue",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--minimal-startup-discards=5",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 80376,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/redraw-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=startup-queue",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--minimal-startup-discards=5",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+            "UndoSync.json": "90d46c38c4df87fae7a44270f87b806507f0a5e65c8c98424073386911b2df01"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "561238e631cf202812556013ad5fe8f97c47defb1d45db7b5170e99dbad28ead",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 21.894
+      }
+    },
+    {
+      "case": "transform-sp",
+      "peers": 1,
+      "suite": "startup-transform",
+      "rendered": false,
+      "verdict": "PASS",
+      "run": {
+        "label": "transform-sp",
+        "peers": 1,
+        "suite": "startup-transform",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "ui"
+        ],
+        "transport": "singleplayer",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "ui": {
+            "pid": 80600,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=ui",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/transform-sp",
+              "--minimal-peers=1",
+              "--minimal-suite=startup-transform",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+            "UndoSync.json": "90d46c38c4df87fae7a44270f87b806507f0a5e65c8c98424073386911b2df01"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "561238e631cf202812556013ad5fe8f97c47defb1d45db7b5170e99dbad28ead",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 19.597
+      }
+    },
+    {
+      "case": "transform-mp3",
+      "peers": 3,
+      "suite": "startup-transform",
+      "rendered": false,
+      "verdict": "PASS",
+      "run": {
+        "label": "transform-mp3",
+        "peers": 3,
+        "suite": "startup-transform",
+        "seed": "MINIMAL_MP_A",
+        "headless": true,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 80886,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/transform-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=startup-transform",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client": {
+            "pid": 80948,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/transform-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=startup-transform",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--headless"
+            ],
+            "exit": 0
+          },
+          "client2": {
+            "pid": 80950,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/transform-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=startup-transform",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=instant",
+              "--minimal-character=FOOL",
+              "--headless"
+            ],
+            "exit": 0
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "instant",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+            "UndoSync.json": "90d46c38c4df87fae7a44270f87b806507f0a5e65c8c98424073386911b2df01"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "561238e631cf202812556013ad5fe8f97c47defb1d45db7b5170e99dbad28ead",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "PASS",
+        "elapsed_seconds": 53.277
+      }
+    },
+    {
+      "case": "skew-mp3",
+      "peers": 3,
+      "suite": "peer-skew",
+      "rendered": true,
+      "verdict": "FAIL",
+      "error": "Evidence verification failed: [{\"kind\": \"FAIL\", \"message\": \"host: process/scenario failed: System.TimeoutException: combat-entry: busy=False status=Undo timed out at voting. count=21 run=True combat=True sync=PlayPhase executor=False\\n   at MinimalHarness.Harness.Wait(Func`1 predicate, Int32 seconds)\\n   at MinimalHarness.PeerSkewProbe.Run()\\n   at MinimalHarness.StartupQueueProbe.Run()\\n   at MinimalHarness.Harness.RunAsync()\"}, {\"kind\": \"UNCOVERED\", \"message\": \"host: no completed target-state-checked undo\"}, {\"kind\": \"UNCOVERED\", \"message\": \"host: mechanism marker absent: RESTORE_BEGIN\"}, {\"kind\": \"UNCOVERED\", \"message\": \"host: mechanism marker absent: REPLAY_DONE\"}, {\"kind\": \"UNCOVERED\", \"message\": \"host: mechanism marker absent: HISTORY_COMMIT\"}, {\"kind\": \"UNCOVERED\", \"message\": \"host: mechanism marker absent: RESUME session=\"}, {\"kind\": \"FAIL\", \"message\": \"client: process/scenario failed: System.TimeoutException: combat-entry: busy=False status=Peer 1: Undo timed out at voting. count=21 run=True combat=True sync=PlayPhase executor=False\\n   at MinimalHarness.Harness.Wait(Func`1 predicate, Int32 seconds)\\n   at MinimalHarness.PeerSkewProbe.Run()\\n   at MinimalHarness.StartupQueueProbe.Run()\\n   at MinimalHarness.Harness.RunAsync()\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client: no completed target-state-checked undo\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client: mechanism marker absent: RESTORE_BEGIN\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client: mechanism marker absent: REPLAY_DONE\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client: mechanism marker absent: HISTORY_COMMIT\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client: mechanism marker absent: RESUME session=\"}, {\"kind\": \"FAIL\", \"message\": \"client2: process/scenario failed: System.TimeoutException: combat-entry: busy=False status=Peer 1: Undo timed out at voting. count=21 run=True combat=True sync=PlayPhase executor=False\\n   at MinimalHarness.Harness.Wait(Func`1 predicate, Int32 seconds)\\n   at MinimalHarness.PeerSkewProbe.Run()\\n   at MinimalHarness.StartupQueueProbe.Run()\\n   at MinimalHarness.Harness.RunAsync()\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client2: no completed target-state-checked undo\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client2: mechanism marker absent: RESTORE_BEGIN\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client2: mechanism marker absent: REPLAY_DONE\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client2: mechanism marker absent: HISTORY_COMMIT\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client2: mechanism marker absent: RESUME session=\"}, {\"kind\": \"UNCOVERED\", \"message\": \"No resumed replay session.\"}, {\"kind\": \"UNCOVERED\", \"message\": \"No real post-replay action completed.\"}, {\"kind\": \"FAIL\", \"message\": \"Final native states missing or unequal.\"}, {\"kind\": \"INFRA_ERROR\", \"message\": \"host: skew proof missing/invalid: [Errno 2] No such file or directory: '/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3/skew-proof.host.json'\"}, {\"kind\": \"INFRA_ERROR\", \"message\": \"client: skew proof missing/invalid: [Errno 2] No such file or directory: '/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3/skew-proof.client.json'\"}, {\"kind\": \"INFRA_ERROR\", \"message\": \"client2: skew proof missing/invalid: [Errno 2] No such file or directory: '/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3/skew-proof.client2.json'\"}, {\"kind\": \"UNCOVERED\", \"message\": \"Final vote while native action pending was not observed on each restore\"}, {\"kind\": \"INFRA_ERROR\", \"message\": \"host: startup composition proof invalid: [Errno 2] No such file or directory: '/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3/startup-composition.host.json'\"}, {\"kind\": \"INFRA_ERROR\", \"message\": \"client: startup composition proof invalid: [Errno 2] No such file or directory: '/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3/startup-composition.client.json'\"}, {\"kind\": \"INFRA_ERROR\", \"message\": \"client2: startup composition proof invalid: [Errno 2] No such file or directory: '/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3/startup-composition.client2.json'\"}, {\"kind\": \"UNCOVERED\", \"message\": \"host: no actual native checksum generation probe suppressed\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client: no actual native checksum generation probe suppressed\"}, {\"kind\": \"UNCOVERED\", \"message\": \"client2: no actual native checksum generation probe suppressed\"}]",
+      "run": {
+        "label": "skew-mp3",
+        "peers": 3,
+        "suite": "peer-skew",
+        "seed": "MINIMAL_MP_A",
+        "headless": false,
+        "roles": [
+          "host",
+          "client",
+          "client2"
+        ],
+        "transport": "enet",
+        "game": {
+          "commit": "d09d48e5",
+          "version": "v0.113.1",
+          "date": "2026-11-14T02:31:11+00:00",
+          "branch": "v0.113.1",
+          "main_assembly_hash": -1414792094
+        },
+        "processes": {
+          "host": {
+            "pid": 81632,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=host",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=peer-skew",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1",
+              "--minimal-speed=normal",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 1
+          },
+          "client": {
+            "pid": 81700,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=peer-skew",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "1001",
+              "--minimal-speed=normal",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 1
+          },
+          "client2": {
+            "pid": 81729,
+            "args": [
+              "caffeinate",
+              "-dimsu",
+              "/Users/kimbeomsu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2",
+              "--minimal-harness=client2",
+              "--minimal-dir=/var/folders/l9/jlf03xp92jg3zqrjkx02wnq00000gn/T/undosync-extended-mno2m74w/skew-mp3",
+              "--minimal-peers=3",
+              "--minimal-suite=peer-skew",
+              "--minimal-seed=MINIMAL_MP_A",
+              "--force-steam",
+              "off",
+              "--clientId",
+              "2001",
+              "--minimal-speed=normal",
+              "--windowed",
+              "--resolution",
+              "1280x720"
+            ],
+            "exit": 1
+          }
+        },
+        "mixed_characters": false,
+        "retained_session": true,
+        "phases": false,
+        "speed": "normal",
+        "schedule_seed": null,
+        "repro": null,
+        "dlls": {
+          "UndoSync": {
+            "UndoSync.dll": "361ffc2b6ee80c4ba0ae3af53338915a8868283055e70b5c10c9a3450860648d",
+            "UndoSync.json": "90d46c38c4df87fae7a44270f87b806507f0a5e65c8c98424073386911b2df01"
+          },
+          "MinimalHarness": {
+            "MinimalHarness.dll": "561238e631cf202812556013ad5fe8f97c47defb1d45db7b5170e99dbad28ead",
+            "MinimalHarness.json": "8dc7438c38f5fcf77b328060b51be17d7e5658cfde41b36409993b7784aabbbc"
+          }
+        },
+        "verdict": "FAIL",
+        "elapsed_seconds": 83.636
+      }
+    }
+  ],
+  "requested": [
+    "enemy-sp",
+    "enemy-mp3",
+    "lifecycle-mp3",
+    "redraw-mp3",
+    "transform-sp",
+    "transform-mp3",
+    "skew-mp3"
+  ],
+  "complete": false,
+  "elapsed_seconds": 329.402
+}

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
@@ -28,7 +29,12 @@ namespace MinimalHarness;
 // choose -> resume. Observation uses public queue events, never modifies actions.
 internal static class StartupQueueProbe
 {
-    internal static bool Active => CommandLineHelper.GetValue("minimal-suite") == "startup-queue";
+    internal static bool Active => CommandLineHelper.GetValue("minimal-suite") is "startup-queue" or "startup-transform" or "peer-skew";
+    internal static bool Transform => CommandLineHelper.GetValue("minimal-suite") == "startup-transform";
+    internal static bool Skew => CommandLineHelper.GetValue("minimal-suite") == "peer-skew";
+    internal static int DiscardCount => int.Parse(CommandLineHelper.GetValue("minimal-startup-discards") ?? (Transform || Skew ? "3" : "0"));
+    private static int _liveRedraws, _replayRedraws, _liveShuffles, _replayShuffles;
+    private static readonly HashSet<ulong> Redrawing = new();
     private static bool Baseline => CommandLineHelper.GetValue("minimal-expect") == "baseline";
     private static string Mode => CommandLineHelper.GetValue("minimal-queued-action") ?? "use";
     private static readonly List<string> Original = new(), Replayed = new();
@@ -42,6 +48,7 @@ internal static class StartupQueueProbe
     internal static void Attach()
     {
         if (!Active) return;
+        Redrawing.Clear();
         var queue = Harness.Manager.ActionQueueSet;
         void Record(string line)
         {
@@ -65,13 +72,13 @@ internal static class StartupQueueProbe
         {
             // Five starting cards guarantee a normal playable post-selection hand.
             var keep = player.Deck.Cards.Where(c => c.Id.Entry.StartsWith("DEFEND_")).Take(3)
-                .Concat(player.Deck.Cards.Where(c => c.Id.Entry.StartsWith("STRIKE_")).Take(2)).ToHashSet();
+                .Concat(player.Deck.Cards.Where(c => Transform ? c.Id.Entry is "ECSTASY" or "VITRIOL" : c.Id.Entry.StartsWith("STRIKE_")).Take(2)).ToHashSet();
             Harness.Require(keep.Count == 5, "FIXTURE_ERROR five native starting cards");
             await CardPileCmd.RemoveFromDeck(player.Deck.Cards.Where(c => !keep.Contains(c)).ToArray(), showPreview: false);
             var relic = RelicFactory.PullNextRelicFromBack(player, RelicRarity.Rare, r => r is GamblingChip);
             Harness.Require(relic is GamblingChip, "FIXTURE_ERROR native bag contains Gambling Chip");
             await RelicCmd.Obtain(relic.ToMutable(), player);
-            foreach (string id in new[] { PotionId, "BLOCK_POTION" })
+            foreach (string id in (Skew ? new[] { PotionId, "BLOCK_POTION", "SKILL_POTION" } : new[] { PotionId, "BLOCK_POTION" }))
             {
                 PotionModel? selected = null;
                 for (int i = 0; i < 512; i++)
@@ -105,7 +112,9 @@ internal static class StartupQueueProbe
             "input really queued before startup selection completed");
         Harness.Log($"STARTUP_INPUT_QUEUED mode={Mode} phase={Me.PlayerCombatState.Phase}");
         await Harness.Barrier(Prefix + "all-input-queued");
-        await Harness.ClickViaViewport(NCombatRoom.Instance.Ui.Hand.GetNode<NConfirmButton>("%SelectModeConfirmButton"), "startup-confirm-zero-discards");
+        foreach (var card in PileType.Hand.GetPile(Me).Cards.Take(DiscardCount).ToArray())
+            await Harness.SelectHandViaViewport(card);
+        await Harness.ClickViaViewport(NCombatRoom.Instance.Ui.Hand.GetNode<NConfirmButton>("%SelectModeConfirmButton"), "startup-confirm-discards-"+DiscardCount);
         Harness.RecordSelection();
         if (Mode == "select")
         {
@@ -122,6 +131,7 @@ internal static class StartupQueueProbe
 
     internal static async Task Run()
     {
+        if (Skew) { await PeerSkewProbe.Run(); return; }
         Harness.Require(Harness.State.Players.All(p => Mode == "discard"
             ? !p.Potions.Any(x => x.Id.Entry == "BLOCK_POTION")
             : !p.Potions.Any(x => x.Id.Entry == PotionId)), "queued native input actually executed after choice");
@@ -191,7 +201,40 @@ internal static class StartupQueueProbe
         await Harness.EndTurnAll(Prefix + "next-turn");
         if (Harness.Roles.Length > 1) await Harness.CheckConnectedUi(Prefix + "final");
         File.WriteAllText(Path.Combine(Harness.DirectoryPath, $"startup-proof.{Harness.Role}.json"), JsonSerializer.Serialize(new { mode = Mode, target, expected, trace_checks = Math.Max(2, Harness.Roles.Length), native_input_while_start = true }));
+        WriteCompositionProof();
         Harness.Log("STARTUP_QUEUE_PASS mode=" + Mode);
         await Harness.Barrier(Prefix + "terminal");
+    }
+
+    [HarmonyPatch(typeof(CardCmd), nameof(CardCmd.DiscardAndDraw))]
+    private static class RedrawObserver
+    {
+        private static void Prefix(IEnumerable<CardModel> cardsToDiscard, int cardsToDraw)
+        {
+            if (!Active || DiscardCount == 0) return;
+            var cards = cardsToDiscard.ToArray();
+            if (cards.Length == 0 || cards[0].Owner.PlayerCombatState?.TurnNumber != 1) return;
+            Harness.Require(cards.Length == DiscardCount && cardsToDraw == DiscardCount, "actual startup nonempty discard and redraw count");
+            Redrawing.Add(cards[0].Owner.NetId);
+            if (Network.Executing) _replayRedraws++; else _liveRedraws++;
+        }
+    }
+    [HarmonyPatch(typeof(CardPileCmd), nameof(CardPileCmd.Shuffle))]
+    private static class ShuffleObserver
+    {
+        private static void Prefix(MegaCrit.Sts2.Core.GameActions.Multiplayer.PlayerChoiceContext choiceContext, Player player)
+        {
+            if (!Active || !Redrawing.Contains(player.NetId) || player.PlayerCombatState?.TurnNumber != 1) return;
+            if (Network.Executing) _replayShuffles++; else _liveShuffles++;
+            Harness.Log("STARTUP_REAL_SHUFFLE replay="+Network.Executing+" player="+player.NetId);
+        }
+    }
+    internal static void WriteCompositionProof()
+    {
+        if (DiscardCount == 0) return;
+        int peers = Harness.Roles.Length, restores = Math.Max(2, peers);
+        Harness.Require(_liveRedraws >= peers && _liveShuffles >= peers && _replayRedraws >= peers*restores && _replayShuffles >= peers*restores,
+            "nonempty native startup discard redraw and shuffle observed live and every replay");
+        File.WriteAllText(Path.Combine(Harness.DirectoryPath,$"startup-composition.{Harness.Role}.json"), JsonSerializer.Serialize(new { discards=DiscardCount,live_redraws=_liveRedraws,replay_redraws=_replayRedraws,live_shuffles=_liveShuffles,replay_shuffles=_replayShuffles,transform=Transform,skew=Skew }));
     }
 }

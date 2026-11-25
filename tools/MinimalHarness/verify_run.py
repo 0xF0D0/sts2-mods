@@ -51,7 +51,7 @@ def verify(folder, require_input=None, require_transport=None):
             issue('INFRA_ERROR', f'{role}: observed transport {value.get("transport")} != {expected_transport}')
         if value.get('divergences', -1) != 0:
             issue('FAIL', f'{role}: native divergence counter not zero')
-        if run['suite'] in ('fuzz', 'wuppy', 'turn-start', 'category', 'startup-queue'):
+        if run['suite'] in ('fuzz', 'wuppy', 'turn-start', 'category', 'startup-queue', 'startup-transform', 'peer-skew', 'lifecycle'):
             native_exceptions = re.findall(r'^(?:\[ERROR\] |ERROR: )(System\.[^\r\n]+)', log, re.MULTILINE)
             if native_exceptions:
                 issue('FAIL', f'{role}: native runtime exceptions ({len(native_exceptions)}): '
@@ -151,6 +151,21 @@ def verify(folder, require_input=None, require_transport=None):
             issue('UNCOVERED', 'No native viewport card choice completed')
         if len(roles) > 1 and proofs and proofs[0]['profile'] in ('potion', 'mixed') and any(p['actor'] == p['chooser'] for p in proofs):
             issue('UNCOVERED', 'Other-player potion choice branch not reached')
+    if run['suite'] == 'lifecycle':
+        for role in roles:
+            try:
+                proof = json.loads((folder/f'lifecycle-proof.{role}.json').read_text())
+                log = (folder/f'{role}-terminal.log').read_text()
+                if proof['checks'] < 3 or proof['late_views'] or proof['live_detach']:
+                    issue('FAIL', f'{role}: old native work outlived view teardown')
+                if log.count('LIFECYCLE_TRIGGER hand=') < proof['checks'] or log.count('LIFECYCLE_DETACH oldCombatLive=False') < proof['checks']:
+                    issue('UNCOVERED', f'{role}: pending draw or canceled-before-detach mechanism absent')
+                for attempt in range(proof['checks']):
+                    if (folder/f'lifecycle-restored-{attempt}.state.{role}').read_text() != proof['expected']:
+                        issue('FAIL', f'{role}: lifecycle restored state mismatch')
+                if 'LIFECYCLE_PASS' not in log: issue('UNCOVERED', f'{role}: lifecycle terminal marker absent')
+            except (OSError, ValueError, KeyError) as error:
+                issue('INFRA_ERROR', f'{role}: lifecycle proof missing/invalid: {error}')
     if run['suite'] == 'startup-queue':
         proofs = []
         for role in roles:
@@ -183,7 +198,7 @@ def verify(folder, require_input=None, require_transport=None):
                 issue('INFRA_ERROR', f'{role}: startup proof missing/invalid: {error}')
         if proofs and len({(p['mode'], p['target'], p['expected']) for p in proofs}) != 1:
             issue('FAIL', 'Startup queued-input target differs across peers')
-    if run['suite'] == 'turn-start':
+    if run['suite'] in ('turn-start','startup-transform'):
         for role in roles:
             try:
                 proof = json.loads((folder/f'turn-start-proof.{role}.json').read_text())
@@ -209,6 +224,34 @@ def verify(folder, require_input=None, require_transport=None):
                         issue('UNCOVERED', f'{role}: native transformed-card visual bindings were not exercised')
             except (OSError, ValueError, KeyError) as error:
                 issue('INFRA_ERROR', f'{role}: turn-start proof missing/invalid: {error}')
+    if run['suite'] == 'peer-skew':
+        votes=0
+        for role in roles:
+            try:
+                proof=json.loads((folder/f'skew-proof.{role}.json').read_text())
+                if proof['characters']!=['FOOL','IRONCLAD','SILENT'] or proof['restores']!=3:
+                    issue('UNCOVERED',f'{role}: heterogeneous participant/proposer rotation absent')
+                votes+=proof['pending_votes']
+                log=(folder/f'{role}-terminal.log').read_text()
+                if log.count('PEER_SKEW_BEFORE_FINAL actionPending=true')!=3 or 'PEER_SKEW_PASS' not in log:
+                    issue('UNCOVERED',f'{role}: partial-choice/action overlap absent')
+                varied=any('--minimal-skew-varied' in proc['args'] for proc in run['processes'].values())
+                if varied and (len(proof.get('targets',[]))!=3 or len({t['target'] for t in proof['targets']})<2):
+                    issue('UNCOVERED',f'{role}: different earlier/later targets were not exercised')
+                for attempt in range(3):
+                    expected=proof['targets'][attempt]['expected'] if varied else proof['expected']
+                    if (folder/f'skew-restored-{attempt}.state.{role}').read_text()!=expected:
+                        issue('FAIL',f'{role}: heterogeneous restored target differs')
+            except (OSError,ValueError,KeyError) as error:issue('INFRA_ERROR',f'{role}: skew proof missing/invalid: {error}')
+        if votes!=3:issue('UNCOVERED','Final vote while native action pending was not observed on each restore')
+    if run['suite'] in ('startup-transform','peer-skew') or run['suite'] == 'startup-queue' and any('--minimal-startup-discards=' in a and not a.endswith('=0') for proc in run['processes'].values() for a in proc['args']):
+        for role in roles:
+            try:
+                proof=json.loads((folder/f'startup-composition.{role}.json').read_text())
+                repeats=max(2,len(roles)); peers=len(roles)
+                if proof['discards']<1 or proof['live_redraws']<peers or proof['live_shuffles']<peers or proof['replay_redraws']<peers*repeats or proof['replay_shuffles']<peers*repeats:
+                    issue('UNCOVERED',f'{role}: actual startup discard/redraw/shuffle composition absent')
+            except (OSError,ValueError,KeyError) as error: issue('INFRA_ERROR',f'{role}: startup composition proof invalid: {error}')
     if run['suite'] == 'wuppy':
         for role in roles:
             try:

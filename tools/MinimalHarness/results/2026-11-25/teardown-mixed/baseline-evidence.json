@@ -1,0 +1,52 @@
+{
+  "classification": "EXPECTED_DEFECT_REPRODUCED then FIXED",
+  "baseline_pid": 71367,
+  "fixed_pid": 73442,
+  "baseline": {
+    "markers": [
+      "[MinimalHarness pid=71367 role=ui stage=combat-entry] LIFECYCLE_DRAW_PENDING turn=2 hand=0",
+      "[MinimalHarness pid=71367 role=ui stage=combat-entry] LIFECYCLE_TRIGGER hand=1 drawPending=True",
+      "[MinimalHarness pid=71367 role=ui stage=combat-entry] LIFECYCLE_DETACH oldCombatLive=True drawPending=True",
+      "[MinimalHarness pid=71367 role=ui stage=combat-entry] LIFECYCLE_OLD_VIEW_ACCESS room=null combatLive=true",
+      "[UndoSync pid=71367] REPLAY_DONE events=1 waits=0 choices=0 turnChecks=1 turnWaits=0 checksum=1821899888 restoreMs=696 replayMs=7 totalMs=703 atMs=26572 utc=2026-11-25T02:13:18.9554430Z",
+      "[MinimalHarness pid=71367 role=ui stage=combat-entry] LIFECYCLE_OLD_TASK completed=True error=NullReferenceException lateViews=1 liveDetach=1",
+      "[MinimalHarness pid=71367 role=ui stage=combat-entry] LIFECYCLE_BASELINE_CONFIRMED"
+    ],
+    "native_error_stacks": [
+      [
+        "[ERROR] Combat #1 turn loop died while its combat is in progress; the combat is stuck until the room is restarted: System.NullReferenceException: Object reference not set to an instance of an object.",
+        "   at MegaCrit.Sts2.Core.Commands.CardPileCmd.CreateCardNodeAndUpdateVisuals_Patch2(CardModel card, Nullable`1 oldPileType, PileType targetPileType, Boolean owningPlayerIsLocal)",
+        "   at MegaCrit.Sts2.Core.Commands.CardPileCmd.GetTweenForCardsChangingPiles_Patch2(IEnumerable`1 results, Boolean fromSilentAdd)",
+        "   at MegaCrit.Sts2.Core.Commands.CardPileCmd.Add(IEnumerable`1 cards, CardPile newPile, CardPilePosition position, AbstractModel clonedBy, Boolean skipVisuals, Boolean isChangingOwners)",
+        "   at MegaCrit.Sts2.Core.Commands.CardPileCmd.Add(CardModel card, CardPile newPile, CardPilePosition position, AbstractModel clonedBy, Boolean skipVisuals)",
+        "   at MegaCrit.Sts2.Core.Commands.CardPileCmd.DrawInternal(PlayerChoiceContext choiceContext, Decimal count, Player player, Boolean fromHandDraw)",
+        "   at MegaCrit.Sts2.Core.Combat.CombatManager.SetupPlayerTurn(CombatTurnState turnState, Player player, HookPlayerChoiceContext playerChoiceContext)",
+        "   at MegaCrit.Sts2.Core.Helpers.TaskHelper.WhenAny(Task[] tasks)",
+        "   at MegaCrit.Sts2.Core.GameActions.Multiplayer.HookPlayerChoiceContext.WaitForPauseOrCompletionWithoutAssigningTask(Task task)",
+        "   at MegaCrit.Sts2.Core.Combat.CombatManager.StartTurn(CombatTurnState turnState, Func`1 actionDuringEnemyTurn)"
+      ]
+    ]
+  },
+  "fixed": {
+    "markers": [
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_DRAW_PENDING turn=2 hand=0",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_TRIGGER hand=1 drawPending=True",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_DETACH oldCombatLive=False drawPending=True",
+      "[UndoSync pid=73442] REPLAY_DONE events=1 waits=0 choices=0 turnChecks=1 turnWaits=0 checksum=1821899888 restoreMs=644 replayMs=7 totalMs=651 atMs=26103 utc=2026-11-25T02:15:50.0746290Z",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_OLD_TASK completed=True error=none lateViews=0 liveDetach=0",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_DRAW_PENDING turn=2 hand=0",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_TRIGGER hand=1 drawPending=True",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_DETACH oldCombatLive=False drawPending=True",
+      "[UndoSync pid=73442] REPLAY_DONE events=1 waits=0 choices=0 turnChecks=1 turnWaits=0 checksum=1821899888 restoreMs=639 replayMs=6 totalMs=645 atMs=32436 utc=2026-11-25T02:15:56.4076120Z",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_OLD_TASK completed=True error=none lateViews=0 liveDetach=0",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_DRAW_PENDING turn=2 hand=0",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_TRIGGER hand=1 drawPending=True",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_DETACH oldCombatLive=False drawPending=True",
+      "[UndoSync pid=73442] REPLAY_DONE events=1 waits=0 choices=0 turnChecks=1 turnWaits=0 checksum=1821899888 restoreMs=581 replayMs=6 totalMs=587 atMs=38675 utc=2026-11-25T02:16:02.6464820Z",
+      "[MinimalHarness pid=73442 role=ui stage=combat-entry] LIFECYCLE_OLD_TASK completed=True error=none lateViews=0 liveDetach=0",
+      "[MinimalHarness pid=73442 role=ui stage=lifecycle-next-turn] LIFECYCLE_PASS"
+    ],
+    "native_error_stacks": []
+  },
+  "note": "The baseline new replay itself completed; its OLD combat loop faulted during scene teardown. Baseline is not a clean restore PASS."
+}

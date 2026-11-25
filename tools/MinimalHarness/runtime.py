@@ -90,7 +90,7 @@ def run(root, label, peers, suite, headless=True, seed='MINIMAL_MP_A', schedule_
     if transport == 'steam' and peers != 1: raise ValueError('Only the single-host Steam lifetime smoke is configured here.')
     folder = root/label
     folder.mkdir()
-    roles = ['host'] if transport == 'steam' else ['ui'] if suite in ('fuzz', 'model-probe', 'compatibility', 'wuppy', 'turn-start', 'category', 'startup-queue') and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
+    roles = ['host'] if transport == 'steam' else ['ui'] if suite in ('fuzz', 'model-probe', 'compatibility', 'wuppy', 'turn-start', 'category', 'startup-queue', 'startup-transform', 'lifecycle') and peers == 1 or suite in ('choice-ui', 'picker-ui', 'localization-ui', 'viewport-ui', 'restoring-ui', 'replay-speed-cancel') else ['host', 'client', 'client2', 'client3'][:peers]
     processes = {}
     record = {'label': label, 'peers': peers, 'suite': suite, 'seed': seed, 'headless': headless, 'roles': roles, 'transport': 'singleplayer' if roles == ['ui'] else transport, 'game': json.loads((APP/'Contents/Resources/release_info.json').read_text()), 'processes': {}}
     record['mixed_characters'] = mixed
